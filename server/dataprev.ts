@@ -1,0 +1,652 @@
+import { randomUUID } from "node:crypto";
+import { z } from "zod";
+import { publicProcedure, router } from "./_core/trpc";
+
+type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
+type JsonValue = undefined | null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
+type RunState = Record<string, string | number | boolean | null | undefined>;
+
+type JourneyStatus = "external" | "internal" | "gap" | "manual" | "partial";
+
+type JourneyAction = {
+  id: string;
+  title: string;
+  app: "Personal" | "Business" | "Ambos";
+  method?: HttpMethod;
+  path?: string;
+  group: string;
+  status: JourneyStatus;
+  description: string;
+  requiresM2M?: boolean;
+  requiresUser?: "employee" | "person";
+  includeRegion?: boolean;
+  expectedStatus?: [number, number];
+  buildBody?: (state: RunState) => JsonValue;
+  buildPath?: (state: RunState) => string;
+  onSuccess?: (body: unknown, state: RunState) => RunState;
+  missingReason?: string;
+};
+
+type JourneyStep = {
+  id: number;
+  title: string;
+  app: "Personal" | "Business" | "Ambos";
+  summary: string;
+  status: JourneyStatus;
+  actions: JourneyAction[];
+};
+
+type Evidence = {
+  actionId: string;
+  actionTitle: string;
+  status: "executed" | "not_executable" | "failed";
+  method?: HttpMethod;
+  url?: string;
+  httpStatus?: number;
+  ok: boolean;
+  requestHeaders?: Record<string, string>;
+  requestBody?: JsonValue;
+  responseBody?: unknown;
+  stateUpdates?: RunState;
+  message?: string;
+  missingReason?: string;
+  executedAt: string;
+};
+
+const DEFAULT_PASSWORD = "SecurePass123!";
+const tokenStore = new Map<string, string>();
+let m2mCache: { token: string; expiresAt: number } | null = null;
+
+function env() {
+  return {
+    baseUrl: (process.env.DATAPREV_BASE_URL || "https://api.sandbox.drumwave.com.br").replace(/\/+$/, ""),
+    apiKey: process.env.DATAPREV_API_KEY || "",
+    clientId: process.env.DATAPREV_CLIENT_ID || "",
+    clientSecret: process.env.DATAPREV_CLIENT_SECRET || "",
+  };
+}
+
+function createRunId() {
+  return String(Date.now()).slice(-10);
+}
+
+function createCnpj(seedValue?: string | number) {
+  let seed = Number(String(seedValue ?? Date.now()).replace(/\D/g, "").slice(-8)) || 12345678;
+  const nextDigit = () => {
+    seed = (seed * 9301 + 49297) % 233280;
+    return Math.floor((seed / 233280) * 10);
+  };
+  const base = Array.from({ length: 8 }, nextDigit).concat([0, 0, 0, 1]);
+  const digit = (numbers: number[], weights: number[]) => {
+    const sum = numbers.reduce((acc, number, index) => acc + number * weights[index], 0);
+    const remainder = sum % 11;
+    return remainder < 2 ? 0 : 11 - remainder;
+  };
+  const d1 = digit(base, [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  const d2 = digit([...base, d1], [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2]);
+  return [...base, d1, d2].join("");
+}
+
+function findFirst(obj: unknown, keys: string[]): string | undefined {
+  if (!obj || typeof obj !== "object") return undefined;
+  if (Array.isArray(obj)) {
+    for (const item of obj) {
+      const found = findFirst(item, keys);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  const record = obj as Record<string, unknown>;
+  for (const key of keys) {
+    const value = record[key];
+    if (typeof value === "string" && value) return value;
+    if (typeof value === "number") return String(value);
+  }
+  for (const value of Object.values(record)) {
+    const found = findFirst(value, keys);
+    if (found) return found;
+  }
+  return undefined;
+}
+
+function firstListItem(obj: unknown): Record<string, unknown> | undefined {
+  if (Array.isArray(obj) && obj.length > 0 && typeof obj[0] === "object") return obj[0] as Record<string, unknown>;
+  if (!obj || typeof obj !== "object") return undefined;
+  const record = obj as Record<string, unknown>;
+  for (const key of ["data", "items", "results", "page"]) {
+    const value = record[key];
+    if (Array.isArray(value) && value.length > 0 && typeof value[0] === "object") return value[0] as Record<string, unknown>;
+  }
+  return undefined;
+}
+
+function extractDataRequestId(obj: unknown): string | undefined {
+  const record = obj as { data?: { dataRequests?: Array<{ id?: string }>; page?: Array<{ id?: string }> } };
+  return record?.data?.dataRequests?.[0]?.id || record?.data?.page?.[0]?.id || findFirst(obj, ["dataRequestId", "requestId", "id"]);
+}
+
+export function sanitizeDataprevEvidence(value: unknown, depth = 0): unknown {
+  if (depth > 7) return "<TRUNCATED_DEPTH>";
+  if (value === null || value === undefined) return value;
+  if (typeof value === "string") {
+    let output = value;
+    for (const secret of [env().apiKey, env().clientSecret]) {
+      if (secret) output = output.replaceAll(secret, "<REDACTED_SECRET>");
+    }
+    output = output.replace(/eyJ[A-Za-z0-9_\-.]+/g, "<JWT_REDACTED>");
+    return output.length > 5000 ? `${output.slice(0, 5000)}...` : output;
+  }
+  if (typeof value !== "object") return value;
+  if (Array.isArray(value)) return value.slice(0, 5).map(item => sanitizeDataprevEvidence(item, depth + 1));
+  const out: Record<string, unknown> = {};
+  for (const [key, item] of Object.entries(value)) {
+    const lower = key.toLowerCase();
+    if (["token", "secret", "authorization", "x-api-key", "apikey", "api_key", "clientsecret"].some(marker => lower.includes(marker))) {
+      out[key] = item ? "<REDACTED>" : item;
+    } else {
+      out[key] = sanitizeDataprevEvidence(item, depth + 1);
+    }
+  }
+  return out;
+}
+
+function storeToken(token?: string) {
+  if (!token) return undefined;
+  const handle = randomUUID();
+  tokenStore.set(handle, token);
+  return handle;
+}
+
+function getStoredToken(handle?: string) {
+  if (!handle) return undefined;
+  return tokenStore.get(handle);
+}
+
+async function getM2MToken() {
+  const config = env();
+  if (!config.apiKey || !config.clientId || !config.clientSecret) {
+    throw new Error("Credenciais DATAPREV_* não estão configuradas no servidor.");
+  }
+  if (m2mCache && m2mCache.expiresAt > Date.now() + 60_000) return m2mCache.token;
+
+  const response = await fetch(`${config.baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": config.apiKey,
+    },
+    body: JSON.stringify({
+      client_id: config.clientId,
+      client_secret: config.clientSecret,
+      grant_type: "client_credentials",
+    }),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok || typeof data.access_token !== "string") {
+    throw new Error(`Falha ao obter token M2M: HTTP ${response.status}`);
+  }
+  m2mCache = {
+    token: data.access_token,
+    expiresAt: Date.now() + Number(data.expires_in || 3600) * 1000,
+  };
+  return m2mCache.token;
+}
+
+function headers(options: { m2m?: string; userToken?: string; region?: boolean; content?: boolean }) {
+  const config = env();
+  const out: Record<string, string> = { "x-api-key": config.apiKey };
+  if (options.content !== false) out["Content-Type"] = "application/json";
+  if (options.m2m) out.Authorization = `Bearer ${options.m2m}`;
+  if (options.userToken) out["X-User-Access-Token"] = options.userToken;
+  if (options.region) out["x-region"] = "BR";
+  return out;
+}
+
+const actions: JourneyAction[] = [
+  {
+    id: "step1_employee_signup",
+    title: "Criar conta de colaborador Business",
+    app: "Business",
+    group: "dWallet Employee",
+    method: "POST",
+    path: "/v1/dwallet/employee/signup",
+    status: "external",
+    includeRegion: true,
+    description: "Cria o usuário colaborador que representa a empresa na jornada Business dWallet.",
+    buildBody: state => ({ email: state.employeeEmail, password: DEFAULT_PASSWORD, firstName: "Maria", lastName: "Silva", phoneNumber: "+5511999990001", address: { state: "SP" } }),
+  },
+  {
+    id: "step1_employee_send_code",
+    title: "Enviar código de verificação do colaborador",
+    app: "Business",
+    group: "Auth",
+    method: "POST",
+    path: "/v1/auth/token/iam/idp/users/send-code",
+    status: "manual",
+    requiresM2M: true,
+    description: "Solicita código de verificação por e-mail; a confirmação depende de acesso manual à caixa postal.",
+    buildBody: state => ({ value: state.employeeEmail, attribute: "email" }),
+  },
+  {
+    id: "step1_employee_signin",
+    title: "Login do colaborador Business",
+    app: "Business",
+    group: "dWallet Auth",
+    method: "POST",
+    path: "/v1/dwallet/auth/signin",
+    status: "external",
+    requiresM2M: true,
+    includeRegion: true,
+    description: "Autentica o colaborador criado e guarda o token de usuário no servidor por meio de identificador opaco.",
+    buildBody: state => ({ email: state.employeeEmail, password: DEFAULT_PASSWORD }),
+    onSuccess: body => ({ employeeTokenHandle: storeToken(findFirst(body, ["accessToken", "access_token"])), employeeDwalletId: findFirst(body, ["dWalletId"]) }),
+  },
+  {
+    id: "step1_business_create",
+    title: "Criar entidade Business dWallet",
+    app: "Business",
+    group: "dWallet Business",
+    method: "POST",
+    path: "/v1/dwallet/business",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    includeRegion: true,
+    description: "Cria a carteira/entidade empresarial associada ao colaborador autenticado.",
+    buildBody: state => ({ name: `Empresa Dataprev Local ${state.runId}`, cnpj: state.businessCnpj, address: { line1: "Rua Exemplo 123", city: "São Paulo", state: "SP", zip: "01310-100" } }),
+    onSuccess: body => ({ businessId: findFirst(body, ["businessId", "id", "uuid"]), businessDwalletId: findFirst(body, ["dWalletId"]) }),
+  },
+  {
+    id: "step2_person_signup",
+    title: "Criar Personal dWallet",
+    app: "Personal",
+    group: "dWallet Person",
+    method: "POST",
+    path: "/v1/dwallet/person/signup",
+    status: "external",
+    includeRegion: true,
+    description: "Cria a conta da pessoa física que será usada nos passos da Personal dWallet.",
+    buildBody: state => ({ email: state.personEmail, password: DEFAULT_PASSWORD, firstName: "João", lastName: "Santos", phoneNumber: "+5511999990002", address: { state: "SP" } }),
+  },
+  {
+    id: "step2_person_send_code",
+    title: "Enviar código de verificação da pessoa",
+    app: "Personal",
+    group: "Auth",
+    method: "POST",
+    path: "/v1/auth/token/iam/idp/users/send-code",
+    status: "manual",
+    requiresM2M: true,
+    description: "Solicita código de verificação por e-mail; a confirmação depende de acesso manual à caixa postal.",
+    buildBody: state => ({ value: state.personEmail, attribute: "email" }),
+  },
+  {
+    id: "step2_person_signin",
+    title: "Login da pessoa física",
+    app: "Personal",
+    group: "dWallet Auth",
+    method: "POST",
+    path: "/v1/dwallet/auth/signin",
+    status: "external",
+    requiresM2M: true,
+    includeRegion: true,
+    description: "Autentica a pessoa criada e guarda o token no servidor por meio de identificador opaco.",
+    buildBody: state => ({ email: state.personEmail, password: DEFAULT_PASSWORD }),
+    onSuccess: body => ({ personTokenHandle: storeToken(findFirst(body, ["accessToken", "access_token"])), personDwalletId: findFirst(body, ["dWalletId"]) }),
+  },
+  {
+    id: "step3_list_schemas",
+    title: "Consultar Standard Value Schemas",
+    app: "Business",
+    group: "Data Registry",
+    method: "GET",
+    path: "/v1/data-registry/value-schemas/standard",
+    status: "external",
+    requiresM2M: true,
+    description: "Lista schemas de valor padronizados disponíveis para uso na plataforma.",
+    onSuccess: body => ({ valueSchemaSid: firstListItem(body)?.sid as string | undefined || firstListItem(body)?.id as string | undefined }),
+  },
+  {
+    id: "step4_list_products",
+    title: "Consultar catálogo de dSKUs/produtos",
+    app: "Business",
+    group: "Data Registry",
+    method: "GET",
+    path: "/v1/data-registry/dskus/product",
+    status: "external",
+    requiresM2M: true,
+    description: "Consulta os produtos/dSKUs disponíveis; a criação/edição de produto segue marcada como interna ou parcial no roteiro.",
+    onSuccess: body => ({ dsku: firstListItem(body)?.dsku as string | undefined || firstListItem(body)?.id as string | undefined }),
+  },
+  {
+    id: "step5_person_catalog",
+    title: "Pessoa consulta produtos disponíveis",
+    app: "Personal",
+    group: "Data Registry",
+    method: "GET",
+    path: "/v1/data-registry/dskus/product",
+    status: "external",
+    requiresM2M: true,
+    description: "Reutiliza o catálogo de produtos para a visão Personal dWallet.",
+  },
+  {
+    id: "step6_create_data_request",
+    title: "Pessoa solicita dados à empresa",
+    app: "Personal",
+    group: "dWallet Data Request",
+    method: "POST",
+    path: "/v1/dwallet/person/data-request",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "person",
+    includeRegion: true,
+    description: "Cria solicitação de dados da pessoa para a empresa criada na jornada.",
+    buildBody: state => ({ loginEmail: state.personEmail, recipient: state.businessId }),
+    onSuccess: body => ({ dataRequestId: extractDataRequestId(body) }),
+  },
+  {
+    id: "step7_list_business_requests",
+    title: "Empresa lista solicitações pendentes",
+    app: "Business",
+    group: "dWallet Data Request",
+    method: "GET",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    includeRegion: true,
+    description: "Lista solicitações recebidas pela empresa, filtrando pendentes.",
+    buildPath: state => `/v1/dwallet/business/${state.businessId}/data-requests?status=pending`,
+    onSuccess: body => ({ dataRequestId: extractDataRequestId(body) }),
+  },
+  {
+    id: "step7_accept_data_request",
+    title: "Empresa aceita solicitação de dados",
+    app: "Business",
+    group: "dWallet Data Request",
+    method: "PATCH",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    includeRegion: true,
+    description: "Atualiza a solicitação como aceita usando o ID funcional retornado pela criação ou listagem.",
+    buildPath: state => `/v1/dwallet/data-request/${state.dataRequestId}`,
+    buildBody: () => ({ status: "accepted" }),
+  },
+  {
+    id: "step8_person_certificates",
+    title: "Pessoa consulta certificados",
+    app: "Personal",
+    group: "Data Savings",
+    method: "GET",
+    path: "/v1/dsavings/certificates",
+    status: "partial",
+    requiresM2M: true,
+    requiresUser: "person",
+    description: "Endpoint foi executável nos testes, mas o roteiro indica que a API de certificados/wallet pode estar interna ou parcialmente externalizada.",
+    expectedStatus: [200, 500],
+  },
+  {
+    id: "step9_business_certificates",
+    title: "Empresa consulta certificados",
+    app: "Business",
+    group: "Data Savings",
+    method: "GET",
+    path: "/v1/dsavings/certificates",
+    status: "partial",
+    requiresM2M: true,
+    requiresUser: "employee",
+    description: "Consulta certificados no contexto Business; disponibilidade pode depender de permissão/feature flag.",
+    expectedStatus: [200, 500],
+  },
+  {
+    id: "step10_commercial_dsps",
+    title: "Pessoa visualiza DSPs comerciais",
+    app: "Personal",
+    group: "Data Savings",
+    method: "GET",
+    path: "/v1/dsavings/data-savings-plans/commercial",
+    status: "external",
+    requiresM2M: true,
+    description: "Lista planos comerciais de poupança de dados.",
+    onSuccess: body => ({ commercialDspId: firstListItem(body)?.id as string | undefined }),
+  },
+  {
+    id: "step10_standard_dsps",
+    title: "Pessoa visualiza DSPs standard",
+    app: "Personal",
+    group: "Data Savings",
+    method: "GET",
+    path: "/v1/dsavings/data-savings-plans/standard",
+    status: "external",
+    requiresM2M: true,
+    description: "Lista planos standard de poupança de dados.",
+  },
+  {
+    id: "step10_create_dsp_account",
+    title: "Pessoa cria conta DSP",
+    app: "Personal",
+    group: "Data Savings",
+    method: "POST",
+    path: "/v1/dsavings/data-savings-accounts",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "person",
+    description: "Tenta criar uma conta DSP; respostas 4xx de regra de negócio são exibidas como evidência.",
+    expectedStatus: [200, 500],
+    buildBody: state => ({ cdspId: state.commercialDspId, categories: ["travel-and-transportation"], currency: "BRL", savingsGoal: 1000, agreedToTermsAndConditions: true }),
+  },
+  {
+    id: "step11_business_offers_gap",
+    title: "Empresa cria ofertas",
+    app: "Business",
+    group: "Marketplace Offers",
+    status: "gap",
+    description: "O roteiro não informa método, endpoint, payload ou resposta esperada para criação de ofertas.",
+    missingReason: "API de criação de ofertas não documentada nas lâminas do roteiro; etapa deve ser sinalizada como GAP/INT até externalização.",
+  },
+  {
+    id: "step12_person_offers",
+    title: "Pessoa visualiza ofertas disponíveis",
+    app: "Personal",
+    group: "Marketplace Offers",
+    method: "GET",
+    path: "/v1/marketplace/offers",
+    status: "partial",
+    requiresM2M: true,
+    requiresUser: "person",
+    description: "Consulta ofertas disponíveis. Testes anteriores retornaram 403 por permissão ou feature flag, o que deve aparecer como evidência.",
+    expectedStatus: [200, 500],
+    onSuccess: body => ({ offerId: firstListItem(body)?.id as string | undefined || firstListItem(body)?.offerId as string | undefined }),
+  },
+  {
+    id: "step13_offer_accept",
+    title: "Pessoa aceita oferta de licenciamento",
+    app: "Personal",
+    group: "Marketplace Offers",
+    method: "POST",
+    status: "partial",
+    requiresM2M: true,
+    requiresUser: "person",
+    description: "Executa aceite apenas se a listagem retornar offerId; caso contrário registra bloqueio operacional.",
+    expectedStatus: [200, 500],
+    buildPath: state => `/v1/marketplace/offers/${state.offerId}/accept`,
+  },
+  {
+    id: "step14_wallet_statement",
+    title: "Pessoa visualiza extrato/contas DSP",
+    app: "Ambos",
+    group: "Data Savings",
+    method: "GET",
+    path: "/v1/dsavings/data-savings-accounts",
+    status: "partial",
+    requiresM2M: true,
+    requiresUser: "person",
+    description: "Usa o endpoint disponível de contas DSP como evidência para o passo de extrato; endpoints financeiros detalhados permanecem parciais.",
+    expectedStatus: [200, 500],
+  },
+  {
+    id: "step15_withdrawal_internal",
+    title: "Pessoa ou empresa solicita resgate",
+    app: "Ambos",
+    group: "Wallet Withdrawal",
+    status: "internal",
+    description: "O roteiro indica endpoints de withdrawal e payment-settled/payment-failed, mas o sumário marca a etapa como API interna ainda não externalizada.",
+    missingReason: "APIs de resgate existem no roteiro como referência operacional, porém foram classificadas como INT; não devem ser executadas como externas nesta validação.",
+  },
+  {
+    id: "step16_accounts_gap",
+    title: "Cadastrar PIX/conta",
+    app: "Ambos",
+    group: "Accounts",
+    status: "gap",
+    description: "Cadastro, atualização e consulta de conta bancária ou chave PIX aparecem como GAP no roteiro.",
+    missingReason: "APIs de accounts onboarding precisam ser criadas ou externalizadas antes de teste real.",
+  },
+  {
+    id: "step17_history_gap",
+    title: "Consultar histórico de resgates",
+    app: "Ambos",
+    group: "Wallet Events",
+    status: "gap",
+    description: "Histórico de eventos da wallet e consulta de pagamento por transaction ID aparecem como GAP no roteiro.",
+    missingReason: "APIs de eventos de resgate e comprovantes não estão disponíveis para execução externa no roteiro.",
+  },
+];
+
+const steps: JourneyStep[] = [
+  { id: 1, title: "Empresa cria conta", app: "Business", summary: "Cadastro, login e criação da entidade empresarial.", status: "partial", actions: actions.filter(a => a.id.startsWith("step1_")) },
+  { id: 2, title: "Pessoa cria carteira", app: "Personal", summary: "Cadastro, verificação, login e identificação da pessoa física.", status: "partial", actions: actions.filter(a => a.id.startsWith("step2_")) },
+  { id: 3, title: "Empresa consulta schemas", app: "Business", summary: "Consulta de Standard Value Schemas.", status: "external", actions: actions.filter(a => a.id === "step3_list_schemas") },
+  { id: 4, title: "Empresa consulta/cadastra produtos", app: "Business", summary: "Catálogo executável; criação e gestão continuam parciais/internas.", status: "partial", actions: actions.filter(a => a.id === "step4_list_products") },
+  { id: 5, title: "Pessoa consulta produtos", app: "Personal", summary: "Visão de catálogo de produtos e empresas disponíveis.", status: "external", actions: actions.filter(a => a.id === "step5_person_catalog") },
+  { id: 6, title: "Pessoa solicita dados", app: "Personal", summary: "Criação de data request para uma empresa.", status: "external", actions: actions.filter(a => a.id === "step6_create_data_request") },
+  { id: 7, title: "Empresa responde solicitação", app: "Business", summary: "Listagem e aceite de solicitação de dados.", status: "external", actions: actions.filter(a => a.id.startsWith("step7_")) },
+  { id: 8, title: "Pessoa consulta certificados", app: "Personal", summary: "Certificados associados à conta pessoal.", status: "partial", actions: actions.filter(a => a.id === "step8_person_certificates") },
+  { id: 9, title: "Empresa consulta certificados", app: "Business", summary: "Certificados associados à empresa.", status: "partial", actions: actions.filter(a => a.id === "step9_business_certificates") },
+  { id: 10, title: "Pessoa seleciona DSP", app: "Personal", summary: "Consulta e tentativa de adesão a planos DSP.", status: "external", actions: actions.filter(a => a.id.startsWith("step10_")) },
+  { id: 11, title: "Empresa cria ofertas", app: "Business", summary: "Endpoint não documentado no roteiro.", status: "gap", actions: actions.filter(a => a.id === "step11_business_offers_gap") },
+  { id: 12, title: "Pessoa visualiza ofertas", app: "Personal", summary: "Listagem de ofertas sujeita a permissão/feature flag.", status: "partial", actions: actions.filter(a => a.id === "step12_person_offers") },
+  { id: 13, title: "Pessoa aceita/rejeita oferta", app: "Personal", summary: "Ação depende de oferta utilizável retornada no passo 12.", status: "partial", actions: actions.filter(a => a.id === "step13_offer_accept") },
+  { id: 14, title: "Ambos visualizam extrato", app: "Ambos", summary: "Extrato financeiro parcial via contas DSP.", status: "partial", actions: actions.filter(a => a.id === "step14_wallet_statement") },
+  { id: 15, title: "Solicitar resgate", app: "Ambos", summary: "APIs marcadas como internas.", status: "internal", actions: actions.filter(a => a.id === "step15_withdrawal_internal") },
+  { id: 16, title: "Cadastrar PIX/conta", app: "Ambos", summary: "APIs inexistentes ou não externalizadas.", status: "gap", actions: actions.filter(a => a.id === "step16_accounts_gap") },
+  { id: 17, title: "Histórico de resgates", app: "Ambos", summary: "APIs inexistentes ou não externalizadas.", status: "gap", actions: actions.filter(a => a.id === "step17_history_gap") },
+];
+
+const runStateSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).default({});
+
+function initialState(): RunState {
+  const runId = createRunId();
+  return {
+    runId,
+    employeeEmail: `dataprev.bd.local.${runId}@example.com`,
+    personEmail: `dataprev.pd.local.${runId}@example.com`,
+    businessCnpj: createCnpj(runId),
+  };
+}
+
+function missingPrerequisite(action: JourneyAction, state: RunState) {
+  if (action.requiresUser === "employee" && !getStoredToken(String(state.employeeTokenHandle || ""))) return "Execute primeiro o login do colaborador Business para gerar um token de usuário no servidor.";
+  if (action.requiresUser === "person" && !getStoredToken(String(state.personTokenHandle || ""))) return "Execute primeiro o login da pessoa física para gerar um token de usuário no servidor.";
+  if (action.id === "step1_business_create" && !state.employeeTokenHandle) return "Token do colaborador Business indisponível.";
+  if (action.id === "step6_create_data_request" && !state.businessId) return "Crie a entidade empresarial antes de solicitar dados.";
+  if (action.id === "step7_list_business_requests" && !state.businessId) return "Crie a entidade empresarial antes de listar solicitações.";
+  if (action.id === "step7_accept_data_request" && !state.dataRequestId) return "Crie ou liste uma solicitação de dados antes de aceitá-la.";
+  if (action.id === "step10_create_dsp_account" && !state.commercialDspId) return "Liste DSPs comerciais antes de criar a conta DSP.";
+  if (action.id === "step13_offer_accept" && !state.offerId) return "O passo 12 não retornou offerId utilizável para aceite.";
+  return undefined;
+}
+
+async function execute(action: JourneyAction, inputState: RunState): Promise<Evidence> {
+  const state = { ...initialState(), ...inputState };
+  const executedAt = new Date().toISOString();
+
+  if (action.status === "internal" || action.status === "gap" || !action.method) {
+    return {
+      actionId: action.id,
+      actionTitle: action.title,
+      status: "not_executable",
+      ok: true,
+      responseBody: { tipo: action.status, explicacao: action.description, impacto: action.missingReason },
+      message: "Etapa sinalizada como API não disponível para execução externa.",
+      missingReason: action.missingReason,
+      executedAt,
+    };
+  }
+
+  const prerequisite = missingPrerequisite(action, state);
+  if (prerequisite) {
+    return {
+      actionId: action.id,
+      actionTitle: action.title,
+      status: "not_executable",
+      ok: false,
+      responseBody: { preRequisitoNaoAtendido: prerequisite },
+      message: prerequisite,
+      executedAt,
+    };
+  }
+
+  const m2m = action.requiresM2M ? await getM2MToken() : undefined;
+  const userToken = action.requiresUser === "employee" ? getStoredToken(String(state.employeeTokenHandle || "")) : action.requiresUser === "person" ? getStoredToken(String(state.personTokenHandle || "")) : undefined;
+  const path = action.buildPath ? action.buildPath(state) : action.path;
+  if (!path || path.includes("undefined") || path.includes("null")) {
+    return {
+      actionId: action.id,
+      actionTitle: action.title,
+      status: "not_executable",
+      ok: false,
+      message: "Caminho da API não pôde ser montado por falta de identificador prévio.",
+      responseBody: { path },
+      executedAt,
+    };
+  }
+  const body = action.buildBody?.(state);
+  const requestHeaders = headers({ m2m, userToken, region: action.includeRegion, content: action.method !== "GET" });
+  const url = `${env().baseUrl}${path}`;
+  const response = await fetch(url, {
+    method: action.method,
+    headers: requestHeaders,
+    body: action.method === "GET" || body === undefined ? undefined : JSON.stringify(body),
+  });
+  const contentType = response.headers.get("content-type") || "";
+  const responseBody = contentType.includes("json") ? await response.json().catch(() => ({})) : await response.text().catch(() => "");
+  const [min, max] = action.expectedStatus || [200, 300];
+  const ok = response.status >= min && response.status < max;
+  const stateUpdates = ok && action.onSuccess ? action.onSuccess(responseBody, state) : {};
+
+  return {
+    actionId: action.id,
+    actionTitle: action.title,
+    status: ok ? "executed" : "failed",
+    method: action.method,
+    url,
+    httpStatus: response.status,
+    ok,
+    requestHeaders: sanitizeDataprevEvidence(requestHeaders) as Record<string, string>,
+    requestBody: sanitizeDataprevEvidence(body) as JsonValue,
+    responseBody: sanitizeDataprevEvidence(responseBody),
+    stateUpdates: sanitizeDataprevEvidence(stateUpdates) as RunState,
+    message: ok ? "Chamada executada dentro da faixa esperada." : "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.",
+    executedAt,
+  };
+}
+
+export const dataprevRouter = router({
+  metadata: publicProcedure.query(() => ({
+    credentialsConfigured: Boolean(env().baseUrl && env().apiKey && env().clientId && env().clientSecret),
+    baseUrl: env().baseUrl,
+    initialState: initialState(),
+    steps,
+  })),
+  executeAction: publicProcedure
+    .input(z.object({ actionId: z.string(), state: runStateSchema.optional() }))
+    .mutation(async ({ input }) => {
+      const action = actions.find(item => item.id === input.actionId);
+      if (!action) throw new Error(`Ação não mapeada: ${input.actionId}`);
+      return execute(action, (input.state || {}) as RunState);
+    }),
+});
+
+export type DataprevStep = JourneyStep;
+export type DataprevEvidence = Evidence;

@@ -175,3 +175,39 @@
     }
   }
 }
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: "Rawline", "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  :focus-visible {
+    outline: 3px solid #ffcd07;
+    outline-offset: 2px;
+  }
+}
+
+@layer components {
+  .govbr-app {
+    --govbr-blue-warm-vivid-70: #071d41;
+    --govbr-blue-warm-vivid-60: #0c326f;
+    --govbr-blue-warm-vivid-50: #1351b4;
+    --govbr-green-cool-vivid-50: #168821;
+    --govbr-yellow-vivid-20: #ffcd07;
+  }
+
+  .govbr-hero-personal {
+    background:
+      radial-gradient(circle at 88% 20%, rgba(255, 205, 7, 0.32), transparent 24rem),
+      linear-gradient(135deg, #071d41 0%, #0c326f 48%, #1351b4 100%);
+  }
+
+  .govbr-hero-business {
+    background:
+      radial-gradient(circle at 85% 18%, rgba(255, 205, 7, 0.26), transparent 22rem),
+      linear-gradient(135deg, #071d41 0%, #0b3d2e 48%, #168821 100%);
+  }
+}

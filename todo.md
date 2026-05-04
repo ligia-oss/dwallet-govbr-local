@@ -1,0 +1,22 @@
+# Project TODO
+
+- [x] Mapear a jornada de 17 passos do roteiro anexado para telas, ações de usuário e APIs correspondentes.
+- [x] Registrar APIs ausentes ou não executáveis por passo da jornada, com motivo e impacto.
+- [x] Criar estrutura de aplicação com duas experiências: Personal dWallet e Business dWallet.
+- [x] Aplicar identidade visual e padrões de UX em português alinhados ao Design System gov.br.
+- [x] Implementar página inicial institucional com entrada para Personal dWallet, Business dWallet e jornada de testes.
+- [x] Implementar telas da Personal dWallet necessárias para cadastro, login, carteira, solicitações de dados, aceite, ofertas, carrinho, checkout, extrato e resgate.
+- [x] Implementar telas da Business dWallet necessárias para cadastro empresarial, login, produtos, planos, ofertas, solicitações de dados, carrinho, checkout e acompanhamento de operações.
+- [x] Criar camada segura no servidor para execução das APIs externas sem expor credenciais no frontend.
+- [x] Adicionar configuração segura de ambiente para base URL, API key, client id e client secret da sandbox.
+- [x] Integrar botões e formulários das telas aos endpoints das APIs correspondentes.
+- [x] Exibir inputs enviados e respostas recebidas de forma sanitizada em cada etapa da jornada.
+- [x] Criar trilha visual da jornada de 17 passos com status pendente, executando, concluído, falhou ou API ausente.
+- [x] Implementar fallback simulado/registrado apenas para APIs identificadas como ausentes, deixando explícito que não houve chamada real.
+- [x] Criar testes Vitest para mapeamento da jornada, sanitização de segredos e camada de execução de APIs.
+- [x] Executar verificação de tipos, testes automatizados e validação de interface local.
+- [x] Criar documentação de uso local, variáveis necessárias, escopo implementado e APIs faltantes.
+- [x] Salvar checkpoint final do projeto após validação.
+- [x] Adicionar tela/fluxo de planos na Business dWallet e conectá-lo aos endpoints de DSP/planos aplicáveis.
+- [x] Adicionar validação de formulários e estados de erro visíveis na UI para falhas de mutation ou rede.
+- [x] Criar testes Vitest para execução de ações Dataprev cobrindo sucesso/lacuna, falha e atualização/sanitização do estado.
