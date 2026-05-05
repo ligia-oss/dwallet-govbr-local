@@ -88,5 +88,5 @@
 - [x] Adicionar ações backend Dataprev para executar envio de código e validação de código com evidências sanitizadas e reutilização do token M2M quando aplicável.
 - [x] Incluir telas/etapas de verificação de código no passo de criação de cada wallet GovBR, com campos editáveis, botões de execução e status visual.
 - [x] Atualizar testes Vitest para cobrir o mapeamento dos endpoints de verificação, payloads esperados, sanitização e renderização das novas telas.
-- [ ] Salvar novo checkpoint da integração de envio/validação de código OTP após testes, build e revisão do checklist.
+- [x] Salvar novo checkpoint da integração de envio/validação de código OTP após testes, build e revisão do checklist.
 
