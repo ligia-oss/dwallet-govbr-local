@@ -97,4 +97,4 @@
 - [x] Criar telas emuladas do aplicativo para as etapas aplicáveis da BdWallet, com campos de entrada equivalentes aos dados que o usuário informaria no app.
 - [x] Criar telas de resposta emuladas do aplicativo para exibir, quando aplicável, as respostas sanitizadas recebidas pelas APIs.
 - [x] Atualizar testes Vitest para cobrir a ordem da jornada BdWallet, a presença da criação da conta do empregado e a renderização das telas emuladas.
-- [ ] Salvar checkpoint da reorganização da jornada BdWallet após testes, build e revisão do checklist.
+- [x] Salvar checkpoint da reorganização da jornada BdWallet após testes, build e revisão do checklist.
