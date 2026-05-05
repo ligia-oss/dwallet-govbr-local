@@ -1,0 +1,53 @@
+{
+  "testedAt": "2026-05-05T22:18:17.186Z",
+  "route": "http://127.0.0.1:3000/personal-govbr",
+  "credentialSource": "/home/ubuntu/upload/DrumWavePlatform-API—Dataprev-Sandbox-Test.postman_collection.json",
+  "credentialFields": {
+    "baseUrl": {
+      "present": true,
+      "placeholder": false,
+      "length": 35,
+      "preview": "https://api.sandbox.drumwave.com.br"
+    },
+    "apiKey": {
+      "present": true,
+      "placeholder": true,
+      "length": 22,
+      "preview": "<YOU…KEY> (22 chars)"
+    },
+    "clientId": {
+      "present": true,
+      "placeholder": false,
+      "length": 26,
+      "preview": "58l3…cuj7 (26 chars)"
+    },
+    "clientSecret": {
+      "present": true,
+      "placeholder": true,
+      "length": 24,
+      "preview": "<YOU…RET> (24 chars)"
+    }
+  },
+  "outcome": "failed",
+  "errorText": "Falha no Passo 0 A sandbox recusou o passo zero de autenticação M2M. Se o Postman funciona, preencha todos os campos temporários da aba Credenciais com o mesmo base_url, x-api-key, client_id e client_secret, ou atualize os Secrets publicados e publique novamente. Quando local funciona e publicado retorna 403, a causa provável é x-api-key/client_secret divergente, expirado ou sem permissão no runtime publicado. Credenciais obrigatórias antes da execução Antes de clicar em Passo 0 — Autenticar M2M , preencha na a",
+  "sanitizedResult": {},
+  "network": [
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/api/trpc/dataprev.metadata,btg.metadata?batch=1…",
+      "status": 200
+    },
+    {
+      "method": "POST",
+      "url": "http://127.0.0.1:3000/api/trpc/dataprev.authenticateM2M?batch=1…",
+      "status": 200
+    },
+    {
+      "method": "GET",
+      "url": "http://127.0.0.1:3000/api/trpc/dataprev.metadata?batch=1…",
+      "status": 200
+    }
+  ],
+  "screenshotPath": null,
+  "note": "A captura visual foi removida antes do checkpoint para evitar persistir valores visíveis de credenciais no repositório."
+}

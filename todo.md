@@ -194,3 +194,7 @@
 - [x] Adicionar botões de limpeza para todos os blocos de dados da aba Credenciais, sem apagar blocos não relacionados.
 - [x] Atualizar testes automatizados para cobrir API URL obrigatória, novo rótulo, layout de orientação e limpeza por bloco.
 - [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint dos ajustes da aba Credenciais.
+
+- [x] Localizar a coleção JSON do Postman informada no projeto e extrair API URL, API ID / x-api-key, Client ID e Secret ID / Client secret sem expor valores no relatório — API key e client secret estão como placeholders na coleção encontrada.
+- [x] Testar o Passo 0 M2M pelo frontend usando as credenciais da coleção Postman e registrar evidência sanitizada de sucesso ou falha — frontend executou a chamada, mas a API recusou por credenciais placeholder/inválidas.
+- [x] Atualizar checklist e validar status do projeto após o teste real do Passo 0 pelo frontend.
