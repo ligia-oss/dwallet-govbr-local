@@ -79,9 +79,47 @@ describe("execução Dataprev", () => {
       phoneNumber: "+551188887777",
       password: "SenhaVariavel123!",
     }));
-    expect(capturedBody.address).toEqual(expect.objectContaining({ line1: "Avenida Teste 10", city: "Brasília", state: "DF", zip: "70000-000" }));
+    expect(capturedBody.address).toEqual({ state: "DF" });
+    expect(capturedBody.address).not.toHaveProperty("line1");
+    expect(capturedBody.address).not.toHaveProperty("city");
+    expect(capturedBody.address).not.toHaveProperty("zip");
     expect(JSON.stringify(evidence.requestBody)).not.toContain("SenhaVariavel123!");
     expect(JSON.stringify(evidence.requestBody)).toContain("<REDACTED>");
+  });
+
+  it("envia somente a UF no endereço dos cadastros Business para respeitar o contrato da sandbox", async () => {
+    const caller = appRouter.createCaller(ctx);
+    const capturedBodies: any[] = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "m2m-token", expires_in: 3600 });
+      const parsedBody = init?.body ? JSON.parse(String(init.body)) : undefined;
+      if (url.includes("/v1/dwallet/auth/signin")) return jsonResponse(200, { accessToken: "eyJemployee.token.jwt", dWalletId: "employee-dwallet" });
+      if (parsedBody) capturedBodies.push(parsedBody);
+      return jsonResponse(201, { id: "business-1" });
+    }) as any;
+
+    await caller.dataprev.executeAction({
+      actionId: "step1_employee_signup",
+      state: { runId: "130", employeeEmail: "colaborador-address@example.com", businessAddressLine: "Rua Removida", businessCity: "Curitiba", businessState: "PR", businessZip: "80000-000" },
+    });
+    const signin = await caller.dataprev.executeAction({
+      actionId: "step1_employee_signin",
+      state: { runId: "131", employeeEmail: "colaborador-address@example.com" },
+    });
+    await caller.dataprev.executeAction({
+      actionId: "step1_business_create",
+      state: { runId: "132", employeeTokenHandle: signin.stateUpdates?.employeeTokenHandle, businessCnpj: "11222333000181", businessAddressLine: "Rua Removida", businessCity: "Curitiba", businessState: "PR", businessZip: "80000-000" },
+    });
+
+    expect(capturedBodies).toHaveLength(2);
+    expect(capturedBodies[0].address).toEqual({ state: "PR" });
+    expect(capturedBodies[1].address).toEqual({ state: "PR" });
+    for (const body of capturedBodies) {
+      expect(body.address).not.toHaveProperty("line1");
+      expect(body.address).not.toHaveProperty("city");
+      expect(body.address).not.toHaveProperty("zip");
+    }
   });
 
   it("preserva evidência de falha quando a API responde fora da faixa esperada", async () => {

@@ -1,0 +1,1806 @@
+{
+  "validatedAt": "2026-05-05T02:32:22.264Z",
+  "scenario": "govbr-page-all-mapped-actions-sequential-smoke",
+  "note": "Execução sequencial das ações mapeadas na página GovBR com dados sintéticos e estado mesclado a partir de stateUpdates sanitizados.",
+  "runId": "7948319844",
+  "actionCount": 22,
+  "summary": [
+    {
+      "stepId": "1",
+      "actionId": "step1_employee_signup",
+      "title": "Criar conta de colaborador Business",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 201,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/employee/signup"
+    },
+    {
+      "stepId": "1",
+      "actionId": "step1_employee_send_code",
+      "title": "Enviar código de verificação do colaborador",
+      "status": "failed",
+      "ok": false,
+      "httpStatus": 500,
+      "message": "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/auth/token/iam/idp/users/send-code"
+    },
+    {
+      "stepId": "1",
+      "actionId": "step1_employee_signin",
+      "title": "Login do colaborador Business",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/auth/signin"
+    },
+    {
+      "stepId": "1",
+      "actionId": "step1_business_create",
+      "title": "Criar entidade Business dWallet",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 201,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/business"
+    },
+    {
+      "stepId": "2",
+      "actionId": "step2_person_signup",
+      "title": "Criar Personal dWallet",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 201,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/person/signup"
+    },
+    {
+      "stepId": "2",
+      "actionId": "step2_person_send_code",
+      "title": "Enviar código de verificação da pessoa",
+      "status": "failed",
+      "ok": false,
+      "httpStatus": 500,
+      "message": "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/auth/token/iam/idp/users/send-code"
+    },
+    {
+      "stepId": "2",
+      "actionId": "step2_person_signin",
+      "title": "Login da pessoa física",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/auth/signin"
+    },
+    {
+      "stepId": "3",
+      "actionId": "step3_list_schemas",
+      "title": "Consultar Standard Value Schemas",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/data-registry/value-schemas/standard"
+    },
+    {
+      "stepId": "4",
+      "actionId": "step4_list_products",
+      "title": "Consultar catálogo de dSKUs/produtos",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/data-registry/dskus/product"
+    },
+    {
+      "stepId": "5",
+      "actionId": "step5_person_catalog",
+      "title": "Pessoa consulta produtos disponíveis",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/data-registry/dskus/product"
+    },
+    {
+      "stepId": "6",
+      "actionId": "step6_create_data_request",
+      "title": "Pessoa solicita dados à empresa",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 201,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/person/data-request"
+    },
+    {
+      "stepId": "7",
+      "actionId": "step7_list_business_requests",
+      "title": "Empresa lista solicitações pendentes",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/business/b741a4de-5438-493f-ba8b-6e0161ac90af/data-requests?status=pending"
+    },
+    {
+      "stepId": "7",
+      "actionId": "step7_accept_data_request",
+      "title": "Empresa aceita solicitação de dados",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/data-request/d60a9f86-dd34-451a-83a8-12c3f1e6dc08"
+    },
+    {
+      "stepId": "8",
+      "actionId": "step8_person_certificates",
+      "title": "Pessoa consulta certificados",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/certificates"
+    },
+    {
+      "stepId": "9",
+      "actionId": "step9_business_certificates",
+      "title": "Empresa consulta certificados",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 401,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/certificates"
+    },
+    {
+      "stepId": "10",
+      "actionId": "step10_commercial_dsps",
+      "title": "Pessoa visualiza DSPs comerciais",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/data-savings-plans/commercial"
+    },
+    {
+      "stepId": "10",
+      "actionId": "step10_standard_dsps",
+      "title": "Pessoa visualiza DSPs standard",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/data-savings-plans/standard"
+    },
+    {
+      "stepId": "10",
+      "actionId": "step10_create_dsp_account",
+      "title": "Pessoa cria conta DSP",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 201,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/data-savings-accounts"
+    },
+    {
+      "stepId": "12",
+      "actionId": "step12_person_offers",
+      "title": "Pessoa visualiza ofertas disponíveis",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 403,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/marketplace/offers"
+    },
+    {
+      "stepId": "13",
+      "actionId": "step13_offer_accept",
+      "title": "Pessoa aceita oferta de licenciamento",
+      "status": "not_executable",
+      "ok": false,
+      "message": "O passo 12 não retornou offerId utilizável para aceite."
+    },
+    {
+      "stepId": "14",
+      "actionId": "step14_wallet_statement",
+      "title": "Pessoa visualiza extrato/contas DSP",
+      "status": "executed",
+      "ok": true,
+      "httpStatus": 200,
+      "message": "Chamada executada dentro da faixa esperada.",
+      "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/data-savings-accounts"
+    },
+    {
+      "stepId": "15",
+      "actionId": "step15_withdrawal_internal",
+      "title": "Pessoa ou empresa solicita resgate",
+      "status": "not_executable",
+      "ok": true,
+      "message": "Etapa sinalizada como API não disponível para execução externa."
+    }
+  ],
+  "results": [
+    {
+      "stepId": "1",
+      "actionId": "step1_employee_signup",
+      "title": "Criar conta de colaborador Business",
+      "evidence": {
+        "actionId": "step1_employee_signup",
+        "actionTitle": "Criar conta de colaborador Business",
+        "status": "executed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/employee/signup",
+        "httpStatus": 201,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "x-region": "BR"
+        },
+        "requestBody": {
+          "email": "employee-7948319844@example.com",
+          "password": "<REDACTED>",
+          "firstName": "Funcionario",
+          "lastName": "GovBR",
+          "phoneNumber": "+5511988877777",
+          "address": {
+            "state": "SP"
+          }
+        },
+        "responseBody": {
+          "success": true,
+          "statusCode": 201,
+          "method": "POST",
+          "message": "Operation completed successfully",
+          "url": "/v1/employee/signup",
+          "timestamp": "2026-05-05T02:32:02.961Z",
+          "requestId": "83afa164-0c55-4a14-bbc2-a7052fa5fb79",
+          "data": {
+            "id": "06ad594b-d209-4756-828e-17d4a8c08bc9",
+            "tokens": "<REDACTED>",
+            "user": {
+              "email": "employee-7948319844@example.com",
+              "firstName": "Funcionario",
+              "lastName": "GovBR",
+              "displayName": "Funcionario GovBR",
+              "phoneNumber": "+5511988877777",
+              "emailVerified": false,
+              "enabled": true,
+              "iamId": "d4e8b458-10a1-7014-af1e-89a4184ac4ec",
+              "type": "business"
+            }
+          }
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:31:59.847Z"
+      }
+    },
+    {
+      "stepId": "1",
+      "actionId": "step1_employee_send_code",
+      "title": "Enviar código de verificação do colaborador",
+      "evidence": {
+        "actionId": "step1_employee_send_code",
+        "actionTitle": "Enviar código de verificação do colaborador",
+        "status": "failed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/auth/token/iam/idp/users/send-code",
+        "httpStatus": 500,
+        "ok": false,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "Authorization": "<REDACTED>"
+        },
+        "requestBody": {
+          "value": "employee-7948319844@example.com",
+          "attribute": "email"
+        },
+        "responseBody": {
+          "timestamp": "2026-05-05T02:32:05.961Z",
+          "message": "Failed to fetch locale data for: */subject.json",
+          "internalCode": "UNKNOWN"
+        },
+        "stateUpdates": {},
+        "message": "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.",
+        "executedAt": "2026-05-05T02:32:03.218Z"
+      }
+    },
+    {
+      "stepId": "1",
+      "actionId": "step1_employee_signin",
+      "title": "Login do colaborador Business",
+      "evidence": {
+        "actionId": "step1_employee_signin",
+        "actionTitle": "Login do colaborador Business",
+        "status": "executed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/auth/signin",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "Authorization": "<REDACTED>",
+          "x-region": "BR"
+        },
+        "requestBody": {
+          "email": "employee-7948319844@example.com",
+          "password": "<REDACTED>"
+        },
+        "responseBody": {
+          "success": true,
+          "statusCode": 200,
+          "method": "POST",
+          "message": "Operation completed successfully",
+          "url": "/v1/auth/signin",
+          "timestamp": "2026-05-05T02:32:07.820Z",
+          "requestId": "d3c1913f-cd92-4322-8091-59b2c0ea2bd9",
+          "data": {
+            "tokens": "<REDACTED>",
+            "authState": {
+              "emailVerified": false,
+              "roles": [
+                "bdwa"
+              ]
+            },
+            "account": {
+              "id": "06ad594b-d209-4756-828e-17d4a8c08bc9",
+              "firstName": "Funcionario",
+              "lastName": "GovBR",
+              "email": "employee-7948319844@example.com",
+              "phoneNumber": "+5511988877777",
+              "address": {
+                "state": "SP"
+              },
+              "verified": false,
+              "createdAt": "2026-05-05T02:32:01.224Z",
+              "updatedAt": "2026-05-05T02:32:01.224Z",
+              "status": "active"
+            },
+            "accountType": "business",
+            "dWalletId": ""
+          }
+        },
+        "stateUpdates": {
+          "employeeTokenHandle": "b9d636fb-2265-42b1-9cca-21365206baee"
+        },
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:06.146Z"
+      }
+    },
+    {
+      "stepId": "1",
+      "actionId": "step1_business_create",
+      "title": "Criar entidade Business dWallet",
+      "evidence": {
+        "actionId": "step1_business_create",
+        "actionTitle": "Criar entidade Business dWallet",
+        "status": "executed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/business",
+        "httpStatus": 201,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>",
+          "x-region": "BR"
+        },
+        "requestBody": {
+          "name": "Empresa GovBR 7948319844",
+          "cnpj": "66004988000175",
+          "address": {
+            "state": "SP"
+          },
+          "website": "https://empresa.example.com",
+          "phoneNumber": "+5511999990003"
+        },
+        "responseBody": {
+          "success": true,
+          "statusCode": 201,
+          "method": "POST",
+          "message": "Operation completed successfully",
+          "url": "/v1/business",
+          "timestamp": "2026-05-05T02:32:09.037Z",
+          "requestId": "64fce011-b600-4017-9237-b20139e54416",
+          "data": {
+            "id": "b741a4de-5438-493f-ba8b-6e0161ac90af",
+            "name": "Empresa GovBR 7948319844",
+            "cnpj": "66004988000175",
+            "address": {
+              "state": "SP",
+              "region": "BR"
+            },
+            "phoneNumber": "+5511999990003",
+            "website": "https://empresa.example.com",
+            "abbreviation": "EG",
+            "dWallet": {
+              "registeredValueSchemaIds": [],
+              "id": "59668e8c-66ac-42cf-a8c1-ca95cd8b7991",
+              "type": "business",
+              "certificates": [],
+              "status": "created",
+              "createdAt": "2026-05-05T02:32:08.474Z",
+              "updatedAt": "2026-05-05T02:32:08.474Z"
+            },
+            "creatorId": "06ad594b-d209-4756-828e-17d4a8c08bc9",
+            "employees": [
+              "06ad594b-d209-4756-828e-17d4a8c08bc9"
+            ],
+            "suspended": false,
+            "type": "business",
+            "inPreboardState": false,
+            "featuredForDataRequests": false,
+            "outreachStatus": "pending",
+            "tags": [],
+            "createdAt": "2026-05-05T02:32:08.477Z",
+            "updatedAt": "2026-05-05T02:32:08.477Z"
+          }
+        },
+        "stateUpdates": {
+          "businessId": "b741a4de-5438-493f-ba8b-6e0161ac90af"
+        },
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:08.073Z"
+      }
+    },
+    {
+      "stepId": "2",
+      "actionId": "step2_person_signup",
+      "title": "Criar Personal dWallet",
+      "evidence": {
+        "actionId": "step2_person_signup",
+        "actionTitle": "Criar Personal dWallet",
+        "status": "executed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/person/signup",
+        "httpStatus": 201,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "x-region": "BR"
+        },
+        "requestBody": {
+          "email": "personal-7948319844@example.com",
+          "password": "<REDACTED>",
+          "firstName": "Pessoa",
+          "lastName": "GovBR",
+          "phoneNumber": "+5511999988888",
+          "address": {
+            "state": "DF"
+          }
+        },
+        "responseBody": {
+          "success": true,
+          "statusCode": 201,
+          "method": "POST",
+          "message": "Operation completed successfully",
+          "url": "/v1/person/signup",
+          "timestamp": "2026-05-05T02:32:11.285Z",
+          "requestId": "ed5a69fd-bac4-4731-b866-05bfd5dd293c",
+          "data": {
+            "id": "00f7fb6d-181f-4aed-bde2-4d4881d693ac",
+            "tokens": "<REDACTED>",
+            "user": {
+              "email": "personal-7948319844@example.com",
+              "firstName": "Pessoa",
+              "lastName": "GovBR",
+              "displayName": "Pessoa GovBR",
+              "phoneNumber": "+5511999988888",
+              "emailVerified": false,
+              "enabled": true,
+              "iamId": "0428b448-c0b1-70b3-da58-3402c6139549",
+              "type": "personal"
+            }
+          }
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:09.224Z"
+      }
+    },
+    {
+      "stepId": "2",
+      "actionId": "step2_person_send_code",
+      "title": "Enviar código de verificação da pessoa",
+      "evidence": {
+        "actionId": "step2_person_send_code",
+        "actionTitle": "Enviar código de verificação da pessoa",
+        "status": "failed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/auth/token/iam/idp/users/send-code",
+        "httpStatus": 500,
+        "ok": false,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "Authorization": "<REDACTED>"
+        },
+        "requestBody": {
+          "value": "personal-7948319844@example.com",
+          "attribute": "email"
+        },
+        "responseBody": {
+          "timestamp": "2026-05-05T02:32:12.053Z",
+          "message": "Failed to fetch locale data for: */subject.json",
+          "internalCode": "UNKNOWN"
+        },
+        "stateUpdates": {},
+        "message": "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.",
+        "executedAt": "2026-05-05T02:32:11.539Z"
+      }
+    },
+    {
+      "stepId": "2",
+      "actionId": "step2_person_signin",
+      "title": "Login da pessoa física",
+      "evidence": {
+        "actionId": "step2_person_signin",
+        "actionTitle": "Login da pessoa física",
+        "status": "executed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/auth/signin",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "Authorization": "<REDACTED>",
+          "x-region": "BR"
+        },
+        "requestBody": {
+          "email": "personal-7948319844@example.com",
+          "password": "<REDACTED>"
+        },
+        "responseBody": {
+          "success": true,
+          "statusCode": 200,
+          "method": "POST",
+          "message": "Operation completed successfully",
+          "url": "/v1/auth/signin",
+          "timestamp": "2026-05-05T02:32:13.533Z",
+          "requestId": "27ff780e-afc1-4d94-aac7-c0a8d502bb88",
+          "data": {
+            "tokens": "<REDACTED>",
+            "authState": {
+              "emailVerified": false,
+              "roles": [
+                "pdw"
+              ]
+            },
+            "account": {
+              "dataRequests": [],
+              "additionalEmails": [],
+              "id": "00f7fb6d-181f-4aed-bde2-4d4881d693ac",
+              "firstName": "Pessoa",
+              "lastName": "GovBR",
+              "email": "personal-7948319844@example.com",
+              "phoneNumber": "+5511999988888",
+              "address": {
+                "state": "DF"
+              },
+              "verified": false,
+              "createdAt": "2026-05-05T02:32:09.436Z",
+              "updatedAt": "2026-05-05T02:32:09.436Z",
+              "dWallet": {
+                "registeredValueSchemaIds": [],
+                "id": "68057e52-76e8-4a8e-82b7-825682a486ff",
+                "type": "personal",
+                "certificates": [],
+                "status": "created",
+                "createdAt": "2026-05-05T02:32:09.433Z",
+                "updatedAt": "2026-05-05T02:32:09.433Z"
+              },
+              "cpf": null
+            },
+            "accountType": "personal",
+            "dWalletId": "68057e52-76e8-4a8e-82b7-825682a486ff"
+          }
+        },
+        "stateUpdates": {
+          "personTokenHandle": "594f4e69-cf1c-4736-b612-9a64614f0063",
+          "personDwalletId": "68057e52-76e8-4a8e-82b7-825682a486ff"
+        },
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:12.244Z"
+      }
+    },
+    {
+      "stepId": "3",
+      "actionId": "step3_list_schemas",
+      "title": "Consultar Standard Value Schemas",
+      "evidence": {
+        "actionId": "step3_list_schemas",
+        "actionTitle": "Consultar Standard Value Schemas",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/data-registry/value-schemas/standard",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>"
+        },
+        "responseBody": [
+          {
+            "sid": "DS:0glb.idr.rideshare-fares",
+            "version": 1,
+            "name": "rideshare-fares",
+            "category": [
+              "travel-and-transportation"
+            ],
+            "type": "EVENT",
+            "description": "Standardized fare/payment information for rideshare services. Not all providers expose this data.",
+            "label": "Rideshare Fares",
+            "main_entities": [
+              "http://entity1.com"
+            ],
+            "data_owner": [],
+            "data_provider": [],
+            "fields": [
+              {
+                "name": "phone_number",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Phone number associated with the user's account.",
+                "isSearchable": true
+              },
+              {
+                "name": "ride_timestamp",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "DATETIME",
+                "isNullable": false,
+                "description": "Timestamp of the associated ride (for joining with rides data).",
+                "isSearchable": false
+              },
+              {
+                "name": "fare_currency",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "Currency code used for the fare (ISO 4217).",
+                "isSearchable": false
+              },
+              {
+                "name": "fare_amount",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "DECIMAL",
+                "isNullable": true,
+                "description": "Total fare amount charged for the ride.",
+                "isSearchable": false
+              },
+              {
+                "name": "tip_amount",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "DECIMAL",
+                "isNullable": true,
+                "description": "Tip amount given to the driver.",
+                "isSearchable": false
+              }
+            ],
+            "note": "Contains fare and payment information. Currently populated by Uber data. Lyft does not expose this information in their standard data exports.",
+            "hash": "d946e2a1-3fb5-5930-bf44-d8f9bac097a1",
+            "created_at": "2026-01-26T14:32:18.309Z",
+            "idr_published": false,
+            "available_regions": [
+              "R1",
+              "R2",
+              "R3",
+              "R4",
+              "R5"
+            ],
+            "language": "EN_US"
+          },
+          {
+            "sid": "DS:0glb.idr.rideshare-rider-profile",
+            "version": 1,
+            "name": "rideshare-rider-profile",
+            "category": [
+              "travel-and-transportation"
+            ],
+            "type": "STATIC",
+            "description": "Standardized rider profile information across rideshare services (Uber, Lyft, etc.).",
+            "label": "Rideshare Rider Profile",
+            "main_entities": [
+              "http://entity1.com"
+            ],
+            "data_owner": [],
+            "data_provider": [],
+            "fields": [
+              {
+                "name": "first_name",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Given name of the user.",
+                "isSearchable": true
+              },
+              {
+                "name": "last_name",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Family name of the user.",
+                "isSearchable": true
+              },
+              {
+                "name": "email",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Email address associated with the user's account.",
+                "isSearchable": true
+              },
+              {
+                "name": "phone_number",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Phone number associated with the user's account.",
+                "isSearchable": true
+              },
+              {
+                "name": "date_of_birth",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "DATETIME",
+                "isNullable": true,
+                "description": "Date of birth of the user.",
+                "isSearchable": false
+              }
+            ],
+            "note": "Combines user profile data from Uber and Lyft into a standardized format.",
+            "hash": "e76dd246-f5d1-57ad-9aeb-e6113f8586a7",
+            "created_at": "2026-01-26T14:32:38.612Z",
+            "idr_published": false,
+            "available_regions": [
+              "R1",
+              "R2",
+              "R3",
+              "R4",
+              "R5"
+            ],
+            "language": "EN_US"
+          },
+          {
+            "sid": "DS:0glb.idr.rideshare-rides",
+            "version": 1,
+            "name": "rideshare-rides",
+            "category": [
+              "travel-and-transportation"
+            ],
+            "type": "EVENT",
+            "description": "Standardized ride/trip information across rideshare services (Uber, Lyft, etc.). Excludes fare information - see standard_fares schema.",
+            "label": "Rideshare Rides",
+            "main_entities": [
+              "http://entity1.com"
+            ],
+            "data_owner": [],
+            "data_provider": [],
+            "fields": [
+              {
+                "name": "phone_number",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Phone number associated with the user's account.",
+                "isSearchable": true
+              },
+              {
+                "name": "city",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "City where the ride took place.",
+                "isSearchable": false
+              },
+              {
+                "name": "product_type",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "Product category for the ride (e.g., UberX, Lyft Standard).",
+                "isSearchable": false
+              },
+              {
+                "name": "status",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "Ride status (e.g., completed, canceled).",
+                "isSearchable": false
+              },
+              {
+                "name": "requested_timestamp",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "DATETIME",
+                "isNullable": true,
+                "description": "Timestamp when the ride was requested.",
+                "isSearchable": false
+              }
+            ],
+            "note": "Combines ride/trip data from Uber and Lyft. Fare information is separated into standard_fares schema since not all providers include this data.",
+            "hash": "d2f8d27b-5017-5ba1-8a2d-c53df193855a",
+            "created_at": "2026-01-26T14:32:49.718Z",
+            "idr_published": false,
+            "available_regions": [
+              "R1",
+              "R2",
+              "R3",
+              "R4",
+              "R5"
+            ],
+            "language": "EN_US"
+          },
+          {
+            "sid": "DS:0glb.idr.rideshare-saved-locations",
+            "version": 1,
+            "name": "rideshare-saved-locations",
+            "category": [
+              "travel-and-transportation"
+            ],
+            "type": "STATIC",
+            "description": "Standardized saved locations/shortcuts across rideshare services (Uber, Lyft, etc.).",
+            "label": "Rideshare Saved Locations",
+            "main_entities": [
+              "http://entity1.com"
+            ],
+            "data_owner": [],
+            "data_provider": [],
+            "fields": [
+              {
+                "name": "phone_number",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Phone number associated with the user's account.",
+                "isSearchable": true
+              },
+              {
+                "name": "location_label",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "User-provided label for the saved location (e.g., Home, Work, Gym).",
+                "isSearchable": true
+              },
+              {
+                "name": "street_address",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "Formatted number and street address of the saved location.",
+                "isSearchable": false
+              },
+              {
+                "name": "city",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "City of the saved address.",
+                "isSearchable": false
+              },
+              {
+                "name": "state",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "State or province of the saved address.",
+                "isSearchable": false
+              }
+            ],
+            "note": "Combines saved locations from Uber (rider_eater_saved_locations) and Lyft (user_shortcuts) into a standardized format.",
+            "hash": "a0260d3d-7d25-5589-8fcd-e0b5efee5b74",
+            "created_at": "2026-01-26T14:33:03.006Z",
+            "idr_published": false,
+            "available_regions": [
+              "R1",
+              "R2",
+              "R3",
+              "R4",
+              "R5"
+            ],
+            "language": "EN_US"
+          },
+          {
+            "sid": "DS:0glb.idr.telecom-subscription",
+            "version": 1,
+            "name": "telecom-subscription",
+            "category": [
+              "tech-and-social-media"
+            ],
+            "type": "STATIC",
+            "description": "Telecom subscription profile covering subscriber ownership and bundle metadata (Adobe XDM telecomSubscription).",
+            "label": "Telecom Subscription",
+            "main_entities": [
+              "http://entity1.com"
+            ],
+            "data_owner": [],
+            "data_provider": [],
+            "fields": [
+              {
+                "name": "primary_subscriber",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Owner of the subscription (person reference).",
+                "isSearchable": true
+              },
+              {
+                "name": "primary_party_id",
+                "isKey": false,
+                "isPII": true,
+                "datatype": "VARCHAR",
+                "isNullable": false,
+                "description": "Identifier for the primary responsible party (typically a phone number).",
+                "isSearchable": true
+              },
+              {
+                "name": "bundle_name",
+                "isKey": false,
+                "isPII": false,
+                "datatype": "VARCHAR",
+                "isNullable": true,
+                "description": "Name of the subscription bundle (e.g., Internet + Media).",
+                "isSearchable": false
+              }
+            ],
+            "note": "Derived from Adobe XDM telecomSubscription root properties.",
+            "hash": "94d40be6-017a-58da-a96c-7955cc9b5418",
+            "created_at": "2026-01-26T16:31:54.737Z",
+            "idr_published": false,
+            "available_regions": [
+              "R1",
+              "R2",
+              "R3",
+              "R4",
+              "R5"
+            ],
+            "language": "EN_US"
+          }
+        ],
+        "stateUpdates": {
+          "valueSchemaSid": "DS:0glb.idr.rideshare-fares"
+        },
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:13.932Z"
+      }
+    },
+    {
+      "stepId": "4",
+      "actionId": "step4_list_products",
+      "title": "Consultar catálogo de dSKUs/produtos",
+      "evidence": {
+        "actionId": "step4_list_products",
+        "actionTitle": "Consultar catálogo de dSKUs/produtos",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/data-registry/dskus/product",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>"
+        },
+        "responseBody": [
+          {
+            "productId": "c2c04aec-3380-4b9b-b775-d77d7cd0ef65",
+            "dsku": "DSKU-34750F-TEST-PRODUCT-7OR1UURK8",
+            "dWalletId": "c3906571-b9ef-489e-81b0-a49199172e42",
+            "businessId": "34750f3d-7b8c-41ea-a5fd-cbd736f4b7c1",
+            "name": "Test_Product_7Or1uUrK8",
+            "description": "Test_Product_7Or1uUrK8 Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/34750f3d-7b8c-41ea-a5fd-cbd736f4b7c1_1bf008d7-d27a-4fa2-8c02-8cb75cbe2c62.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T14:50:06.086Z",
+            "updatedAt": "2026-05-04T14:50:06.086Z"
+          },
+          {
+            "productId": "aa539a10-94d8-4c3d-ae29-e573fcb8c7fb",
+            "dsku": "DSKU-A92ABE-TEST-PRODUCT-2KTQOH7LC",
+            "dWalletId": "6dd7a711-e172-4b76-b5f9-632733cbb51e",
+            "businessId": "a92abe0c-f4db-49cf-8555-fec5d49de10a",
+            "name": "Test_Product_2kTqoH7lc",
+            "description": "Test_Product_2kTqoH7lc Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/a92abe0c-f4db-49cf-8555-fec5d49de10a_cb8e64fc-fc97-4d64-87b3-4bf3979890df.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T15:04:25.005Z",
+            "updatedAt": "2026-05-04T15:04:25.005Z"
+          },
+          {
+            "productId": "54422cca-bcf5-4f42-ae37-e067f4049779",
+            "dsku": "DSKU-A92ABE-TEST-PRODUCT-1ZAPWXOMU",
+            "dWalletId": "6dd7a711-e172-4b76-b5f9-632733cbb51e",
+            "businessId": "a92abe0c-f4db-49cf-8555-fec5d49de10a",
+            "name": "Test_Product_1ZAPwXOmu",
+            "description": "Test_Product_1ZAPwXOmu Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/a92abe0c-f4db-49cf-8555-fec5d49de10a_e4940090-27f8-4358-8949-5371cb309f67.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T15:04:26.921Z",
+            "updatedAt": "2026-05-04T15:04:26.921Z"
+          },
+          {
+            "productId": "1c36ed35-8138-482c-a9b5-de03714ddf3c",
+            "dsku": "DSKU-A92ABE-TEST-PRODUCT-MEOXUE71",
+            "dWalletId": "6dd7a711-e172-4b76-b5f9-632733cbb51e",
+            "businessId": "a92abe0c-f4db-49cf-8555-fec5d49de10a",
+            "name": "Test_Product_MEOxuE71-",
+            "description": "Test_Product_MEOxuE71- Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/a92abe0c-f4db-49cf-8555-fec5d49de10a_aa99784f-3b5f-449b-bed3-8facb9f446ec.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T15:15:41.399Z",
+            "updatedAt": "2026-05-04T15:15:41.399Z"
+          },
+          {
+            "productId": "163217ad-08f7-4404-9a0d-060a0811ad02",
+            "dsku": "DSKU-9ABE59-TEST-PRODUCT-8UP2LOTHY",
+            "dWalletId": "6a4662be-ad9b-4bea-ba0f-0625a2c52172",
+            "businessId": "9abe59ce-a4a2-4eb7-b720-2b320514211f",
+            "name": "Test_Product_8uP2LoThy",
+            "description": "Test_Product_8uP2LoThy Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/9abe59ce-a4a2-4eb7-b720-2b320514211f_08f58366-0bad-4ea3-9d3b-b8b3ca1c5ac3.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T15:15:52.038Z",
+            "updatedAt": "2026-05-04T15:15:52.038Z"
+          }
+        ],
+        "stateUpdates": {
+          "dsku": "DSKU-34750F-TEST-PRODUCT-7OR1UURK8"
+        },
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:14.970Z"
+      }
+    },
+    {
+      "stepId": "5",
+      "actionId": "step5_person_catalog",
+      "title": "Pessoa consulta produtos disponíveis",
+      "evidence": {
+        "actionId": "step5_person_catalog",
+        "actionTitle": "Pessoa consulta produtos disponíveis",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/data-registry/dskus/product",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>"
+        },
+        "responseBody": [
+          {
+            "productId": "c2c04aec-3380-4b9b-b775-d77d7cd0ef65",
+            "dsku": "DSKU-34750F-TEST-PRODUCT-7OR1UURK8",
+            "dWalletId": "c3906571-b9ef-489e-81b0-a49199172e42",
+            "businessId": "34750f3d-7b8c-41ea-a5fd-cbd736f4b7c1",
+            "name": "Test_Product_7Or1uUrK8",
+            "description": "Test_Product_7Or1uUrK8 Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/34750f3d-7b8c-41ea-a5fd-cbd736f4b7c1_1bf008d7-d27a-4fa2-8c02-8cb75cbe2c62.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T14:50:06.086Z",
+            "updatedAt": "2026-05-04T14:50:06.086Z"
+          },
+          {
+            "productId": "aa539a10-94d8-4c3d-ae29-e573fcb8c7fb",
+            "dsku": "DSKU-A92ABE-TEST-PRODUCT-2KTQOH7LC",
+            "dWalletId": "6dd7a711-e172-4b76-b5f9-632733cbb51e",
+            "businessId": "a92abe0c-f4db-49cf-8555-fec5d49de10a",
+            "name": "Test_Product_2kTqoH7lc",
+            "description": "Test_Product_2kTqoH7lc Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/a92abe0c-f4db-49cf-8555-fec5d49de10a_cb8e64fc-fc97-4d64-87b3-4bf3979890df.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T15:04:25.005Z",
+            "updatedAt": "2026-05-04T15:04:25.005Z"
+          },
+          {
+            "productId": "54422cca-bcf5-4f42-ae37-e067f4049779",
+            "dsku": "DSKU-A92ABE-TEST-PRODUCT-1ZAPWXOMU",
+            "dWalletId": "6dd7a711-e172-4b76-b5f9-632733cbb51e",
+            "businessId": "a92abe0c-f4db-49cf-8555-fec5d49de10a",
+            "name": "Test_Product_1ZAPwXOmu",
+            "description": "Test_Product_1ZAPwXOmu Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/a92abe0c-f4db-49cf-8555-fec5d49de10a_e4940090-27f8-4358-8949-5371cb309f67.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T15:04:26.921Z",
+            "updatedAt": "2026-05-04T15:04:26.921Z"
+          },
+          {
+            "productId": "1c36ed35-8138-482c-a9b5-de03714ddf3c",
+            "dsku": "DSKU-A92ABE-TEST-PRODUCT-MEOXUE71",
+            "dWalletId": "6dd7a711-e172-4b76-b5f9-632733cbb51e",
+            "businessId": "a92abe0c-f4db-49cf-8555-fec5d49de10a",
+            "name": "Test_Product_MEOxuE71-",
+            "description": "Test_Product_MEOxuE71- Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/a92abe0c-f4db-49cf-8555-fec5d49de10a_aa99784f-3b5f-449b-bed3-8facb9f446ec.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T15:15:41.399Z",
+            "updatedAt": "2026-05-04T15:15:41.399Z"
+          },
+          {
+            "productId": "163217ad-08f7-4404-9a0d-060a0811ad02",
+            "dsku": "DSKU-9ABE59-TEST-PRODUCT-8UP2LOTHY",
+            "dWalletId": "6a4662be-ad9b-4bea-ba0f-0625a2c52172",
+            "businessId": "9abe59ce-a4a2-4eb7-b720-2b320514211f",
+            "name": "Test_Product_8uP2LoThy",
+            "description": "Test_Product_8uP2LoThy Description",
+            "imageUrl": "https://dw-data-reserve-qa-products.s3.us-east-1.amazonaws.com/9abe59ce-a4a2-4eb7-b720-2b320514211f_08f58366-0bad-4ea3-9d3b-b8b3ca1c5ac3.png",
+            "category": null,
+            "subCategory": null,
+            "createdAt": "2026-05-04T15:15:52.038Z",
+            "updatedAt": "2026-05-04T15:15:52.038Z"
+          }
+        ],
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:15.676Z"
+      }
+    },
+    {
+      "stepId": "6",
+      "actionId": "step6_create_data_request",
+      "title": "Pessoa solicita dados à empresa",
+      "evidence": {
+        "actionId": "step6_create_data_request",
+        "actionTitle": "Pessoa solicita dados à empresa",
+        "status": "executed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/person/data-request",
+        "httpStatus": 201,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>",
+          "x-region": "BR"
+        },
+        "requestBody": {
+          "loginEmail": "personal-7948319844@example.com",
+          "recipient": "b741a4de-5438-493f-ba8b-6e0161ac90af"
+        },
+        "responseBody": {
+          "success": true,
+          "statusCode": 201,
+          "method": "POST",
+          "message": "Operation completed successfully",
+          "url": "/v1/person/data-request",
+          "timestamp": "2026-05-05T02:32:16.868Z",
+          "requestId": "993040c7-7396-4bd2-9cb0-1eec72d4e186",
+          "data": {
+            "dataRequests": [
+              {
+                "id": "d60a9f86-dd34-451a-83a8-12c3f1e6dc08",
+                "senderType": "Person",
+                "sender": "00f7fb6d-181f-4aed-bde2-4d4881d693ac",
+                "accountInformation": {
+                  "email": "personal-7948319844@example.com"
+                },
+                "recipient": {
+                  "id": "b741a4de-5438-493f-ba8b-6e0161ac90af",
+                  "name": "Empresa GovBR 7948319844",
+                  "type": "business",
+                  "createdAt": "2026-05-05T02:32:08.477Z",
+                  "updatedAt": "2026-05-05T02:32:08.623Z"
+                },
+                "status": "pending",
+                "contactInformation": {
+                  "companyName": "Empresa GovBR 7948319844"
+                },
+                "updatedAt": "2026-05-05T02:32:16.695Z",
+                "createdAt": "2026-05-05T02:32:16.695Z"
+              }
+            ],
+            "additionalEmails": [],
+            "id": "00f7fb6d-181f-4aed-bde2-4d4881d693ac",
+            "firstName": "Pessoa",
+            "lastName": "GovBR",
+            "email": "personal-7948319844@example.com",
+            "phoneNumber": "+5511999988888",
+            "address": {
+              "state": "DF"
+            },
+            "verified": false,
+            "createdAt": "2026-05-05T02:32:09.436Z",
+            "updatedAt": "2026-05-05T02:32:16.697Z",
+            "dWallet": "68057e52-76e8-4a8e-82b7-825682a486ff",
+            "cpf": null
+          }
+        },
+        "stateUpdates": {
+          "dataRequestId": "d60a9f86-dd34-451a-83a8-12c3f1e6dc08"
+        },
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:16.401Z"
+      }
+    },
+    {
+      "stepId": "7",
+      "actionId": "step7_list_business_requests",
+      "title": "Empresa lista solicitações pendentes",
+      "evidence": {
+        "actionId": "step7_list_business_requests",
+        "actionTitle": "Empresa lista solicitações pendentes",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/business/b741a4de-5438-493f-ba8b-6e0161ac90af/data-requests?status=pending",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>",
+          "x-region": "BR"
+        },
+        "responseBody": {
+          "success": true,
+          "statusCode": 200,
+          "method": "GET",
+          "message": "Operation completed successfully",
+          "url": "/v1/business/b741a4de-5438-493f-ba8b-6e0161ac90af/data-requests?status=pending",
+          "timestamp": "2026-05-05T02:32:17.527Z",
+          "requestId": "78a409ce-4c82-441c-951d-4b3299019b3f",
+          "data": {
+            "page": [
+              {
+                "id": "d60a9f86-dd34-451a-83a8-12c3f1e6dc08",
+                "senderType": "Person",
+                "sender": {
+                  "_id": "00f7fb6d-181f-4aed-bde2-4d4881d693ac",
+                  "firstName": "Pessoa",
+                  "lastName": "GovBR",
+                  "email": "personal-7948319844@example.com",
+                  "phoneNumber": "+5511999988888",
+                  "verified": false,
+                  "address": {
+                    "state": "DF",
+                    "region": "BR",
+                    "_id": "69f956b10f39c8b46ea56e27",
+                    "id": "69f956a907ddbcb624bba607"
+                  },
+                  "termsAcceptedAt": "2026-05-05T02:32:09.435Z",
+                  "termsVersionAccepted": "1.0",
+                  "dWallet": "68057e52-76e8-4a8e-82b7-825682a486ff",
+                  "dataRequests": [
+                    "d60a9f86-dd34-451a-83a8-12c3f1e6dc08"
+                  ],
+                  "cpf": null,
+                  "additionalEmails": [],
+                  "createdAt": "2026-05-05T02:32:09.436Z",
+                  "updatedAt": "2026-05-05T02:32:16.697Z",
+                  "__v": 1,
+                  "id": "00f7fb6d-181f-4aed-bde2-4d4881d693ac"
+                },
+                "accountInformation": {
+                  "email": "personal-7948319844@example.com"
+                },
+                "recipient": {
+                  "id": "b741a4de-5438-493f-ba8b-6e0161ac90af",
+                  "name": "Empresa GovBR 7948319844",
+                  "type": "business",
+                  "createdAt": "2026-05-05T02:32:08.477Z",
+                  "updatedAt": "2026-05-05T02:32:08.623Z"
+                },
+                "status": "pending",
+                "contactInformation": {
+                  "companyName": "Empresa GovBR 7948319844"
+                },
+                "updatedAt": "2026-05-05T02:32:16.695Z",
+                "createdAt": "2026-05-05T02:32:16.695Z"
+              }
+            ],
+            "pageInfo": {
+              "pageNumber": 1,
+              "pageCount": 1,
+              "total": 1,
+              "hasNextPage": false,
+              "hasPreviousPage": false,
+              "sortField": "createdAt",
+              "sortDirection": "asc"
+            }
+          }
+        },
+        "stateUpdates": {
+          "dataRequestId": "d60a9f86-dd34-451a-83a8-12c3f1e6dc08"
+        },
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:17.122Z"
+      }
+    },
+    {
+      "stepId": "7",
+      "actionId": "step7_accept_data_request",
+      "title": "Empresa aceita solicitação de dados",
+      "evidence": {
+        "actionId": "step7_accept_data_request",
+        "actionTitle": "Empresa aceita solicitação de dados",
+        "status": "executed",
+        "method": "PATCH",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/data-request/d60a9f86-dd34-451a-83a8-12c3f1e6dc08",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>",
+          "x-region": "BR"
+        },
+        "requestBody": {
+          "status": "accepted"
+        },
+        "responseBody": {
+          "success": true,
+          "statusCode": 200,
+          "method": "PATCH",
+          "message": "Operation completed successfully",
+          "url": "/v1/data-request/d60a9f86-dd34-451a-83a8-12c3f1e6dc08",
+          "timestamp": "2026-05-05T02:32:18.290Z",
+          "requestId": "37792503-2e06-4360-af9f-23141fb55a2b",
+          "data": {
+            "id": "d60a9f86-dd34-451a-83a8-12c3f1e6dc08",
+            "senderType": "Person",
+            "sender": "00f7fb6d-181f-4aed-bde2-4d4881d693ac",
+            "accountInformation": {
+              "email": "personal-7948319844@example.com"
+            },
+            "recipient": {
+              "id": "b741a4de-5438-493f-ba8b-6e0161ac90af",
+              "name": "Empresa GovBR 7948319844",
+              "type": "business",
+              "createdAt": "2026-05-05T02:32:08.477Z",
+              "updatedAt": "2026-05-05T02:32:08.623Z"
+            },
+            "status": "accepted",
+            "contactInformation": {
+              "companyName": "Empresa GovBR 7948319844"
+            },
+            "updatedAt": "2026-05-05T02:32:18.274Z",
+            "createdAt": "2026-05-05T02:32:16.695Z"
+          }
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:17.894Z"
+      }
+    },
+    {
+      "stepId": "8",
+      "actionId": "step8_person_certificates",
+      "title": "Pessoa consulta certificados",
+      "evidence": {
+        "actionId": "step8_person_certificates",
+        "actionTitle": "Pessoa consulta certificados",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/certificates",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>"
+        },
+        "responseBody": {
+          "items": [],
+          "page": 1,
+          "pageSize": 20,
+          "total": 0,
+          "totalPages": 0
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:18.481Z"
+      }
+    },
+    {
+      "stepId": "9",
+      "actionId": "step9_business_certificates",
+      "title": "Empresa consulta certificados",
+      "evidence": {
+        "actionId": "step9_business_certificates",
+        "actionTitle": "Empresa consulta certificados",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/certificates",
+        "httpStatus": 401,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>"
+        },
+        "responseBody": {
+          "message": "Invalid auth token. Missing dwalletId",
+          "error": "Unauthorized",
+          "statusCode": 401
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:18.989Z"
+      }
+    },
+    {
+      "stepId": "10",
+      "actionId": "step10_commercial_dsps",
+      "title": "Pessoa visualiza DSPs comerciais",
+      "evidence": {
+        "actionId": "step10_commercial_dsps",
+        "actionTitle": "Pessoa visualiza DSPs comerciais",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/data-savings-plans/commercial",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>"
+        },
+        "responseBody": {
+          "data": [
+            {
+              "id": 2,
+              "name": "dSavings Smart",
+              "description": "Smart data savings plan for Brazilian market",
+              "status": "ACTIVE",
+              "commercialDataAgent": "25cfe819-c396-4b45-bb0d-5ee8d7ac555f",
+              "standardDataSavingsPlan": {
+                "id": 2,
+                "name": "Brazilian Standard Data Savings Plan"
+              },
+              "memberCount": 10,
+              "autoRenew": true,
+              "expiresAt": "2027-11-01T23:23:55.165Z",
+              "createdAt": "2026-05-01T23:23:55.069Z",
+              "updatedAt": "2026-05-05T02:18:04.898Z",
+              "categories": [
+                "health-and-wellness",
+                "travel-and-transportation",
+                "tech-and-social-media",
+                "finance-and-investments",
+                "retail-and-food"
+              ]
+            },
+            {
+              "id": 1,
+              "name": "dSavings Smart",
+              "description": "Smart data savings plan for United States market",
+              "status": "ACTIVE",
+              "commercialDataAgent": "25cfe819-c396-4b45-bb0d-5ee8d7ac555f",
+              "standardDataSavingsPlan": {
+                "id": 1,
+                "name": "United States Standard Data Savings Plan"
+              },
+              "memberCount": 7,
+              "autoRenew": true,
+              "expiresAt": "2027-11-01T23:23:53.993Z",
+              "createdAt": "2026-05-01T23:23:53.815Z",
+              "updatedAt": "2026-05-05T02:25:04.784Z",
+              "categories": [
+                "health-and-wellness",
+                "travel-and-transportation",
+                "tech-and-social-media",
+                "finance-and-investments",
+                "retail-and-food"
+              ]
+            }
+          ],
+          "meta": {
+            "totalItems": 2,
+            "currentPage": 1,
+            "itemsPerPage": 10,
+            "totalPages": 1
+          }
+        },
+        "stateUpdates": {
+          "commercialDspId": 2
+        },
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:19.408Z"
+      }
+    },
+    {
+      "stepId": "10",
+      "actionId": "step10_standard_dsps",
+      "title": "Pessoa visualiza DSPs standard",
+      "evidence": {
+        "actionId": "step10_standard_dsps",
+        "actionTitle": "Pessoa visualiza DSPs standard",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/data-savings-plans/standard",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>"
+        },
+        "responseBody": {
+          "data": [
+            {
+              "id": 2,
+              "name": "Brazilian Standard Data Savings Plan",
+              "description": "Standard Data Savings Plan for Brazilian Region.",
+              "status": "ACTIVE",
+              "version": "1.0.0",
+              "region": {
+                "id": 2,
+                "code": "R2",
+                "displayName": "Brazil and LATAM"
+              },
+              "administrativeFees": 0,
+              "planPeriod": null,
+              "createdAt": "2026-05-01T23:23:44.456Z",
+              "updatedAt": "2026-05-01T23:23:44.456Z",
+              "auditHistory": [],
+              "categories": [
+                "health-and-wellness",
+                "travel-and-transportation",
+                "tech-and-social-media",
+                "finance-and-investments",
+                "retail-and-food"
+              ],
+              "fundsSweepTemplate": null,
+              "participationCriteriaTemplate": null,
+              "usageConstraintsTemplate": null,
+              "monetizationPreferencesTemplate": null,
+              "offerValueSplit": null
+            },
+            {
+              "id": 1,
+              "name": "United States Standard Data Savings Plan",
+              "description": "Standard Data Savings Plan for United States Region",
+              "status": "ACTIVE",
+              "version": "1.0.0",
+              "region": {
+                "id": 1,
+                "code": "R1",
+                "displayName": "North America, Country: USA"
+              },
+              "administrativeFees": 0,
+              "planPeriod": null,
+              "createdAt": "2026-05-01T23:23:40.279Z",
+              "updatedAt": "2026-05-01T23:23:40.279Z",
+              "auditHistory": [],
+              "categories": [
+                "health-and-wellness",
+                "travel-and-transportation",
+                "tech-and-social-media",
+                "finance-and-investments",
+                "retail-and-food"
+              ],
+              "fundsSweepTemplate": null,
+              "participationCriteriaTemplate": null,
+              "usageConstraintsTemplate": null,
+              "monetizationPreferencesTemplate": null,
+              "offerValueSplit": null
+            }
+          ],
+          "meta": {
+            "totalItems": 2,
+            "currentPage": 1,
+            "itemsPerPage": 10,
+            "totalPages": 1
+          }
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:19.887Z"
+      }
+    },
+    {
+      "stepId": "10",
+      "actionId": "step10_create_dsp_account",
+      "title": "Pessoa cria conta DSP",
+      "evidence": {
+        "actionId": "step10_create_dsp_account",
+        "actionTitle": "Pessoa cria conta DSP",
+        "status": "executed",
+        "method": "POST",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/data-savings-accounts",
+        "httpStatus": 201,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Content-Type": "application/json",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>"
+        },
+        "requestBody": {
+          "cdspId": 2,
+          "categories": [
+            "travel-and-transportation"
+          ],
+          "currency": "BRL",
+          "savingsGoal": 1000,
+          "agreedToTermsAndConditions": true
+        },
+        "responseBody": {
+          "success": true,
+          "message": "User successfully enrolled in Data Savings Account",
+          "errors": [],
+          "data": {
+            "id": "04a2c38b-1a62-4994-90e9-f8524acc7a2d",
+            "dWalletId": "68057e52-76e8-4a8e-82b7-825682a486ff",
+            "cdspId": 2,
+            "categories": [
+              "travel-and-transportation"
+            ],
+            "savingsGoalCurrency": "BRL",
+            "savingsGoalInMinor": 1000,
+            "autoRenew": false,
+            "doNotMonetize": false,
+            "termsOfConditionsAgreedAt": "2026-05-05T02:32:20.806Z",
+            "createdAt": "2026-05-05T02:32:20.807Z",
+            "updatedAt": "2026-05-05T02:32:20.807Z",
+            "enrolledAt": "2026-05-05T02:32:20.807Z",
+            "expiresAt": "2027-11-01T23:23:55.165Z"
+          }
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:20.481Z"
+      }
+    },
+    {
+      "stepId": "12",
+      "actionId": "step12_person_offers",
+      "title": "Pessoa visualiza ofertas disponíveis",
+      "evidence": {
+        "actionId": "step12_person_offers",
+        "actionTitle": "Pessoa visualiza ofertas disponíveis",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/marketplace/offers",
+        "httpStatus": 403,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>"
+        },
+        "responseBody": {
+          "statusCode": 403,
+          "errorCode": "AUTHZ_E006",
+          "message": "Authorization failed for /v1/offers",
+          "timestamp": "2026-05-05T02:32:21.554Z",
+          "path": "/v1/offers"
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:21.342Z"
+      }
+    },
+    {
+      "stepId": "13",
+      "actionId": "step13_offer_accept",
+      "title": "Pessoa aceita oferta de licenciamento",
+      "evidence": {
+        "actionId": "step13_offer_accept",
+        "actionTitle": "Pessoa aceita oferta de licenciamento",
+        "status": "not_executable",
+        "ok": false,
+        "responseBody": {
+          "preRequisitoNaoAtendido": "O passo 12 não retornou offerId utilizável para aceite."
+        },
+        "message": "O passo 12 não retornou offerId utilizável para aceite.",
+        "executedAt": "2026-05-05T02:32:21.743Z"
+      }
+    },
+    {
+      "stepId": "14",
+      "actionId": "step14_wallet_statement",
+      "title": "Pessoa visualiza extrato/contas DSP",
+      "evidence": {
+        "actionId": "step14_wallet_statement",
+        "actionTitle": "Pessoa visualiza extrato/contas DSP",
+        "status": "executed",
+        "method": "GET",
+        "url": "https://api.sandbox.drumwave.com.br/v1/dsavings/data-savings-accounts",
+        "httpStatus": 200,
+        "ok": true,
+        "requestHeaders": {
+          "x-api-key": "<REDACTED>",
+          "Authorization": "<REDACTED>",
+          "X-User-Access-Token": "<REDACTED>"
+        },
+        "responseBody": {
+          "success": true,
+          "message": "Data Savings Accounts for User: 68057e52-76e8-4a8e-82b7-825682a486ff",
+          "errors": [],
+          "pagination": {
+            "page": 1,
+            "pageSize": 10,
+            "totalItems": 1,
+            "totalPages": 1
+          },
+          "data": [
+            {
+              "id": "04a2c38b-1a62-4994-90e9-f8524acc7a2d",
+              "dataSavingsPlan": {
+                "id": 2,
+                "name": "dSavings Smart",
+                "cdaId": "25cfe819-c396-4b45-bb0d-5ee8d7ac555f",
+                "description": "Smart data savings plan for Brazilian market",
+                "memberCount": 11
+              },
+              "userId": "68057e52-76e8-4a8e-82b7-825682a486ff",
+              "enrolledAt": "2026-05-05T02:32:20.807Z",
+              "expiresAt": "2027-11-01T23:23:55.165Z",
+              "savingsGoalCurrency": "BRL",
+              "savingsGoalInMinor": 1000,
+              "autoRenew": false,
+              "doNotMonetize": false,
+              "termsOfConditionsAgreedAt": "2026-05-05T02:32:20.806Z",
+              "categories": [
+                {
+                  "slug": "travel-and-transportation",
+                  "displayName": "Travel & Transportation",
+                  "isEnabled": true
+                }
+              ]
+            }
+          ]
+        },
+        "stateUpdates": {},
+        "message": "Chamada executada dentro da faixa esperada.",
+        "executedAt": "2026-05-05T02:32:21.743Z"
+      }
+    },
+    {
+      "stepId": "15",
+      "actionId": "step15_withdrawal_internal",
+      "title": "Pessoa ou empresa solicita resgate",
+      "evidence": {
+        "actionId": "step15_withdrawal_internal",
+        "actionTitle": "Pessoa ou empresa solicita resgate",
+        "status": "not_executable",
+        "ok": true,
+        "responseBody": {
+          "tipo": "internal",
+          "explicacao": "O roteiro indica endpoints de withdrawal e payment-settled/payment-failed, mas o sumário marca a etapa como API interna ainda não externalizada.",
+          "impacto": "APIs de resgate existem no roteiro como referência operacional, porém foram classificadas como INT; não devem ser executadas como externas nesta validação."
+        },
+        "message": "Etapa sinalizada como API não disponível para execução externa.",
+        "missingReason": "APIs de resgate existem no roteiro como referência operacional, porém foram classificadas como INT; não devem ser executadas como externas nesta validação.",
+        "executedAt": "2026-05-05T02:32:22.264Z"
+      }
+    }
+  ]
+}

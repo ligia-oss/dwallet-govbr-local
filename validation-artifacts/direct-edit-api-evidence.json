@@ -1,9 +1,9 @@
 {
-  "validatedAt": "2026-05-05T02:01:27.156Z",
+  "validatedAt": "2026-05-05T02:22:01.203Z",
   "scenario": "direct-screen-edit-to-api-payload",
   "note": "Estado sintético equivalente aos campos editados diretamente no formulário emulado Personal GovBR.",
   "editedFields": {
-    "personEmail": "direct-edit-7946484868@example.com",
+    "personEmail": "direct-edit-7947719499@example.com",
     "personFirstName": "Direto",
     "personLastName": "Validado",
     "personPhone": "+5511999988888",
@@ -27,7 +27,7 @@
       "x-region": "BR"
     },
     "requestBody": {
-      "email": "direct-edit-7946484868@example.com",
+      "email": "direct-edit-7947719499@example.com",
       "password": "<REDACTED>",
       "firstName": "Direto",
       "lastName": "Validado",
@@ -45,8 +45,8 @@
       "method": "POST",
       "message": "[\"address.property line1 should not exist\",\"address.property city should not exist\",\"address.property zip should not exist\"]",
       "url": "/v1/person/signup",
-      "timestamp": "2026-05-05T02:01:26.924Z",
-      "requestId": "ae4883b9-a1f4-4d64-9c1b-a63dd4e023bf",
+      "timestamp": "2026-05-05T02:22:01.018Z",
+      "requestId": "ea956ac2-28ed-4f49-bf3e-535ec1eaf7bd",
       "error": {
         "name": "BadRequestException",
         "message": "[\"address.property line1 should not exist\",\"address.property city should not exist\",\"address.property zip should not exist\"]"
@@ -54,6 +54,6 @@
     },
     "stateUpdates": {},
     "message": "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.",
-    "executedAt": "2026-05-05T02:01:24.870Z"
+    "executedAt": "2026-05-05T02:21:59.501Z"
   }
 }

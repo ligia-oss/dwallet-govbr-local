@@ -69,3 +69,7 @@
 - [x] Realizar interação real no navegador editando inputs em Personal e Business e registrar evidência da alteração bem-sucedida no front-end emulado.
 - [x] Executar no navegador uma ação real a partir da tela atual após editar um campo direto e registrar evidência da própria UI com o payload sanitizado contendo o novo valor.
 - [x] Adicionar cobertura automatizada do fluxo editar campo `direct-*` → acionar execução da tela → confirmar que `executeAction` recebe o estado consolidado atualizado.
+- [x] Corrigir o payload da ação Entrada da Personal Wallet para remover campos `address.line1`, `address.city` e `address.zip` quando o contrato da Dataprev não os aceitar.
+- [x] Explicar no relatório por que ocorreu o erro `address.property line1 should not exist` e qual alteração foi aplicada.
+- [x] Validar as APIs executáveis da página Personal GovBR após a correção, registrando quais funcionam, quais retornam erro de negócio e quais permanecem ausentes por falta de endpoint.
+- [x] Atualizar testes automatizados para impedir regressão no contrato de endereço da ação `step2_person_signup`.

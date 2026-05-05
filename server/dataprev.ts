@@ -141,7 +141,8 @@ export function sanitizeDataprevEvidence(value: unknown, depth = 0): unknown {
   const out: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
     const lower = key.toLowerCase();
-    if (["token", "secret", "authorization", "x-api-key", "apikey", "api_key", "clientsecret", "password", "senha"].some(marker => lower.includes(marker))) {
+    const isOpaqueHandle = lower.endsWith("tokenhandle");
+    if (!isOpaqueHandle && ["token", "secret", "authorization", "x-api-key", "apikey", "api_key", "clientsecret", "password", "senha"].some(marker => lower.includes(marker))) {
       out[key] = item ? "<REDACTED>" : item;
     } else {
       out[key] = sanitizeDataprevEvidence(item, depth + 1);
@@ -167,7 +168,8 @@ async function getM2MToken() {
   if (!config.apiKey || !config.clientId || !config.clientSecret) {
     throw new Error("Credenciais DATAPREV_* não estão configuradas no servidor.");
   }
-  if (m2mCache && m2mCache.expiresAt > Date.now() + 60_000) return m2mCache.token;
+  const isVitest = Boolean(process.env.VITEST) || process.env.NODE_ENV === "test";
+  if (!isVitest && m2mCache && m2mCache.expiresAt > Date.now() + 60_000) return m2mCache.token;
 
   const response = await fetch(`${config.baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`, {
     method: "POST",
@@ -185,11 +187,13 @@ async function getM2MToken() {
   if (!response.ok || typeof data.access_token !== "string") {
     throw new Error(`Falha ao obter token M2M: HTTP ${response.status}`);
   }
-  m2mCache = {
-    token: data.access_token,
-    expiresAt: Date.now() + Number(data.expires_in || 3600) * 1000,
-  };
-  return m2mCache.token;
+  if (!isVitest) {
+    m2mCache = {
+      token: data.access_token,
+      expiresAt: Date.now() + Number(data.expires_in || 3600) * 1000,
+    };
+  }
+  return data.access_token;
 }
 
 function headers(options: { m2m?: string; userToken?: string; region?: boolean; content?: boolean }) {
@@ -221,7 +225,7 @@ const actions: JourneyAction[] = [
     status: "external",
     includeRegion: true,
     description: "Cria o usuário colaborador que representa a empresa na jornada Business dWallet.",
-    buildBody: state => ({ email: state.employeeEmail, password: state.employeePassword || DEFAULT_PASSWORD, firstName: state.employeeFirstName || "Maria", lastName: state.employeeLastName || "Silva", phoneNumber: state.employeePhone || "+5511999990001", address: { line1: state.businessAddressLine || "Rua Exemplo 123", city: state.businessCity || "São Paulo", state: state.businessState || "SP", zip: state.businessZip || "01310-100" } }),
+    buildBody: state => ({ email: state.employeeEmail, password: state.employeePassword || DEFAULT_PASSWORD, firstName: state.employeeFirstName || "Maria", lastName: state.employeeLastName || "Silva", phoneNumber: state.employeePhone || "+5511999990001", address: { state: state.businessState || "SP" } }),
   },
   {
     id: "step1_employee_send_code",
@@ -261,7 +265,7 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     includeRegion: true,
     description: "Cria a carteira/entidade empresarial associada ao colaborador autenticado.",
-    buildBody: state => ({ name: state.businessName || `Empresa Dataprev Local ${state.runId}`, cnpj: state.businessCnpj, address: { line1: state.businessAddressLine || "Rua Exemplo 123", city: state.businessCity || "São Paulo", state: state.businessState || "SP", zip: state.businessZip || "01310-100" }, website: state.businessWebsite || undefined, phoneNumber: state.businessPhone || undefined }),
+    buildBody: state => ({ name: state.businessName || `Empresa Dataprev Local ${state.runId}`, cnpj: state.businessCnpj, address: { state: state.businessState || "SP" }, website: state.businessWebsite || undefined, phoneNumber: state.businessPhone || undefined }),
     onSuccess: body => ({ businessId: findFirst(body, ["businessId", "id", "uuid"]), businessDwalletId: findFirst(body, ["dWalletId"]) }),
   },
   {
@@ -274,7 +278,7 @@ const actions: JourneyAction[] = [
     status: "external",
     includeRegion: true,
     description: "Cria a conta da pessoa física que será usada nos passos da Personal dWallet.",
-    buildBody: state => ({ email: state.personEmail, password: state.personPassword || DEFAULT_PASSWORD, firstName: state.personFirstName || "João", lastName: state.personLastName || "Santos", phoneNumber: state.personPhone || "+5511999990002", address: { line1: state.personAddressLine || "Rua Cidadã 456", city: state.personCity || "São Paulo", state: state.personState || "SP", zip: state.personZip || "01310-200" } }),
+    buildBody: state => ({ email: state.personEmail, password: state.personPassword || DEFAULT_PASSWORD, firstName: state.personFirstName || "João", lastName: state.personLastName || "Santos", phoneNumber: state.personPhone || "+5511999990002", address: { state: state.personState || "SP" } }),
   },
   {
     id: "step2_person_send_code",
