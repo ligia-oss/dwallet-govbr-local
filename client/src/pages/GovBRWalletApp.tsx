@@ -1264,6 +1264,11 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
       </CardHeader>
       <CardContent className="space-y-4">
         {error ? <Alert className="border-amber-200 bg-amber-50 text-amber-950"><ShieldAlert className="h-4 w-4" /><AlertTitle>Falha no Passo 0</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
+        <Alert className="border-blue-200 bg-blue-50 text-blue-950">
+          <KeyRound className="h-4 w-4" />
+          <AlertTitle>Credenciais obrigatórias antes da execução</AlertTitle>
+          <AlertDescription>Antes de clicar em <strong>Passo 0 — Autenticar M2M</strong>, preencha na aba <strong>Credenciais</strong> os campos <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong>. Se algum deles estiver vazio, a aplicação não executa a API e orienta quais campos precisam ser preenchidos.</AlertDescription>
+        </Alert>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Status do token</p><p className={active ? "mt-1 font-semibold text-green-700" : "mt-1 font-semibold text-amber-700"}>{active ? "ativo no servidor" : tokenStatus ? "expirado ou inválido" : "não obtido"}</p></div>
           <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Handle opaco</p><p className="mt-1 break-all font-mono text-xs text-slate-800">{tokenHandle}</p></div>
@@ -1417,6 +1422,18 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
   );
 }
 
+export function getMissingM2MCredentialLabels(credentials: DataprevCredentialForm) {
+  const requiredFields: Array<{ key: keyof DataprevCredentialForm; label: string }> = [
+    { key: "apiKey", label: "API ID / x-api-key" },
+    { key: "clientId", label: "Client ID" },
+    { key: "clientSecret", label: "Secret ID / Client secret" },
+  ];
+
+  return requiredFields
+    .filter(field => !String(credentials[field.key] ?? "").trim())
+    .map(field => field.label);
+}
+
 export function buildDataprevCredentialsInput(credentials: DataprevCredentialForm) {
   const trimmed = {
     baseUrl: credentials.baseUrl.trim(),
@@ -1449,14 +1466,14 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
         <Alert className={usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>{usingTypedCredentials ? "Credenciais temporárias serão usadas no Passo 0" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
-          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Preencha API key, Client ID e Client secret como um conjunto completo do Postman; a Base URL é opcional e, se ficar vazia, a sandbox padrão será usada. A aplicação não mistura parcialmente credenciais secretas digitadas com Secrets publicados." : configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Se ocorrer 401/403 no publicado mas o Postman funcionar, preencha temporariamente API key, Client ID e Client secret com os mesmos valores do Postman, deixando a Base URL vazia para usar a sandbox padrão ou preenchendo a URL completa copiada do Postman." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha os campos temporários abaixo antes de executar chamadas reais."}</AlertDescription>
+          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Preencha API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo do Postman; a Base URL é opcional e, se ficar vazia, a sandbox padrão será usada. A aplicação não mistura parcialmente credenciais secretas digitadas com Secrets publicados." : configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Para homologar pela interface, preencha temporariamente API ID / x-api-key, Client ID e Secret ID / Client secret com os mesmos valores do Postman antes de executar o Passo 0. A Base URL pode ficar vazia para usar a sandbox padrão ou receber a URL completa copiada do Postman." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha API ID / x-api-key, Client ID e Secret ID / Client secret abaixo antes de executar o Passo 0 e demais chamadas reais."}</AlertDescription>
         </Alert>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Credenciais temporárias Dataprev</p>
-              <p className="text-sm leading-6 text-slate-600">Preencha estes campos para testar autenticação M2M diretamente pela interface. Evite salvar capturas contendo segredos.</p>
+              <p className="text-sm leading-6 text-slate-600">Antes de executar o Passo 0, preencha obrigatoriamente API ID / x-api-key, Client ID e Secret ID / Client secret. A Base URL é opcional. Evite salvar capturas contendo segredos.</p>
             </div>
             <Button type="button" variant="outline" onClick={onClear}>Limpar campos</Button>
           </div>
@@ -1466,19 +1483,19 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <Input id="dataprev-base-url" value={credentials.baseUrl} onChange={event => onChange("baseUrl", event.target.value)} placeholder={baseUrl || "https://api.sandbox.drumwave.com.br"} autoComplete="off" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dataprev-api-key">API key</Label>
-              <Input id="dataprev-api-key" type="password" value={credentials.apiKey} onChange={event => onChange("apiKey", event.target.value)} placeholder="Cole a x-api-key" autoComplete="off" />
+              <Label htmlFor="dataprev-api-key">API ID / x-api-key</Label>
+              <Input id="dataprev-api-key" type="password" value={credentials.apiKey} onChange={event => onChange("apiKey", event.target.value)} placeholder="Cole a API ID / x-api-key" autoComplete="off" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataprev-client-id">Client ID</Label>
               <Input id="dataprev-client-id" value={credentials.clientId} onChange={event => onChange("clientId", event.target.value)} placeholder="Cole o client_id" autoComplete="off" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dataprev-client-secret">Client secret</Label>
-              <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o client_secret" autoComplete="off" />
+              <Label htmlFor="dataprev-client-secret">Secret ID / Client secret</Label>
+              <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o Secret ID / client_secret" autoComplete="off" />
             </div>
           </div>
-          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha API key, Client ID e Client secret como conjunto completo do Postman; deixe a Base URL vazia para usar a sandbox padrão ou cole a URL completa do endpoint/token se preferir. Depois volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se houver erro, a resposta mostrará status HTTP, diagnóstico, origem das credenciais e fingerprints seguros para comparar o runtime local/publicado sem revelar segredos.</p>
+          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo do Postman antes de executar o Passo 0; deixe a Base URL vazia para usar a sandbox padrão ou cole a URL completa do endpoint/token se preferir. Depois volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se algum campo obrigatório estiver vazio, a aplicação não chama a API e informa exatamente o que falta preencher.</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
@@ -1663,6 +1680,15 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       delete next.m2m;
       return next;
     });
+
+    const missingCredentials = getMissingM2MCredentialLabels(dataprevCredentials);
+    if (missingCredentials.length > 0) {
+      const message = `Antes de executar o Passo 0 M2M, preencha na aba Credenciais os campos obrigatórios: ${missingCredentials.join(", ")}. A API não foi chamada porque esses dados são essenciais para gerar a autenticação M2M.`;
+      setM2mResult(undefined);
+      setErrors(previous => ({ ...previous, m2m: message }));
+      return;
+    }
+
     try {
       const result = await authenticateM2M.mutateAsync({ credentials: buildDataprevCredentialsInput(dataprevCredentials) });
       const typed = result as M2MAuthResult;

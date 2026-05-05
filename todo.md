@@ -182,3 +182,8 @@
 - [x] Corrigir a causa da falha do Passo 0 M2M, garantindo que o contrato usado pelo site gere a chave M2M quando as credenciais estiverem corretas.
 - [x] Atualizar testes automatizados para cobrir a limpeza de retornos de API e a nova validação do Passo 0 M2M.
 - [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da correção de limpeza e Passo 0.
+
+- [x] Incluir instrução na aba Credenciais para preencher Client ID, API ID/API Key e Secret ID/Client Secret antes de executar o Passo 0 M2M.
+- [x] Bloquear a execução do Passo 0 pela interface quando credenciais essenciais estiverem vazias, exibindo mensagem orientando a pessoa responsável pela homologação a preencher os campos faltantes na aba Credenciais.
+- [x] Atualizar testes automatizados para cobrir instrução de credenciais obrigatórias e bloqueio preventivo do Passo 0 sem chamada à API.
+- [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da validação preventiva do Passo 0.

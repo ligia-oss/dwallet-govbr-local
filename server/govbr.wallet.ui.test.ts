@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -86,6 +86,9 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(html).toContain("Passo 0");
     expect(html).toContain("Passo 0 — Autenticar M2M");
+    expect(html).toContain("Credenciais obrigatórias antes da execução");
+    expect(html).toContain("API ID / x-api-key");
+    expect(html).toContain("Secret ID / Client secret");
     expect(html).toContain("ativo no servidor");
     expect(html).toContain("opaque-token-handle");
     expect(html).toContain("&lt;REDACTED&gt;");
@@ -119,7 +122,21 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Credenciais temporárias Dataprev");
+    expect(credentialsHtml).toContain("Antes de executar o Passo 0");
+    expect(credentialsHtml).toContain("API ID / x-api-key");
+    expect(credentialsHtml).toContain("Secret ID / Client secret");
     expect(credentialsHtml).toContain("Executar Passo 0 · autenticação M2M");
+  });
+
+  it("identifica credenciais obrigatórias faltantes antes de executar o Passo 0 pela interface", () => {
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" })).toEqual([
+      "API ID / x-api-key",
+      "Client ID",
+      "Secret ID / Client secret",
+    ]);
+
+    expect(getMissingM2MCredentialLabels({ baseUrl: "https://endpoint/token", apiKey: "api-id", clientId: "", clientSecret: "secret-id" })).toEqual(["Client ID"]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: " api-id ", clientId: " client-id ", clientSecret: " secret-id " })).toEqual([]);
   });
 
   it("renders generated API outputs in the credential folder for reuse between steps", () => {
