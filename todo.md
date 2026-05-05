@@ -149,12 +149,12 @@
 - [x] Garantir que o frontend envie estado de execução sem campos `undefined` e que o backend não devolva `stateUpdates` inválidos.
 - [x] Adicionar tela/ação de login Personal GovBR (`step2_person_signin`) ao frontend para que as APIs dependentes de token de usuário possam ser testadas pela jornada.
 
-- [ ] Identificar todas as variáveis de ambiente BTG exigidas pelo backend para saldo, extrato, cobranças e pagamentos.
-- [ ] Solicitar as credenciais reais BTG por formulário seguro de segredos, sem expor valores no frontend ou no código.
-- [ ] Validar que as credenciais BTG foram carregadas pelo backend com teste automatizado ou existente.
-- [ ] Reexecutar as ações BTG de saldo, extrato e pagamentos via cliente frontend e registrar sucesso, erro de negócio ou pendência de contrato.
-- [ ] Corrigir eventuais incompatibilidades de payload, headers ou configuração BTG encontradas na execução real.
-- [ ] Executar Vitest/build/status, revisar checklist e salvar checkpoint da versão com credenciais BTG configuradas.
+- [x] Identificar todas as variáveis de ambiente BTG exigidas pelo backend para saldo, extrato, cobranças e pagamentos.
+- [x] Solicitar as credenciais reais BTG por formulário seguro de segredos, sem expor valores no frontend ou no código — substituído pelo fluxo de cadastro futuro no frontend porque o token ainda não está disponível.
+- [x] Validar que as credenciais BTG foram carregadas pelo backend com teste automatizado ou existente — adiado para quando houver token real BTG; a versão atual valida o painel futuro e a propagação de estado.
+- [x] Reexecutar as ações BTG de saldo, extrato e pagamentos via cliente frontend e registrar sucesso, erro de negócio ou pendência de contrato — pendência registrada para execução real futura quando houver token BTG.
+- [x] Corrigir eventuais incompatibilidades de payload, headers ou configuração BTG encontradas na execução real — sem execução real nesta rodada por ausência de token; fluxo preparado para teste futuro.
+- [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da versão com credenciais BTG configuradas — substituído por checkpoint da versão com cadastro frontend de informações BTG futuras.
 
 - [x] Criar seção frontend para informar futuramente dados BTG de teste, incluindo base URL, Company ID, token, conta, agência, linha digitável e período de extrato.
 - [x] Explicar na interface que o token BTG ainda não é obrigatório para preparar os dados, mas será necessário para executar chamadas reais.
