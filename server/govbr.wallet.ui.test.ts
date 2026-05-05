@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { EvidenceBox, getVisualStatus, type Evidence } from "../client/src/pages/GovBRWalletApp";
+import { CredentialsPanel, EvidenceBox, getVisualStatus, TestVariablesPanel, type Evidence } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -59,6 +59,26 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("API ausente");
     expect(html).toContain("Endpoint ausente no mapeamento atual");
     expect(html).toContain("Endpoint Dataprev não configurado para este fluxo");
+  });
+
+  it("renders editable test variables and credential guidance for operators", () => {
+    const variablesHtml = renderToStaticMarkup(React.createElement(TestVariablesPanel, {
+      variables: [
+        { key: "personEmail", label: "E-mail", section: "Pessoa física", placeholder: "cidadao@example.com", type: "email", description: "Identificador principal para cadastro." },
+        { key: "personPassword", label: "Senha de teste", section: "Pessoa física", placeholder: "SecurePass123!", type: "password", sensitive: true, description: "Senha enviada ao cadastro/login." },
+      ],
+      values: { personEmail: "teste@example.com", personPassword: "<REDACTED>" },
+      onChange: () => undefined,
+      onReset: () => undefined,
+    }));
+    const credentialsHtml = renderToStaticMarkup(React.createElement(CredentialsPanel, { baseUrl: "https://sandbox.test.local", configured: true }));
+
+    expect(variablesHtml).toContain("Variáveis de entrada editáveis");
+    expect(variablesHtml).toContain("teste@example.com");
+    expect(variablesHtml).toContain("redigido");
+    expect(credentialsHtml).toContain("Credenciais e chaves");
+    expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
+    expect(credentialsHtml).toContain("Settings → Secrets");
   });
 
   it("derives visual status from the active action, evidence and API availability", () => {

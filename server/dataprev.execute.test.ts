@@ -47,6 +47,43 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(evidence.responseBody)).not.toContain("eyJabc.def.ghi");
   });
 
+  it("usa variáveis editáveis no cadastro Personal e redige senha na evidência", async () => {
+    const caller = appRouter.createCaller(ctx);
+    let capturedBody: any;
+    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+      capturedBody = JSON.parse(String(init?.body));
+      return jsonResponse(201, { id: "person-1" });
+    }) as any;
+
+    const evidence = await caller.dataprev.executeAction({
+      actionId: "step2_person_signup",
+      state: {
+        runId: "129",
+        personEmail: "ana.teste@example.com",
+        personFirstName: "Ana",
+        personLastName: "Teste",
+        personPhone: "+551188887777",
+        personPassword: "SenhaVariavel123!",
+        personAddressLine: "Avenida Teste 10",
+        personCity: "Brasília",
+        personState: "DF",
+        personZip: "70000-000",
+      },
+    });
+
+    expect(evidence.ok).toBe(true);
+    expect(capturedBody).toEqual(expect.objectContaining({
+      email: "ana.teste@example.com",
+      firstName: "Ana",
+      lastName: "Teste",
+      phoneNumber: "+551188887777",
+      password: "SenhaVariavel123!",
+    }));
+    expect(capturedBody.address).toEqual(expect.objectContaining({ line1: "Avenida Teste 10", city: "Brasília", state: "DF", zip: "70000-000" }));
+    expect(JSON.stringify(evidence.requestBody)).not.toContain("SenhaVariavel123!");
+    expect(JSON.stringify(evidence.requestBody)).toContain("<REDACTED>");
+  });
+
   it("preserva evidência de falha quando a API responde fora da faixa esperada", async () => {
     const caller = appRouter.createCaller(ctx);
     globalThis.fetch = vi.fn(async () => jsonResponse(500, { error: "sandbox indisponível" })) as any;

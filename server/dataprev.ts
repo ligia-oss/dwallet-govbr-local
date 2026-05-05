@@ -141,7 +141,7 @@ export function sanitizeDataprevEvidence(value: unknown, depth = 0): unknown {
   const out: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
     const lower = key.toLowerCase();
-    if (["token", "secret", "authorization", "x-api-key", "apikey", "api_key", "clientsecret"].some(marker => lower.includes(marker))) {
+    if (["token", "secret", "authorization", "x-api-key", "apikey", "api_key", "clientsecret", "password", "senha"].some(marker => lower.includes(marker))) {
       out[key] = item ? "<REDACTED>" : item;
     } else {
       out[key] = sanitizeDataprevEvidence(item, depth + 1);
@@ -221,7 +221,7 @@ const actions: JourneyAction[] = [
     status: "external",
     includeRegion: true,
     description: "Cria o usuário colaborador que representa a empresa na jornada Business dWallet.",
-    buildBody: state => ({ email: state.employeeEmail, password: DEFAULT_PASSWORD, firstName: "Maria", lastName: "Silva", phoneNumber: "+5511999990001", address: { state: "SP" } }),
+    buildBody: state => ({ email: state.employeeEmail, password: state.employeePassword || DEFAULT_PASSWORD, firstName: state.employeeFirstName || "Maria", lastName: state.employeeLastName || "Silva", phoneNumber: state.employeePhone || "+5511999990001", address: { line1: state.businessAddressLine || "Rua Exemplo 123", city: state.businessCity || "São Paulo", state: state.businessState || "SP", zip: state.businessZip || "01310-100" } }),
   },
   {
     id: "step1_employee_send_code",
@@ -246,7 +246,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     includeRegion: true,
     description: "Autentica o colaborador criado e guarda o token de usuário no servidor por meio de identificador opaco.",
-    buildBody: state => ({ email: state.employeeEmail, password: DEFAULT_PASSWORD }),
+    buildBody: state => ({ email: state.employeeEmail, password: state.employeePassword || DEFAULT_PASSWORD }),
     onSuccess: body => ({ employeeTokenHandle: storeToken(findFirst(body, ["accessToken", "access_token"])), employeeDwalletId: findFirst(body, ["dWalletId"]) }),
   },
   {
@@ -261,7 +261,7 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     includeRegion: true,
     description: "Cria a carteira/entidade empresarial associada ao colaborador autenticado.",
-    buildBody: state => ({ name: `Empresa Dataprev Local ${state.runId}`, cnpj: state.businessCnpj, address: { line1: "Rua Exemplo 123", city: "São Paulo", state: "SP", zip: "01310-100" } }),
+    buildBody: state => ({ name: state.businessName || `Empresa Dataprev Local ${state.runId}`, cnpj: state.businessCnpj, address: { line1: state.businessAddressLine || "Rua Exemplo 123", city: state.businessCity || "São Paulo", state: state.businessState || "SP", zip: state.businessZip || "01310-100" }, website: state.businessWebsite || undefined, phoneNumber: state.businessPhone || undefined }),
     onSuccess: body => ({ businessId: findFirst(body, ["businessId", "id", "uuid"]), businessDwalletId: findFirst(body, ["dWalletId"]) }),
   },
   {
@@ -274,7 +274,7 @@ const actions: JourneyAction[] = [
     status: "external",
     includeRegion: true,
     description: "Cria a conta da pessoa física que será usada nos passos da Personal dWallet.",
-    buildBody: state => ({ email: state.personEmail, password: DEFAULT_PASSWORD, firstName: "João", lastName: "Santos", phoneNumber: "+5511999990002", address: { state: "SP" } }),
+    buildBody: state => ({ email: state.personEmail, password: state.personPassword || DEFAULT_PASSWORD, firstName: state.personFirstName || "João", lastName: state.personLastName || "Santos", phoneNumber: state.personPhone || "+5511999990002", address: { line1: state.personAddressLine || "Rua Cidadã 456", city: state.personCity || "São Paulo", state: state.personState || "SP", zip: state.personZip || "01310-200" } }),
   },
   {
     id: "step2_person_send_code",
@@ -299,7 +299,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     includeRegion: true,
     description: "Autentica a pessoa criada e guarda o token no servidor por meio de identificador opaco.",
-    buildBody: state => ({ email: state.personEmail, password: DEFAULT_PASSWORD }),
+    buildBody: state => ({ email: state.personEmail, password: state.personPassword || DEFAULT_PASSWORD }),
     onSuccess: body => ({ personTokenHandle: storeToken(findFirst(body, ["accessToken", "access_token"])), personDwalletId: findFirst(body, ["dWalletId"]) }),
   },
   {
@@ -550,6 +550,25 @@ function initialState(): RunState {
     employeeEmail: `dataprev.bd.local.${runId}@example.com`,
     personEmail: `dataprev.pd.local.${runId}@example.com`,
     businessCnpj: createCnpj(runId),
+    personFirstName: "João",
+    personLastName: "Santos",
+    personPhone: "+5511999990002",
+    personPassword: DEFAULT_PASSWORD,
+    personAddressLine: "Rua Cidadã 456",
+    personCity: "São Paulo",
+    personState: "SP",
+    personZip: "01310-200",
+    employeeFirstName: "Maria",
+    employeeLastName: "Silva",
+    employeePhone: "+5511999990001",
+    employeePassword: DEFAULT_PASSWORD,
+    businessName: `Empresa Dataprev Local ${runId}`,
+    businessPhone: "+5511999990003",
+    businessWebsite: "https://empresa.example.com",
+    businessAddressLine: "Rua Exemplo 123",
+    businessCity: "São Paulo",
+    businessState: "SP",
+    businessZip: "01310-100",
   };
 }
 

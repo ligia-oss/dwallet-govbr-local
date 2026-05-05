@@ -38,3 +38,9 @@ Após a sincronização de credenciais, o fluxo exato `step2_person_signup` foi 
 A mesma ação foi chamada diretamente no endpoint tRPC da versão publicada `https://dwalletgovbr-mmipedog.manus.space/api/trpc/dataprev.executeAction?batch=1` com e-mail único `dataprev.pd.published.recheck.7943954458@example.com`. A resposta de transporte foi HTTP 200, mas a evidência da ação retornou **HTTP 403** da sandbox em `/v1/dwallet/person/signup`. A mensagem retornada ainda foi a mensagem antiga genérica, o que confirma que a versão publicada ainda não recebeu o novo checkpoint/código e/ou ainda está com o conjunto antigo de segredos no runtime publicado.
 
 Portanto, a correção está validada no ambiente atual do projeto, mas a versão pública precisa ser atualizada via novo checkpoint e publicação para receber os diagnósticos e as credenciais sincronizadas.
+
+## Atualização de usabilidade para testes de API — 2026-05-04
+
+Foi adicionada uma aba **Variáveis de teste** nas rotas `/personal-govbr` e `/business-govbr`, permitindo alterar valores usados durante as execuções das APIs, incluindo nome, sobrenome, e-mail, telefone, senha de teste, endereço, cidade, UF, CEP, dados empresariais, CNPJ e identificadores reutilizados na jornada. Também foi adicionada a aba **Credenciais**, que lista as variáveis server-side relevantes (`DATAPREV_BASE_URL`, `DATAPREV_API_KEY`, `DATAPREV_CLIENT_ID`, `DATAPREV_CLIENT_SECRET`) sem expor valores sensíveis no cliente e orienta a atualização pelo painel seguro de Secrets antes de publicar novo checkpoint.
+
+Validação executada: `pnpm test` resultou em 6 arquivos aprovados e 16 testes aprovados; `pnpm exec tsc --noEmit` terminou sem erros; a prévia local foi verificada visualmente em `/personal-govbr` e `/business-govbr`, confirmando a presença das abas **Tela atual**, **Variáveis de teste** e **Credenciais**.

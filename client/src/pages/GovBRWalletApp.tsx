@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   ArrowLeft,
@@ -17,6 +18,7 @@ import {
   ClipboardList,
   Database,
   FileCheck2,
+  KeyRound,
   Landmark,
   LayoutDashboard,
   Loader2,
@@ -86,6 +88,51 @@ const groupLabel: Record<ScreenGroup, string> = {
   financeiro: "Financeiro",
   configuracoes: "Configurações",
 };
+
+type TestVariable = {
+  key: string;
+  label: string;
+  section: string;
+  placeholder: string;
+  type?: string;
+  sensitive?: boolean;
+  description: string;
+};
+
+const personalTestVariables: TestVariable[] = [
+  { key: "personFirstName", label: "Nome", section: "Pessoa física", placeholder: "João", description: "Usado no payload de criação da Personal dWallet." },
+  { key: "personLastName", label: "Sobrenome", section: "Pessoa física", placeholder: "Santos", description: "Usado no payload de criação da Personal dWallet." },
+  { key: "personEmail", label: "E-mail", section: "Pessoa física", placeholder: "cidadao@example.com", type: "email", description: "Identificador principal para cadastro, envio de código e login." },
+  { key: "personPhone", label: "Telefone", section: "Pessoa física", placeholder: "+5511999990002", type: "tel", description: "Telefone enviado no cadastro Personal." },
+  { key: "personPassword", label: "Senha de teste", section: "Pessoa física", placeholder: "SecurePass123!", type: "password", sensitive: true, description: "Senha enviada ao cadastro/login; é redigida nas evidências." },
+  { key: "personAddressLine", label: "Endereço", section: "Endereço da pessoa", placeholder: "Rua Cidadã 456", description: "Linha de endereço enviada no cadastro Personal." },
+  { key: "personCity", label: "Cidade", section: "Endereço da pessoa", placeholder: "São Paulo", description: "Cidade enviada no cadastro Personal." },
+  { key: "personState", label: "UF", section: "Endereço da pessoa", placeholder: "SP", description: "UF enviada no cadastro Personal e no contexto gov.br." },
+  { key: "personZip", label: "CEP", section: "Endereço da pessoa", placeholder: "01310-200", description: "CEP enviado no cadastro Personal." },
+  { key: "businessId", label: "Business ID", section: "Identificadores da jornada", placeholder: "Gerado pela Business dWallet", description: "Necessário para solicitação de dados Personal." },
+  { key: "commercialDspId", label: "DSP comercial", section: "Identificadores da jornada", placeholder: "Gerado pela consulta de DSPs", description: "Usado para criar conta DSP quando retornado pela API." },
+  { key: "offerId", label: "Offer ID", section: "Identificadores da jornada", placeholder: "Gerado pela listagem de ofertas", description: "Usado no aceite de oferta quando disponível." },
+  { key: "dspAccountId", label: "Conta DSP", section: "Identificadores da jornada", placeholder: "Conta DSP conhecida", description: "Apoia telas financeiras e extrato parcial." },
+];
+
+const businessTestVariables: TestVariable[] = [
+  { key: "employeeFirstName", label: "Nome do colaborador", section: "Colaborador", placeholder: "Maria", description: "Usado no payload de criação do colaborador Business." },
+  { key: "employeeLastName", label: "Sobrenome do colaborador", section: "Colaborador", placeholder: "Silva", description: "Usado no payload de criação do colaborador Business." },
+  { key: "employeeEmail", label: "E-mail corporativo", section: "Colaborador", placeholder: "colaborador@example.com", type: "email", description: "Identificador de cadastro, envio de código e login Business." },
+  { key: "employeePhone", label: "Telefone do colaborador", section: "Colaborador", placeholder: "+5511999990001", type: "tel", description: "Telefone enviado no cadastro do colaborador." },
+  { key: "employeePassword", label: "Senha de teste", section: "Colaborador", placeholder: "SecurePass123!", type: "password", sensitive: true, description: "Senha enviada ao cadastro/login; é redigida nas evidências." },
+  { key: "businessName", label: "Razão/nome empresarial", section: "Empresa", placeholder: "Empresa Dataprev Local", description: "Nome enviado na criação da entidade Business dWallet." },
+  { key: "businessCnpj", label: "CNPJ", section: "Empresa", placeholder: "00000000000100", description: "CNPJ de teste com 14 dígitos para criação da empresa." },
+  { key: "businessPhone", label: "Telefone da empresa", section: "Empresa", placeholder: "+5511999990003", type: "tel", description: "Telefone corporativo opcional no cadastro empresarial." },
+  { key: "businessWebsite", label: "Website", section: "Empresa", placeholder: "https://empresa.example.com", type: "url", description: "Website opcional enviado no cadastro empresarial." },
+  { key: "businessAddressLine", label: "Endereço", section: "Endereço da empresa", placeholder: "Rua Exemplo 123", description: "Linha de endereço enviada na criação da empresa e do colaborador." },
+  { key: "businessCity", label: "Cidade", section: "Endereço da empresa", placeholder: "São Paulo", description: "Cidade enviada nos payloads Business." },
+  { key: "businessState", label: "UF", section: "Endereço da empresa", placeholder: "SP", description: "UF enviada nos payloads Business e no contexto regional." },
+  { key: "businessZip", label: "CEP", section: "Endereço da empresa", placeholder: "01310-100", description: "CEP enviado nos payloads Business." },
+  { key: "businessId", label: "Business ID", section: "Identificadores da jornada", placeholder: "Gerado no cadastro empresarial", description: "Usado para listar solicitações e outros passos empresariais." },
+  { key: "dataRequestId", label: "Data Request ID", section: "Identificadores da jornada", placeholder: "Gerado/listado pela API", description: "Usado para aceite de solicitação de dados." },
+  { key: "dspAccountId", label: "Conta DSP", section: "Identificadores da jornada", placeholder: "Conta DSP conhecida", description: "Apoia telas financeiras e extrato parcial." },
+];
 
 const personalScreens: GovScreen[] = [
   {
@@ -483,9 +530,95 @@ export function EvidenceBox({ evidence, status, actionId }: { evidence?: Evidenc
   );
 }
 
+export function TestVariablesPanel({ variables, values, onChange, onReset }: { variables: TestVariable[]; values: RunState; onChange: (key: string, value: string) => void; onReset: () => void }) {
+  const sections = useMemo(() => variables.reduce<Record<string, TestVariable[]>>((acc, item) => {
+    acc[item.section] = [...(acc[item.section] || []), item];
+    return acc;
+  }, {}), [variables]);
+
+  return (
+    <Card className="border-slate-200 bg-white shadow-sm">
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-xl"><Settings className="h-5 w-5 text-[#1351B4]" />Variáveis de entrada editáveis</CardTitle>
+            <CardDescription>Altere nomes, e-mails, telefones, endereços, senhas de teste e identificadores antes de executar as chamadas. Esses valores alimentam o mesmo estado enviado para a API da tela ativa.</CardDescription>
+          </div>
+          <Button type="button" variant="outline" onClick={onReset}>Restaurar padrões desta sessão</Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <Alert className="border-blue-200 bg-blue-50 text-blue-950">
+          <ShieldCheck className="h-4 w-4" />
+          <AlertTitle>Estado único de teste</AlertTitle>
+          <AlertDescription>Quando uma API retorna identificadores, eles continuam sendo preenchidos automaticamente. Se você sobrescrever um campo aqui, a próxima execução passa a usar o valor informado manualmente.</AlertDescription>
+        </Alert>
+        {Object.entries(sections).map(([section, items]) => (
+          <div key={section} className="space-y-3 rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
+            <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">{section}</p>
+            <div className="grid gap-4 md:grid-cols-2">
+              {items.map(item => (
+                <div key={item.key} className="space-y-2">
+                  <Label htmlFor={`test-var-${item.key}`}>{item.label}</Label>
+                  <Input id={`test-var-${item.key}`} type={item.type || "text"} value={String(values[item.key] ?? "")} placeholder={item.placeholder} onChange={event => onChange(item.key, event.target.value)} />
+                  <p className="text-xs leading-5 text-slate-500">{item.description}{item.sensitive ? " O valor é redigido nos painéis de evidência." : ""}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+export function CredentialsPanel({ baseUrl, configured }: { baseUrl?: string; configured?: boolean }) {
+  const secretRows = [
+    { key: "DATAPREV_BASE_URL", purpose: "Base da sandbox/API DrumWave-Dataprev usada pelo servidor." },
+    { key: "DATAPREV_API_KEY", purpose: "Chave x-api-key enviada em todas as chamadas server-side." },
+    { key: "DATAPREV_CLIENT_ID", purpose: "Client ID usado no passo zero OAuth client_credentials." },
+    { key: "DATAPREV_CLIENT_SECRET", purpose: "Client secret usado no passo zero OAuth client_credentials." },
+  ];
+
+  return (
+    <Card className="border-slate-200 bg-white shadow-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Credenciais e chaves</CardTitle>
+        <CardDescription>Área de operação para saber quais variáveis controlam a autenticação. Por segurança, chaves reais não são lidas nem gravadas pelo navegador.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <Alert className={configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>{configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
+          <AlertDescription>{configured ? "A aplicação reconhece as variáveis necessárias no runtime server-side. Se ocorrer 401/403, atualize os valores publicados no painel seguro de Secrets e publique novo checkpoint." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets antes de executar chamadas reais."}</AlertDescription>
+        </Alert>
+        <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
+          <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Resumo atual</p>
+          <div className="mt-3 grid gap-3 md:grid-cols-2">
+            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base configurada</span><strong className="break-all text-slate-900">{baseUrl || "não informada"}</strong></div>
+            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Chaves sensíveis</span><strong className="text-slate-900">mascaradas no cliente</strong></div>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {secretRows.map(row => (
+            <div key={row.key} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[220px_1fr] md:items-center">
+              <code className="rounded-lg bg-slate-100 px-3 py-2 text-xs font-semibold text-slate-800">{row.key}</code>
+              <p className="text-sm leading-6 text-slate-600">{row.purpose}</p>
+            </div>
+          ))}
+        </div>
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
+          <strong>Como alterar com segurança:</strong> abra o painel de gerenciamento do projeto, entre em <strong>Settings → Secrets</strong>, atualize as variáveis acima, salve, gere/publice um novo checkpoint e execute novamente o teste de token M2M. A aplicação nunca deve receber client_secret ou API key em campos comuns de formulário.
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const screens = kind === "personal" ? personalScreens : businessScreens;
   const isPersonal = kind === "personal";
+  const testVariables = isPersonal ? personalTestVariables : businessTestVariables;
   const metadata = trpc.dataprev.metadata.useQuery();
   const executeAction = trpc.dataprev.executeAction.useMutation();
   const [activeId, setActiveId] = useState(screens[0]?.id ?? "entrada");
@@ -515,6 +648,16 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       delete next[active.id];
       return next;
     });
+  };
+
+  const resetTestVariables = () => {
+    const keys = new Set(testVariables.map(item => item.key));
+    setState(previous => {
+      const next = { ...previous };
+      keys.forEach(key => delete next[key]);
+      return next;
+    });
+    setErrors({});
   };
 
   const run = async () => {
@@ -624,6 +767,13 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         </aside>
 
         <section className="space-y-5">
+          <Tabs defaultValue="tela" className="space-y-5">
+            <TabsList className="grid w-full grid-cols-3 bg-white">
+              <TabsTrigger value="tela">Tela atual</TabsTrigger>
+              <TabsTrigger value="variaveis">Variáveis de teste</TabsTrigger>
+              <TabsTrigger value="credenciais">Credenciais</TabsTrigger>
+            </TabsList>
+            <TabsContent value="tela" className="space-y-5">
           <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
             <div className="border-b border-slate-200 bg-slate-50 px-6 py-3">
               <p className="text-xs font-semibold uppercase tracking-wide text-[#1351B4]">Rota espelhada: {active.route}</p>
@@ -692,6 +842,14 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+            <TabsContent value="variaveis">
+              <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />
+            </TabsContent>
+            <TabsContent value="credenciais">
+              <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} />
+            </TabsContent>
+          </Tabs>
         </section>
       </div>
     </main>
