@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, buildExecuteActionInput, businessScreens, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, personalScreens, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, businessScreens, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, personalScreens, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -111,6 +111,33 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Settings → Secrets");
+  });
+
+  it("renders the Personal beginner guide with five ordered steps and expected result cards", () => {
+    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, { walletKind: "personal" }));
+
+    expect(html).toContain("Guia de teste para leigos");
+    expect(html).toContain("Antes de começar");
+    expect(html).toContain("1</span><span class=\"font-semibold text-slate-950\">Passo 0 — Autenticar M2M");
+    expect(html).toContain("2</span><span class=\"font-semibold text-slate-950\">Criar Personal dWallet");
+    expect(html).toContain("3</span><span class=\"font-semibold text-slate-950\">Enviar e validar código");
+    expect(html).toContain("4</span><span class=\"font-semibold text-slate-950\">Login e abertura da wallet");
+    expect(html).toContain("5</span><span class=\"font-semibold text-slate-950\">Telas financeiras");
+    expect(html).toContain("Resultado esperado OK");
+    expect(html).toContain("Resultado esperado com pendência");
+    expect(html).toContain("Quando usar Variáveis de teste");
+  });
+
+  it("renders the Business beginner guide with business-specific ordered steps", () => {
+    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, { walletKind: "business" }));
+
+    expect(html).toContain("Business dWallet");
+    expect(html).toContain("Criar Business dWallet");
+    expect(html).toContain("razão social, CNPJ, e-mail e telefone");
+    expect(html).toContain("Validação e acesso empresarial");
+    expect(html).toContain("Abertura e operação da carteira");
+    expect(html).toContain("Saldo, extrato, Pix, cobranças e pagamentos");
+    expect(html).not.toContain("Criar Personal dWallet");
   });
 
   it("renders editable variables directly inside the emulated Dataprev app screen", () => {

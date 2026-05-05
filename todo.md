@@ -119,3 +119,9 @@
 - [x] Fazer o CTA da tela emulada representar o gatilho da API e, quando a resposta for OK, exibir a próxima tela real da jornada no telefone, por exemplo envio de código de validação após criação da PdW.
 - [x] Aplicar o mesmo padrão sequencial às jornadas PdW e BdW, incluindo estados de erro como telas reais de falha/pendência do aplicativo.
 - [x] Atualizar testes automatizados para garantir que respostas OK renderizem a tela seguinte da jornada, e não apenas um cartão genérico de resultado.
+
+- [x] Permitir editar os dados diretamente dentro da tela do mockup de telefone, sincronizando os valores com o estado da jornada e com o formulário auxiliar.
+- [x] Garantir que o CTA do próprio telefone use os dados editados no mockup para executar a API correspondente.
+- [x] Criar um guia leigo dentro da aplicação explicando como testar a jornada, em que ordem executar os passos e como interpretar sucesso, erro e API ausente.
+- [x] Atualizar testes automatizados para cobrir edição direta no mockup de telefone, sincronização dos valores e presença do passo a passo de testes.
+- [x] Validar a implementação, revisar o checklist e salvar checkpoint da versão com edição direta no telefone e guia de testes.

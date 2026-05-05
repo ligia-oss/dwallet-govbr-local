@@ -803,7 +803,7 @@ function getShownFieldValue(field: ScreenField, values: RunState) {
   return field.type === "password" && raw ? "••••••••" : String(raw || field.placeholder || "Aguardando preenchimento");
 }
 
-export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status }: { screen: GovScreen; nextScreen?: GovScreen; values: RunState; evidence?: Evidence; status: VisualStatus }) {
+export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status, onChange, onRun, onOpenNextScreen, isRunning, errors }: { screen: GovScreen; nextScreen?: GovScreen; values: RunState; evidence?: Evidence; status: VisualStatus; onChange: (key: string, value: string) => void; onRun: () => void; onOpenNextScreen?: () => void; isRunning?: boolean; errors?: Record<string, string> }) {
   const emulation = screen.appEmulation ?? {
     kind: screen.actionId ? "input-response" as const : "input" as const,
     header: screen.title,
@@ -819,6 +819,15 @@ export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status
   const responseText = evidence?.message || evidence?.missingReason || emulation.responseEmpty;
   const responseDetails = evidence ? summarizeStateUpdates(evidence.stateUpdates) : "Sem dados retornados nesta sessão.";
   const actionTone = status === "done" ? "bg-[#168821] text-white" : status === "failed" ? "bg-[#D04F4F] text-white" : "bg-[#1351B4] text-white";
+  const canRunCurrentAction = Boolean(screen.actionId) && !shouldAdvanceToNextScreen;
+  const buttonLabel = shouldAdvanceToNextScreen && nextScreen ? nextScreen.primaryCta : isRunning ? "Enviando dados" : screen.primaryCta;
+  const handlePrimaryClick = () => {
+    if (shouldAdvanceToNextScreen && nextScreen) {
+      onOpenNextScreen?.();
+      return;
+    }
+    if (canRunCurrentAction) onRun();
+  };
 
   return (
     <div className="mx-auto max-w-[390px] rounded-[2.25rem] border border-slate-300 bg-slate-950 p-3 shadow-2xl">
@@ -856,13 +865,25 @@ export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status
 
           <div className="space-y-3 rounded-[1.35rem] bg-white p-4 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wide text-[#1351B4]">{shouldAdvanceToNextScreen && nextScreen ? "Próxima tela do aplicativo" : "Dados da operação"}</p>
-            {displayedFields.map(field => (
-              <div key={field.key} className="rounded-2xl border border-[#DFE1E2] bg-[#F8F8F8] px-4 py-3">
-                <p className="text-[11px] font-semibold text-slate-500">{field.label}</p>
-                <p className="mt-1 min-h-5 break-words text-sm font-semibold text-[#071D41]">{getShownFieldValue(field, values)}</p>
-              </div>
-            ))}
-            <button type="button" className={`w-full rounded-2xl px-4 py-3 text-sm font-bold shadow-sm ${shouldAdvanceToNextScreen && nextScreen ? "bg-[#1351B4] text-white" : actionTone}`}>{shouldAdvanceToNextScreen && nextScreen ? nextScreen.primaryCta : screen.primaryCta}</button>
+            {displayedFields.map(field => {
+              const fieldError = errors?.[field.key];
+              return (
+                <div key={field.key} className="space-y-1.5 rounded-2xl border border-[#DFE1E2] bg-[#F8F8F8] px-4 py-3">
+                  <Label htmlFor={`phone-${phoneScreen.id}-${field.key}`} className="text-[11px] font-semibold text-slate-500">{field.label}{field.required ? " *" : ""}</Label>
+                  <Input
+                    id={`phone-${phoneScreen.id}-${field.key}`}
+                    type={field.type || "text"}
+                    value={String(values[field.key] ?? "")}
+                    placeholder={field.placeholder}
+                    aria-invalid={Boolean(fieldError)}
+                    onChange={event => onChange(field.key, event.target.value)}
+                    className={`h-10 rounded-xl border-white bg-white text-sm font-semibold text-[#071D41] shadow-none placeholder:text-slate-400 focus-visible:ring-[#1351B4] ${fieldError ? "border-red-500 focus-visible:ring-red-500" : ""}`}
+                  />
+                  {fieldError ? <p className="text-[11px] font-semibold leading-4 text-red-700">{fieldError}</p> : null}
+                </div>
+              );
+            })}
+            <button type="button" onClick={handlePrimaryClick} disabled={Boolean(isRunning) || (!screen.actionId && !shouldAdvanceToNextScreen)} className={`w-full rounded-2xl px-4 py-3 text-sm font-bold shadow-sm disabled:cursor-not-allowed disabled:opacity-60 ${shouldAdvanceToNextScreen && nextScreen ? "bg-[#1351B4] text-white" : actionTone}`}>{isRunning ? "Enviando dados" : buttonLabel}</button>
           </div>
 
           {hasFailedResponse ? (
@@ -1070,6 +1091,56 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
         <div className="space-y-2">
           <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Resultado sanitizado do Passo 0</p>
           <Textarea readOnly value={details} className="min-h-36 border-slate-700 bg-slate-950 font-mono text-xs text-slate-100" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+export function BeginnerTestGuide({ walletKind }: { walletKind: WalletKind }) {
+  const appName = walletKind === "personal" ? "Personal dWallet" : "Business dWallet";
+  const orderedSteps = walletKind === "personal" ? [
+    ["1", "Passo 0 — Autenticar M2M", "Clique no botão de autenticação no topo da página. Espere aparecer token ativo no servidor. Este passo é técnico e prepara as APIs; ele não representa uma tela do usuário final."],
+    ["2", "Criar Personal dWallet", "Na aba Tela atual, escolha a primeira etapa de criação. Edite nome, e-mail, CPF e telefone diretamente dentro do celular. Clique no botão azul dentro do telefone. Se a API responder OK, o próprio telefone deve mostrar a tela seguinte de envio de código."],
+    ["3", "Enviar e validar código", "Na tela seguinte, confira o canal e o destino do código. Continue a jornada até a tela de validação, preenchendo o código no telefone e acionando o botão principal."],
+    ["4", "Login e abertura da wallet", "Siga as telas de login e abertura da carteira na navegação lateral. Em cada tela, altere dados no celular, acione o botão principal e verifique se a próxima tela ou o resultado aparece no próprio aplicativo."],
+    ["5", "Telas financeiras", "Depois da wallet criada, teste saldo, extrato, Pix e pagamento. Nessas telas, o resultado OK pode aparecer como comprovante ou resumo da operação, porque essa é a tela final usada pelo aplicativo para exibir a resposta da API."],
+  ] : [
+    ["1", "Passo 0 — Autenticar M2M", "Execute a autenticação técnica no topo da página antes das telas empresariais. Se já houver token ativo na sessão, avance para a primeira tela da Business dWallet."],
+    ["2", "Criar Business dWallet", "Abra a primeira etapa empresarial, edite razão social, CNPJ, e-mail e telefone diretamente dentro do celular e pressione o botão principal do aplicativo."],
+    ["3", "Validação e acesso empresarial", "Quando a API retornar OK, confira se o telefone avança para a próxima tela real da jornada. Preencha códigos e credenciais diretamente no mockup, não apenas no formulário auxiliar."],
+    ["4", "Abertura e operação da carteira", "Continue pela navegação lateral na ordem apresentada. Execute uma tela por vez e confirme se os dados retornados alimentam as telas seguintes."],
+    ["5", "Saldo, extrato, Pix, cobranças e pagamentos", "Teste as telas financeiras empresariais no fim da jornada. Para extrato e saldo, confira o resumo exibido no app; para Pix, cobranças e pagamentos, confira o comprovante ou mensagem de pendência no celular."],
+  ];
+
+  return (
+    <Card className="border-slate-200 bg-white shadow-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xl"><ClipboardList className="h-5 w-5 text-[#1351B4]" />Guia de teste para leigos</CardTitle>
+        <CardDescription className="max-w-3xl text-base leading-7">Siga esta ordem para testar a {appName} como se fosse uma pessoa usando o aplicativo. A regra principal é simples: edite os dados no telefone, clique no botão do telefone e observe a próxima tela ou o resultado exibido no próprio aplicativo.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        <Alert className="border-blue-200 bg-blue-50 text-blue-950">
+          <ShieldCheck className="h-4 w-4" />
+          <AlertTitle>Antes de começar</AlertTitle>
+          <AlertDescription>Use a navegação lateral de cima para baixo. Não pule etapas que ainda não foram executadas, porque algumas telas dependem de IDs ou confirmações gerados pela etapa anterior. Se aparecer erro, corrija o campo destacado no telefone e tente novamente.</AlertDescription>
+        </Alert>
+        <div className="overflow-hidden rounded-3xl border border-slate-200">
+          <div className="grid grid-cols-[72px_1fr_1.6fr] bg-[#1351B4] px-4 py-3 text-sm font-bold text-white">
+            <span>Ordem</span><span>O que testar</span><span>Como executar</span>
+          </div>
+          {orderedSteps.map(([order, title, instruction]) => (
+            <div key={order} className="grid grid-cols-[72px_1fr_1.6fr] gap-3 border-t border-slate-200 px-4 py-4 text-sm leading-6">
+              <span className="font-mono font-bold text-[#1351B4]">{order}</span>
+              <span className="font-semibold text-slate-950">{title}</span>
+              <span className="text-slate-600">{instruction}</span>
+            </div>
+          ))}
+        </div>
+        <div className="grid gap-4 md:grid-cols-3">
+          <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm leading-6 text-green-950"><strong>Resultado esperado OK:</strong> a tela do telefone avança para a etapa seguinte ou mostra um comprovante/resumo real da operação.</div>
+          <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>Resultado esperado com pendência:</strong> o telefone mostra uma mensagem de falha ou pendência em linguagem de aplicativo, e o painel técnico abaixo fica apenas como evidência sanitizada.</div>
+          <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4 text-sm leading-6 text-slate-700"><strong>Quando usar Variáveis de teste:</strong> use a aba apenas para ajustes avançados. O teste comum deve acontecer diretamente dentro do mockup de celular.</div>
         </div>
       </CardContent>
     </Card>
@@ -1306,8 +1377,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         <section className="space-y-5">
           <M2MTokenPanel result={m2mResult} cachedToken={metadata.data?.m2mToken} isRunning={authenticateM2M.isPending} onAuthenticate={runM2MAuthentication} error={errors.m2m} />
           <Tabs defaultValue="tela" className="space-y-5">
-            <TabsList className="grid w-full grid-cols-3 bg-white">
+            <TabsList className="grid w-full grid-cols-4 bg-white">
               <TabsTrigger value="tela">Tela atual</TabsTrigger>
+              <TabsTrigger value="guia">Guia de teste</TabsTrigger>
               <TabsTrigger value="variaveis">Variáveis de teste</TabsTrigger>
               <TabsTrigger value="credenciais">Credenciais</TabsTrigger>
             </TabsList>
@@ -1334,7 +1406,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
 
               <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
                 <div className="space-y-4 rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
-                  <AppEmulatedScreen screen={active} nextScreen={nextScreen} values={mergedState} evidence={activeEvidence} status={activeStatus} />
+                  <AppEmulatedScreen screen={active} nextScreen={nextScreen} values={mergedState} evidence={activeEvidence} status={activeStatus} onChange={updateField} onRun={run} onOpenNextScreen={() => nextScreen ? setActiveId(nextScreen.id) : undefined} isRunning={runningId === active.actionId} errors={errors} />
                   <div className="flex items-center gap-3">
                     <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#1351B4] text-white"><active.icon className="h-5 w-5" /></div>
                     <div>
@@ -1353,7 +1425,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                   </Button>
                   <p className="text-sm leading-6 text-slate-600"><strong>Integração:</strong> {active.apiHint}</p>
                   <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
-                    <strong>Como o usuário vê o retorno:</strong> quando a ação é executada, a resposta sanitizada da API aparece no painel "Resposta da API exibida ao usuário" e os IDs retornados passam a alimentar automaticamente as próximas telas da wallet.
+                    <strong>Como testar no telefone:</strong> edite os campos diretamente dentro do mockup, pressione o botão principal do próprio aplicativo para disparar a API e, se a resposta for OK, a tela do telefone avançará para a próxima etapa real da jornada.
                   </div>
                 </div>
                 <div className="space-y-4">
@@ -1372,6 +1444,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               </div>
             </CardContent>
           </Card>
+            </TabsContent>
+            <TabsContent value="guia">
+              <BeginnerTestGuide walletKind={kind} />
             </TabsContent>
             <TabsContent value="variaveis">
               <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />
