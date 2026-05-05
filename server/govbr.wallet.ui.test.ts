@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, businessScreens, compactRunState, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, compactRunState, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -120,6 +120,51 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Credenciais temporárias Dataprev");
     expect(credentialsHtml).toContain("Executar Passo 0 · autenticação M2M");
+  });
+
+  it("renders the BTG future information panel without requiring a token today", () => {
+    const html = renderToStaticMarkup(React.createElement(BtgFutureInfoPanel, {
+      values: {
+        btgBaseUrl: "https://btg.example.local",
+        btgCompanyId: "company-123",
+        btgAccessToken: "btg-token-value-123456",
+        btgAccountId: "account-456",
+      },
+      serverBaseUrl: undefined,
+      serverConfigured: false,
+      onChange: () => undefined,
+      onClear: () => undefined,
+    }));
+
+    expect(html).toContain("Informações BTG para testes futuros");
+    expect(html).toContain("Token Bearer");
+    expect(html).toContain("Saldo:");
+    expect(html).toContain("Extrato:");
+    expect(html).toContain("Pagamentos:");
+    expect(html).toContain("btg-••••3456");
+    expect(html).toContain('type="password"');
+    expect(btgFutureInfoFields.map(field => field.key)).toContain("btgAccessToken");
+    expect(hasBtgFutureInfo({})).toBe(false);
+    expect(hasBtgFutureInfo({ btgCompanyId: "company-123" })).toBe(true);
+    expect(maskSecretPreview("abcdef123456")).toBe("abcd••••3456");
+  });
+
+  it("includes typed BTG future information in the compacted execution state", () => {
+    const input = buildExecuteActionInput("btg_get_balance", {
+      btgBaseUrl: "https://btg.example.local",
+      btgCompanyId: "company-123",
+      btgAccessToken: "token-real-futuro",
+      btgAccountId: "account-456",
+      optionalUnset: undefined,
+    }, { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+
+    expect(input.state).toMatchObject({
+      btgBaseUrl: "https://btg.example.local",
+      btgCompanyId: "company-123",
+      btgAccessToken: "token-real-futuro",
+      btgAccountId: "account-456",
+    });
+    expect(input.state).not.toHaveProperty("optionalUnset");
   });
 
   it("renders the Personal beginner guide with five ordered steps and expected result cards", () => {

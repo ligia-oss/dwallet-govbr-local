@@ -76,6 +76,31 @@ export type DataprevCredentialForm = {
   clientSecret: string;
 };
 
+export const btgFutureInfoFields = [
+  { key: "btgBaseUrl", label: "Base URL BTG", placeholder: "https://api.btgpactual.com", type: "url", sensitive: false, requiredFor: "todas as chamadas reais" },
+  { key: "btgCompanyId", label: "Company ID", placeholder: "company-id BTG", sensitive: false, requiredFor: "saldo, extrato, Pix, cobranças e pagamentos" },
+  { key: "btgAccessToken", label: "Token Bearer", placeholder: "Cole o token quando o BTG liberar", type: "password", sensitive: true, requiredFor: "qualquer chamada real" },
+  { key: "btgAccountId", label: "Conta BTG", placeholder: "account-id da conta BTG", sensitive: false, requiredFor: "saldo e extrato" },
+  { key: "btgDebitBranchCode", label: "Agência de débito", placeholder: "50", sensitive: false, requiredFor: "pagamentos" },
+  { key: "btgDebitAccountNumber", label: "Conta de débito", placeholder: "000000000", sensitive: false, requiredFor: "pagamentos" },
+  { key: "btgBarcode", label: "Linha digitável", placeholder: "800800...", sensitive: false, requiredFor: "conferência e pagamento" },
+  { key: "btgAmount", label: "Valor de teste", placeholder: "1.10", type: "number", sensitive: false, requiredFor: "pagamentos, cobranças e Pix" },
+  { key: "btgStartDate", label: "Início do extrato", placeholder: "2026-04-05", type: "date", sensitive: false, requiredFor: "extrato" },
+  { key: "btgEndDate", label: "Fim do extrato", placeholder: "2026-05-05", type: "date", sensitive: false, requiredFor: "extrato" },
+] as const;
+
+export type BtgFutureInfoKey = (typeof btgFutureInfoFields)[number]["key"];
+
+export function hasBtgFutureInfo(values: RunState) {
+  return btgFutureInfoFields.some(field => Boolean(String(values[field.key] ?? "").trim()));
+}
+
+export function maskSecretPreview(value: unknown) {
+  const text = String(value ?? "").trim();
+  if (!text) return "não informado";
+  return text.length <= 8 ? "••••••••" : `${text.slice(0, 4)}••••${text.slice(-4)}`;
+}
+
 export type M2MAuthResult = {
   status: "executed" | "failed";
   ok: boolean;
@@ -1361,6 +1386,55 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
   );
 }
 
+export function BtgFutureInfoPanel({ values, serverBaseUrl, serverConfigured, onChange, onClear }: { values: RunState; serverBaseUrl?: string | null; serverConfigured?: boolean; onChange: (key: BtgFutureInfoKey, value: string) => void; onClear: () => void }) {
+  const hasTypedInfo = hasBtgFutureInfo(values);
+  const tokenPreview = maskSecretPreview(values.btgAccessToken);
+
+  return (
+    <Card className="border-slate-200 bg-white shadow-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xl"><PiggyBank className="h-5 w-5 text-[#168821]" />Informações BTG para testes futuros</CardTitle>
+        <CardDescription>Use este formulário para preparar saldo, extrato e pagamentos mesmo antes de receber o token definitivo. Os campos preenchidos entram no estado da sessão e serão usados pelas ações BTG quando você clicar nas telas financeiras.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        <Alert className={hasTypedInfo ? "border-blue-200 bg-blue-50 text-blue-950" : serverConfigured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
+          <ShieldAlert className="h-4 w-4" />
+          <AlertTitle>{hasTypedInfo ? "Informações BTG informadas nesta sessão" : serverConfigured ? "BTG detectado no servidor" : "Token BTG ainda não obrigatório"}</AlertTitle>
+          <AlertDescription>{hasTypedInfo ? "Ao executar uma ação BTG, a aplicação combina estes campos com os dados seguros do servidor. O token aparece apenas como campo protegido e as evidências retornadas pelo backend são sanitizadas." : serverConfigured ? "Já existem variáveis BTG no runtime. Você ainda pode preencher conta, agência, linha digitável e período para testar casos específicos." : "Você pode preparar Base URL, Company ID, conta e dados de pagamento agora. A execução real ficará pendente até existir um Token Bearer válido do BTG."}</AlertDescription>
+        </Alert>
+
+        <div className="grid gap-4 md:grid-cols-2">
+          {btgFutureInfoFields.map(field => (
+            <div key={field.key} className="space-y-2">
+              <Label htmlFor={`btg-future-${field.key}`}>{field.label}</Label>
+              <Input
+                id={`btg-future-${field.key}`}
+                type={"type" in field ? field.type : "text"}
+                value={String(values[field.key] ?? "")}
+                onChange={event => onChange(field.key, event.target.value)}
+                placeholder={field.key === "btgBaseUrl" && serverBaseUrl ? serverBaseUrl : field.placeholder}
+                autoComplete="off"
+              />
+              <p className="text-xs leading-5 text-slate-500">Necessário para: {field.requiredFor}{field.sensitive ? `. Prévia atual: ${tokenPreview}.` : "."}</p>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4 text-sm leading-6 text-slate-700"><strong>Saldo:</strong> requer Base URL, Company ID, Token Bearer e Conta BTG.</div>
+          <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4 text-sm leading-6 text-slate-700"><strong>Extrato:</strong> usa os mesmos dados de saldo, além de data inicial e final.</div>
+          <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4 text-sm leading-6 text-slate-700"><strong>Pagamentos:</strong> exige token, linha digitável, valor, data, agência e conta de débito.</div>
+        </div>
+
+        <div className="flex flex-col gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950 md:flex-row md:items-center md:justify-between">
+          <p><strong>Segurança:</strong> prefira configurar o token definitivo como Secret do projeto quando estiver disponível. Este formulário existe para testes locais e evidências continuam com autorização e tokens mascarados.</p>
+          <Button type="button" variant="outline" onClick={onClear} className="shrink-0 bg-white">Limpar BTG</Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function compactRunState(mergedState: RunState): Record<string, string | number | boolean | null> {
   return Object.fromEntries(Object.entries(mergedState).filter(([, value]) => value !== undefined)) as Record<string, string | number | boolean | null>;
 }
@@ -1432,6 +1506,24 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
 
   const clearDataprevCredentials = () => {
     setDataprevCredentials({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+  };
+
+  const updateBtgFutureInfo = (key: BtgFutureInfoKey, value: string) => {
+    updateField(key, value);
+  };
+
+  const clearBtgFutureInfo = () => {
+    setState(previous => {
+      const next = { ...previous };
+      btgFutureInfoFields.forEach(field => delete next[field.key]);
+      return next;
+    });
+    setErrors(previous => {
+      const next = { ...previous };
+      btgFutureInfoFields.forEach(field => delete next[field.key]);
+      delete next[active.id];
+      return next;
+    });
   };
 
   const runM2MAuthentication = async () => {
@@ -1638,8 +1730,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
             <TabsContent value="variaveis">
               <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />
             </TabsContent>
-            <TabsContent value="credenciais">
+            <TabsContent value="credenciais" className="space-y-6">
               <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} btgBaseUrl={btgMetadata.data?.baseUrl || undefined} btgConfigured={btgMetadata.data?.credentialsConfigured} credentials={dataprevCredentials} onChange={updateDataprevCredential} onClear={clearDataprevCredentials} />
+              <BtgFutureInfoPanel values={mergedState} serverBaseUrl={btgMetadata.data?.baseUrl || undefined} serverConfigured={btgMetadata.data?.credentialsConfigured} onChange={updateBtgFutureInfo} onClear={clearBtgFutureInfo} />
             </TabsContent>
           </Tabs>
         </section>

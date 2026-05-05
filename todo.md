@@ -148,3 +148,17 @@
 - [x] Corrigir actionIds Dataprev obsoletos nas telas frontend, substituindo `step10_list_dsps` e `step4_create_product` por ações existentes no roteador.
 - [x] Garantir que o frontend envie estado de execução sem campos `undefined` e que o backend não devolva `stateUpdates` inválidos.
 - [x] Adicionar tela/ação de login Personal GovBR (`step2_person_signin`) ao frontend para que as APIs dependentes de token de usuário possam ser testadas pela jornada.
+
+- [ ] Identificar todas as variáveis de ambiente BTG exigidas pelo backend para saldo, extrato, cobranças e pagamentos.
+- [ ] Solicitar as credenciais reais BTG por formulário seguro de segredos, sem expor valores no frontend ou no código.
+- [ ] Validar que as credenciais BTG foram carregadas pelo backend com teste automatizado ou existente.
+- [ ] Reexecutar as ações BTG de saldo, extrato e pagamentos via cliente frontend e registrar sucesso, erro de negócio ou pendência de contrato.
+- [ ] Corrigir eventuais incompatibilidades de payload, headers ou configuração BTG encontradas na execução real.
+- [ ] Executar Vitest/build/status, revisar checklist e salvar checkpoint da versão com credenciais BTG configuradas.
+
+- [x] Criar seção frontend para informar futuramente dados BTG de teste, incluindo base URL, Company ID, token, conta, agência, linha digitável e período de extrato.
+- [x] Explicar na interface que o token BTG ainda não é obrigatório para preparar os dados, mas será necessário para executar chamadas reais.
+- [x] Conectar os dados BTG informados no frontend ao estado usado pelas ações de saldo, extrato, cobranças e pagamentos.
+- [x] Preservar sanitização visual do token BTG nas instruções, resumos e evidências, mantendo o campo como senha quando for necessário enviá-lo localmente ao backend de teste.
+- [x] Atualizar testes automatizados para cobrir o novo painel de informações BTG e a propagação dos dados para as ações financeiras.
+- [x] Validar Vitest, build/status, revisar checklist e salvar checkpoint da versão com cadastro frontend de informações BTG.
