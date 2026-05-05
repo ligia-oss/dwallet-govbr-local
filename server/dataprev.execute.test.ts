@@ -154,7 +154,7 @@ describe("execução Dataprev", () => {
     expect(evidence.message).toContain("publicado");
   });
 
-  it("retorna evidência sanitizada quando o passo zero M2M é recusado", async () => {
+  it("retorna evidência sanitizada quando a autenticação técnica M2M automática é recusada", async () => {
     const caller = appRouter.createCaller(ctx);
     globalThis.fetch = vi.fn(async () => jsonResponse(403, { message: "Forbidden" })) as any;
 
@@ -166,12 +166,12 @@ describe("execução Dataprev", () => {
     expect(evidence.status).toBe("failed");
     expect(evidence.ok).toBe(false);
     expect(evidence.httpStatus).toBe(403);
-    expect(evidence.message).toContain("passo zero");
-    expect(evidence.responseBody).toEqual(expect.objectContaining({ etapa: "passo_zero_m2m" }));
+    expect(evidence.message).toContain("autenticação técnica M2M automática");
+    expect(evidence.responseBody).toEqual(expect.objectContaining({ etapa: "autenticacao_tecnica_m2m" }));
     expect(JSON.stringify(evidence)).not.toContain("api-key-teste");
   });
 
-  it("executa explicitamente o Passo 0 M2M, armazena o token em cache e retorna apenas metadados sanitizados", async () => {
+  it("executa a autenticação técnica M2M, armazena o token em cache e retorna apenas metadados sanitizados", async () => {
     const caller = appRouter.createCaller(ctx);
     globalThis.fetch = vi.fn(async () => jsonResponse(200, { access_token: "eyJm2m.token.jwt", expires_in: 1800, token_type: "Bearer" })) as any;
 
@@ -272,7 +272,7 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(evidence)).not.toContain("eyJuser.token.jwt");
   });
 
-  it("usa credenciais temporárias digitadas na interface ao executar o Passo 0 M2M sem vazar segredos", async () => {
+  it("usa credenciais temporárias digitadas na interface ao executar a autenticação técnica M2M sem vazar segredos", async () => {
     const caller = appRouter.createCaller(ctx);
     const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -312,17 +312,9 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(result.responseBody)).toContain("apiKeyFingerprint");
   });
 
-  it("aceita Base URL temporária isolada usando as credenciais secretas dos Secrets do servidor", async () => {
+  it("rejeita API URL temporária isolada sem misturar com credenciais dos Secrets do servidor", async () => {
     const caller = appRouter.createCaller(ctx);
-    const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
-    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
-      calls.push({
-        url: String(input),
-        headers: init?.headers as Record<string, string>,
-        body: init?.body ? JSON.parse(String(init.body)) : undefined,
-      });
-      return jsonResponse(200, { access_token: "eyJbase.url.only", expires_in: 900 });
-    }) as any;
+    globalThis.fetch = vi.fn() as any;
 
     const result = await caller.dataprev.authenticateM2M({
       credentials: {
@@ -330,20 +322,16 @@ describe("execução Dataprev", () => {
       },
     });
 
-    expect(result.status).toBe("executed");
-    expect(result.ok).toBe(true);
-    expect(calls[0].url).toBe("https://sandbox.base.only.local/v1/auth/token/iam/authn/services/oauth2/token");
-    expect(calls[0].headers["x-api-key"]).toBe("api-key-teste");
-    expect(calls[0].body).toEqual({
-      client_id: "client-id-teste",
-      client_secret: "client-secret-teste",
-      grant_type: "client_credentials",
-    });
+    expect(result.status).toBe("failed");
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("Credenciais temporárias Dataprev incompletas");
+    expect(result.message).toContain("API URL, API key, Client ID e Client secret");
     expect(JSON.stringify(result.responseBody)).toContain('"credentialSource":"temporary_form"');
-    expect(JSON.stringify(result.responseBody)).toContain('"temporaryCredentialsComplete":true');
+    expect(JSON.stringify(result.responseBody)).toContain('"temporaryCredentialsComplete":false');
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
-  it("normaliza a URL completa do endpoint de token quando ela é copiada do Postman para a Base URL", async () => {
+  it("normaliza a URL completa do endpoint de token quando ela é copiada do Postman para a API URL", async () => {
     const caller = appRouter.createCaller(ctx);
     const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -377,7 +365,7 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(result)).not.toContain("client-secret-copiado");
   });
 
-  it("rejeita credenciais temporárias incompletas no Passo 0 sem misturar com Secrets do servidor", async () => {
+  it("rejeita credenciais temporárias incompletas na autenticação técnica sem misturar com Secrets do servidor", async () => {
     const caller = appRouter.createCaller(ctx);
     globalThis.fetch = vi.fn() as any;
 

@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -62,7 +62,7 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("Endpoint Dataprev não configurado para este fluxo");
   });
 
-  it("renders the Passo 0 M2M panel with sanitized token metadata and explicit authentication button", () => {
+  it("renders the automatic technical authentication panel with sanitized token metadata and no explicit execution button", () => {
     const result: M2MAuthResult = {
       status: "executed",
       ok: true,
@@ -74,19 +74,18 @@ describe("GovBR Wallet API response panels", () => {
       expiresInSeconds: 1800,
       active: true,
       responseBody: { tokenHandle: "opaque-token-handle", tokenBruto: "<REDACTED>", tokenArmazenado: true },
-      message: "Passo 0 executado: token M2M armazenado no servidor até a expiração.",
+      message: "Autenticação técnica executada: token M2M armazenado no servidor até a expiração.",
       executedAt: "2026-05-05T15:00:00.000Z",
     };
 
     const html = renderToStaticMarkup(React.createElement(M2MTokenPanel, {
       result,
       isRunning: false,
-      onAuthenticate: () => undefined,
     }));
 
-    expect(html).toContain("Passo 0");
-    expect(html).toContain("Passo 0 — Autenticar M2M");
-    expect(html).toContain("Credenciais obrigatórias antes da execução");
+    expect(html).toContain("Autenticação técnica automática");
+    expect(html).toContain("solicitam ou renovam o token automaticamente");
+    expect(html).not.toContain("Execução manual de autenticação");
     expect(html).toContain("API URL");
     expect(html).toContain("API ID / x-api-key");
     expect(html).toContain("Secret ID / Client secret");
@@ -123,16 +122,16 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Credenciais temporárias Dataprev");
-    expect(credentialsHtml).toContain("Antes de executar o Passo 0");
+    expect(credentialsHtml).toContain("Para usar credenciais temporárias");
     expect(credentialsHtml).toContain("API URL");
     expect(credentialsHtml).not.toContain("Base URL opcional");
     expect(credentialsHtml).toContain("API ID / x-api-key");
     expect(credentialsHtml).toContain("Secret ID / Client secret");
-    expect(credentialsHtml).toContain("Executar Passo 0 · autenticação M2M");
+    expect(credentialsHtml).not.toContain("Execução manual de autenticação");
     expect(credentialsHtml).toContain("Limpar Dataprev");
   });
 
-  it("identifica credenciais obrigatórias faltantes antes de executar o Passo 0 pela interface", () => {
+  it("identifica credenciais obrigatórias faltantes antes de executar APIs Dataprev com credenciais temporárias", () => {
     expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" })).toEqual([
       "API URL",
       "API ID / x-api-key",
@@ -212,7 +211,8 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("Guia de execução das APIs");
     expect(html).toContain("Antes de começar");
     expect(html).toContain("minmax(180px,1fr)");
-    expect(html).toContain("Passo 0 — Autenticar M2M");
+    expect(html).toContain("Quando a API exigir autenticação técnica");
+    expect(html).not.toContain("Execução manual de autenticação");
     expect(html).toContain("Criar e validar Personal dWallet");
     expect(html).toContain("Abrir a BdW antes de solicitar dados");
     expect(html).toContain("Solicitar informações na PdW");
@@ -244,6 +244,33 @@ describe("GovBR Wallet API response panels", () => {
   it("removes undefined values before sending frontend state to tRPC mutations", () => {
     expect(compactRunState({ personTokenHandle: undefined, businessId: "biz_123", consent: true, amount: null })).toEqual({ businessId: "biz_123", consent: true, amount: null });
     expect(buildExecuteActionInput("step2_person_signin", { personEmail: "teste@example.com", personTokenHandle: undefined }, { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }).state).toEqual({ personEmail: "teste@example.com" });
+  });
+
+  it("clears persisted credential-tab test results without deleting unrelated manual inputs", () => {
+    const cleaned = clearCredentialResultState(
+      {
+        personEmail: "manual@example.com",
+        businessId: "biz_123",
+        employeeTokenHandle: "tok_123",
+        m2mTokenHandle: "m2m_abc",
+        btgCompanyId: "btg_manual",
+      },
+      [
+        { key: "businessId", value: "biz_123", source: "Criar Business dWallet", savedAt: "2026-05-05T00:00:00.000Z", purpose: "Identificador gerado pela API" },
+      ],
+      {
+        step1_employee_signin: {
+          actionId: "step1_employee_signin",
+          actionTitle: "Login do colaborador",
+          status: "executed",
+          ok: true,
+          stateUpdates: { employeeTokenHandle: "tok_123" },
+          executedAt: "2026-05-05T00:00:00.000Z",
+        },
+      }
+    );
+
+    expect(cleaned).toEqual({ personEmail: "manual@example.com", btgCompanyId: "btg_manual" });
   });
 
   it("renders the Business beginner guide with business-specific ordered steps", () => {
@@ -285,9 +312,9 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(html).toContain("Checklist visual de progresso");
     expect(html).toContain("Cada linha representa uma etapa da execução");
-    expect(html).toContain("3 de 3 revisadas");
+    expect(html).toContain("2 de 2 revisadas");
     expect(html).toContain("100% do roteiro acompanhado nesta sessão");
-    expect(html).toContain("guide-check-personal-m2m");
+    expect(html).not.toContain("guide-check-personal-m2m");
     expect(html).toContain(`guide-check-personal-${signupScreen!.id}`);
     expect(html).toContain(`guide-check-personal-${sendCodeScreen!.id}`);
     expect(html).toContain("revisada manualmente");

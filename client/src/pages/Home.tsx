@@ -35,9 +35,9 @@ export default function Home() {
               <CardDescription className="text-blue-50">Algumas respostas de API alimentam chamadas seguintes.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm leading-6 text-blue-50">
-              <p><strong>1.</strong> Execute o Passo 0 M2M para ativar o token técnico.</p>
-              <p><strong>2.</strong> Abra a Business dWallet primeiro quando precisar gerar o ID da BdW.</p>
-              <p><strong>3.</strong> Use o ID da BdW salvo em Credenciais para solicitar informações na Personal dWallet.</p>
+              <p><strong>1.</strong> Abra a Business dWallet primeiro quando precisar gerar o ID da BdW.</p>
+              <p><strong>2.</strong> Use o ID da BdW salvo em Credenciais para solicitar informações na Personal dWallet.</p>
+              <p><strong>3.</strong> Execute as APIs na ordem da jornada; a autenticação técnica é aplicada automaticamente quando necessária.</p>
             </CardContent>
           </Card>
         </div>
@@ -62,7 +62,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
-              <p className="text-sm leading-6 text-slate-700">Use esta experiência depois de autenticar M2M e, quando a etapa exigir dados empresariais, depois de abrir a BdW para obter o ID da Business dWallet. O mockup mostra exemplos de avatar, carteira, solicitações e telas finais montadas.</p>
+              <p className="text-sm leading-6 text-slate-700">Use esta experiência depois de abrir a BdW quando a etapa exigir dados empresariais, para obter o ID da Business dWallet. A autenticação técnica é aplicada automaticamente nas chamadas que exigem token M2M. O mockup mostra exemplos de avatar, carteira, solicitações e telas finais montadas.</p>
               <Button asChild className="bg-[#1351B4] hover:bg-[#0C326F]"><Link href="/personal-govbr">Abrir Personal GovBR <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
             </CardContent>
           </Card>

@@ -198,3 +198,10 @@
 - [x] Localizar a coleção JSON do Postman informada no projeto e extrair API URL, API ID / x-api-key, Client ID e Secret ID / Client secret sem expor valores no relatório — API key e client secret estão como placeholders na coleção encontrada.
 - [x] Testar o Passo 0 M2M pelo frontend usando as credenciais da coleção Postman e registrar evidência sanitizada de sucesso ou falha — frontend executou a chamada, mas a API recusou por credenciais placeholder/inválidas.
 - [x] Atualizar checklist e validar status do projeto após o teste real do Passo 0 pelo frontend.
+
+- [x] Executar automaticamente a autenticação M2M antes de chamadas de API que exigem token técnico, sem exigir ação manual de Passo 0 no frontend.
+- [x] Remover do frontend botões, instruções e destaque explícito do Passo 0, mantendo apenas mensagens técnicas discretas quando credenciais essenciais estiverem ausentes.
+- [x] Garantir que as chamadas de API que dependem de M2M reutilizem token válido em cache e renovem automaticamente quando necessário.
+- [x] Corrigir os botões Limpar da aba Credenciais para apagar também resultados/evidências de testes persistidos relacionados a cada bloco de dados.
+- [x] Atualizar testes automatizados para cobrir M2M automático invisível, ausência de instruções explícitas de Passo 0 e limpeza de resultados persistidos por bloco.
+- [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da versão com autenticação M2M automática e limpeza corrigida.

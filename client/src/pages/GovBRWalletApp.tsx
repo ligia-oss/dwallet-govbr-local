@@ -47,7 +47,7 @@ type ScreenGroup = "acesso" | "onboarding" | "wallet" | "mercado" | "financeiro"
 export type VisualStatus = "pending" | "running" | "done" | "failed" | "missing";
 type RunState = Record<string, string | number | boolean | null | undefined>;
 
-type CredentialFolderItem = {
+export type CredentialFolderItem = {
   key: string;
   value: string;
   source: string;
@@ -539,7 +539,7 @@ export const businessScreens: GovScreen[] = [
     ],
     observedFrom: "br.business.drumwave.me/enter-name, /enter-email e /password",
     blocks: ["Nome e sobrenome", "E-mail corporativo", "Senha e aceite", "Próximo: verificação por e-mail"],
-    appEmulation: { kind: "input-response", header: "Criar sua conta", lead: "Informe seus dados de empregado para iniciar a Business dWallet.", responseEmpty: "Após criar a conta, o app habilita o envio do código de verificação.", footerNote: "Esta é uma tela visível ao usuário final; o Passo 0 M2M permanece fora desta experiência." },
+    appEmulation: { kind: "input-response", header: "Criar sua conta", lead: "Informe seus dados de empregado para iniciar a Business dWallet.", responseEmpty: "Após criar a conta, o app habilita o envio do código de verificação.", footerNote: "Esta é uma tela visível ao usuário final; a autenticação técnica permanece fora desta experiência." },
   },
   {
     id: "envio-email",
@@ -896,7 +896,6 @@ function mergeCredentialFolder(previous: CredentialFolderItem[], incoming: Crede
 export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, status, m2mReady, evidence }: { screen: GovScreen; stepNumber: number; totalSteps: number; status: VisualStatus; m2mReady: boolean; evidence?: Evidence }) {
   const hasExternalAction = Boolean(screen.actionId);
   const needsM2M = hasExternalAction && screen.actionId?.startsWith("step");
-  const prerequisitePending = needsM2M && !m2mReady;
   const fieldsLabel = screen.fields.length ? "preencha os campos obrigatórios destacados no telefone" : "confira as informações já exibidas na tela";
   const actionLabel = hasExternalAction ? `a ação ${screen.actionId}` : "uma validação visual/local";
   const resultInstruction = status === "done"
@@ -922,11 +921,6 @@ export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, stat
         {evidence?.httpStatus ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Último HTTP {evidence.httpStatus}</span> : null}
       </div>
 
-      {prerequisitePending ? (
-        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
-          <strong>Pré-requisito pendente:</strong> execute primeiro o Passo 0 de autenticação M2M no topo da página. Sem token técnico ativo, esta chamada pode falhar mesmo com os campos corretos.
-        </div>
-      ) : null}
 
       <ol className="mt-4 grid gap-3 text-sm leading-6 md:grid-cols-3">
         <li className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-blue-950"><strong>1. Dados:</strong> {fieldsLabel} diretamente no mockup.</li>
@@ -1240,7 +1234,7 @@ export function DirectScreenVariablesPanel({ variables, values, activeFields, sc
   );
 }
 
-export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, error }: { result?: M2MAuthResult; cachedToken?: { tokenHandle?: string; expiresAt?: string; active?: boolean; expiresInSeconds?: number } | null; isRunning?: boolean; onAuthenticate: () => void; error?: string }) {
+export function M2MTokenPanel({ result, cachedToken, isRunning, error }: { result?: M2MAuthResult; cachedToken?: { tokenHandle?: string; expiresAt?: string; active?: boolean; expiresInSeconds?: number } | null; isRunning?: boolean; onAuthenticate?: () => void; error?: string }) {
   const tokenStatus = result ?? cachedToken;
   const active = Boolean(tokenStatus?.active);
   const expiresAt = tokenStatus?.expiresAt ? new Date(tokenStatus.expiresAt).toLocaleString("pt-BR") : "não obtido";
@@ -1252,22 +1246,19 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div className="space-y-2">
-            <Badge className="bg-[#FFCD07] text-[#071D41]">Passo 0</Badge>
-            <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Autenticação M2M token</CardTitle>
-            <CardDescription className="max-w-3xl text-base leading-7">Execute explicitamente a API de autenticação M2M para capturar o token no servidor. O token bruto não é exibido; apenas um handle opaco e a validade ficam visíveis para auditoria.</CardDescription>
+            <Badge className="bg-[#FFCD07] text-[#071D41]">Técnico</Badge>
+            <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Autenticação técnica automática</CardTitle>
+            <CardDescription className="max-w-3xl text-base leading-7">As APIs Dataprev que exigem autenticação técnica solicitam ou renovam o token automaticamente no servidor antes da chamada. O token bruto não é exibido; apenas um handle opaco e a validade ficam visíveis para auditoria.</CardDescription>
           </div>
-          <Button type="button" onClick={onAuthenticate} disabled={isRunning} className="bg-[#1351B4] hover:bg-[#0C326F]">
-            {isRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
-            {isRunning ? "Autenticando M2M" : "Passo 0 — Autenticar M2M"}
-          </Button>
+          {isRunning ? <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-950"><Loader2 className="mr-1 h-3 w-3 animate-spin" />Autenticando</Badge> : null}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
-        {error ? <Alert className="border-amber-200 bg-amber-50 text-amber-950"><ShieldAlert className="h-4 w-4" /><AlertTitle>Falha no Passo 0</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
+        {error ? <Alert className="border-amber-200 bg-amber-50 text-amber-950"><ShieldAlert className="h-4 w-4" /><AlertTitle>Falha na autenticação técnica</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
           <KeyRound className="h-4 w-4" />
-          <AlertTitle>Credenciais obrigatórias antes da execução</AlertTitle>
-          <AlertDescription>Antes de clicar em <strong>Passo 0 — Autenticar M2M</strong>, preencha na aba <strong>Credenciais</strong> os campos <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong>. Se algum deles estiver vazio, a aplicação não executa a API e orienta quais campos precisam ser preenchidos.</AlertDescription>
+          <AlertTitle>Credenciais obrigatórias para chamadas Dataprev</AlertTitle>
+          <AlertDescription>Para chamadas reais usando credenciais temporárias, preencha na aba <strong>Credenciais</strong> os campos <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong>. Esses dados são usados automaticamente pelo servidor quando uma API requer autenticação técnica.</AlertDescription>
         </Alert>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Status do token</p><p className={active ? "mt-1 font-semibold text-green-700" : "mt-1 font-semibold text-amber-700"}>{active ? "ativo no servidor" : tokenStatus ? "expirado ou inválido" : "não obtido"}</p></div>
@@ -1277,10 +1268,10 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Reutilização nas chamadas seguintes</AlertTitle>
-          <AlertDescription>{result?.message || "Quando o token estiver ativo, as ações que exigem M2M reutilizam o cache server-side e renovam a autenticação apenas quando a validade estiver próxima do fim."}</AlertDescription>
+          <AlertDescription>{result?.message || "As ações que exigem autenticação técnica reutilizam o cache server-side e renovam o token apenas quando a validade estiver próxima do fim."}</AlertDescription>
         </Alert>
         <div className="space-y-2">
-          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Resultado sanitizado do Passo 0</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Resultado sanitizado da autenticação técnica</p>
           <Textarea readOnly value={details} className="min-h-36 border-slate-700 bg-slate-950 font-mono text-xs text-slate-100" />
         </div>
       </CardContent>
@@ -1317,7 +1308,7 @@ export function CredentialFolderPanel({ items, values, onClear }: { items: Crede
               </div>
             ))}
           </div>
-        ) : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">Nenhuma informação gerada ainda. Execute o Passo 0 e as telas de criação/abertura para começar a preencher esta pasta.</div>}
+        ) : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">Nenhuma informação gerada ainda. Execute as telas de criação, abertura e consulta para começar a preencher esta pasta.</div>}
       </CardContent>
     </Card>
   );
@@ -1326,20 +1317,17 @@ export function CredentialFolderPanel({ items, values, onClear }: { items: Crede
 export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, runningId, m2mCompleted = false, reviewedSteps = {}, onToggleReviewed, onOpenStep }: { walletKind: WalletKind; screens?: GovScreen[]; evidences?: Record<string, Evidence>; runningId?: string; m2mCompleted?: boolean; reviewedSteps?: Record<string, boolean>; onToggleReviewed?: (stepId: string, checked: boolean) => void; onOpenStep?: (screenId: string) => void }) {
   const appName = walletKind === "personal" ? "Personal dWallet" : "Business dWallet";
   const orderedSteps = walletKind === "personal" ? [
-    ["1", "Passo 0 — Autenticar M2M", "Execute a autenticação técnica no topo da página e confirme token ativo. Guarde o handle opaco exibido em Credenciais apenas como referência de auditoria."],
-    ["2", "Criar e validar Personal dWallet", "Execute criação, envio de código e validação na ordem da navegação lateral. IDs da PdW, usuário ou sessão retornados pela API são salvos automaticamente em Credenciais."],
-    ["3", "Abrir a BdW antes de solicitar dados", "Quando uma tela Personal exigir Business ID, abra a Business dWallet, crie/abra a BdW e copie da pasta Credenciais o ID da BdW gerado pela API empresarial."],
-    ["4", "Solicitar informações na PdW", "Volte para a Personal dWallet, confirme que o Business ID está preenchido e execute a solicitação de dados. Guarde o requestId/consentId retornado para aprovação, consulta ou próximos testes."],
-    ["5", "Executar telas finais e financeiras", "Depois da wallet criada e dos IDs salvos, teste saldo, extrato, Pix, pagamento e marketplace. O mockup deve mostrar comprovante, resumo ou tela final montada, não apenas JSON técnico."],
+    ["1", "Criar e validar Personal dWallet", "Execute criação, envio de código e validação na ordem da navegação lateral. Quando a API exigir autenticação técnica, o servidor obtém o token automaticamente antes da requisição. IDs da PdW, usuário ou sessão retornados pela API são salvos automaticamente em Credenciais."],
+    ["2", "Abrir a BdW antes de solicitar dados", "Quando uma tela Personal exigir Business ID, abra a Business dWallet, crie/abra a BdW e copie da pasta Credenciais o ID da BdW gerado pela API empresarial."],
+    ["3", "Solicitar informações na PdW", "Volte para a Personal dWallet, confirme que o Business ID está preenchido e execute a solicitação de dados. Guarde o requestId/consentId retornado para aprovação, consulta ou próximos testes."],
+    ["4", "Executar telas finais e financeiras", "Depois da wallet criada e dos IDs salvos, teste saldo, extrato, Pix, pagamento e marketplace. O mockup deve mostrar comprovante, resumo ou tela final montada, não apenas JSON técnico."],
   ] : [
-    ["1", "Passo 0 — Autenticar M2M", "Execute a autenticação técnica antes das telas empresariais e confirme token ativo. O handle opaco fica registrado em Credenciais."],
-    ["2", "Criar Business dWallet", "Cadastre empresa, colaborador e validações no mockup. Guarde automaticamente o ID da BdW, companyId ou walletId retornado pela API."],
-    ["3", "Abrir e validar a BdW", "Continue na ordem lateral até a carteira empresarial estar aberta. Esses dados serão usados pela Personal dWallet quando ela precisar solicitar informações à BdW."],
-    ["4", "Produtos, schemas e solicitações", "Execute uma tela por vez, salvando IDs de produto, schema, solicitação ou consentimento em Credenciais para chamadas relacionadas."],
-    ["5", "Operações financeiras", "Teste saldo, extrato, Pix, cobranças e pagamentos no fim da jornada. O mockup deve mostrar resumo ou comprovante montado com os dados retornados."],
+    ["1", "Criar Business dWallet", "Cadastre empresa, colaborador e validações no mockup. Quando a API exigir autenticação técnica, o servidor obtém o token automaticamente antes da requisição. Guarde automaticamente o ID da BdW, companyId ou walletId retornado pela API."],
+    ["2", "Abrir e validar a BdW", "Continue na ordem lateral até a carteira empresarial estar aberta. Esses dados serão usados pela Personal dWallet quando ela precisar solicitar informações à BdW."],
+    ["3", "Produtos, schemas e solicitações", "Execute uma tela por vez, salvando IDs de produto, schema, solicitação ou consentimento em Credenciais para chamadas relacionadas."],
+    ["4", "Operações financeiras", "Teste saldo, extrato, Pix, cobranças e pagamentos no fim da jornada. O mockup deve mostrar resumo ou comprovante montado com os dados retornados."],
   ];
   const checklistItems = [
-    { id: "m2m", title: "Passo 0 — Autenticar M2M", description: "Pré-requisito técnico da sandbox. Marque como revisado quando o token estiver ativo ou quando o responsável confirmar que já existe token válido.", status: m2mCompleted ? "done" as VisualStatus : "pending" as VisualStatus },
     ...screens.map(screen => ({
       id: screen.id,
       title: screen.title,
@@ -1413,7 +1401,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
                     </div>
                     <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
                   </div>
-                  {item.id !== "m2m" ? <Button type="button" variant="outline" onClick={() => onOpenStep?.(item.id)} className="justify-center">Abrir etapa</Button> : <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pré-requisito</span>}
+                  <Button type="button" variant="outline" onClick={() => onOpenStep?.(item.id)} className="justify-center">Abrir etapa</Button>
                 </div>
               );
             })}
@@ -1457,8 +1445,8 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
   const secretRows = [
     { key: "DATAPREV_BASE_URL", purpose: "Base da sandbox/API DrumWave-Dataprev usada pelo servidor." },
     { key: "DATAPREV_API_KEY", purpose: "Chave x-api-key enviada em todas as chamadas server-side." },
-    { key: "DATAPREV_CLIENT_ID", purpose: "Client ID usado no passo zero OAuth client_credentials." },
-    { key: "DATAPREV_CLIENT_SECRET", purpose: "Client secret usado no passo zero OAuth client_credentials." },
+    { key: "DATAPREV_CLIENT_ID", purpose: "Client ID usado no fluxo OAuth client_credentials técnico." },
+    { key: "DATAPREV_CLIENT_SECRET", purpose: "Client secret usado no fluxo OAuth client_credentials técnico." },
     { key: "BTG_BASE_URL", purpose: "Base da API BTG usada nas telas financeiras de saldo, extrato, Pix, cobranças e pagamentos." },
     { key: "BTG_COMPANY_ID", purpose: "Company ID BTG utilizado para montar rotas e escopos empresariais." },
     { key: "BTG_ACCESS_TOKEN", purpose: "Token bearer BTG server-side; nunca é exposto no app emulado." },
@@ -1468,20 +1456,20 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
     <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Credenciais e chaves</CardTitle>
-        <CardDescription>Informe credenciais Dataprev temporárias para testar o Passo 0 sem alterar os Secrets do projeto. Os valores ficam apenas no estado desta tela e são enviados ao backend somente durante a execução da API.</CardDescription>
+        <CardDescription>Informe credenciais Dataprev temporárias para testar chamadas reais sem alterar os Secrets do projeto. Os valores ficam apenas no estado desta tela e são enviados ao backend somente durante a execução da API.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <Alert className={usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>{usingTypedCredentials ? "Credenciais temporárias serão usadas no Passo 0" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
-          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Preencha API URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo do Postman. A aplicação não mistura parcialmente credenciais secretas digitadas com Secrets publicados." : configured ? "A aplicação reconhece variáveis Dataprev no runtime server-side, mas para homologar o Passo 0 pela interface preencha temporariamente API URL, API ID / x-api-key, Client ID e Secret ID / Client secret com os mesmos valores do Postman." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha API URL, API ID / x-api-key, Client ID e Secret ID / Client secret abaixo antes de executar o Passo 0 e demais chamadas reais."}</AlertDescription>
+          <AlertTitle>{usingTypedCredentials ? "Credenciais temporárias serão usadas nas APIs Dataprev" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
+          <AlertDescription>{usingTypedCredentials ? "Ao executar chamadas reais, a aplicação priorizará os valores digitados abaixo. Preencha API URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo do Postman. A aplicação não mistura parcialmente credenciais secretas digitadas com Secrets publicados." : configured ? "A aplicação reconhece variáveis Dataprev no runtime server-side. Para homologar pela interface com dados do Postman, preencha temporariamente API URL, API ID / x-api-key, Client ID e Secret ID / Client secret como conjunto completo." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha API URL, API ID / x-api-key, Client ID e Secret ID / Client secret abaixo antes de executar chamadas reais."}</AlertDescription>
         </Alert>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Credenciais temporárias Dataprev</p>
-              <p className="text-sm leading-6 text-slate-600">Antes de executar o Passo 0, preencha obrigatoriamente API URL, API ID / x-api-key, Client ID e Secret ID / Client secret. Evite salvar capturas contendo segredos.</p>
+              <p className="text-sm leading-6 text-slate-600">Para usar credenciais temporárias, preencha obrigatoriamente API URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo. Evite salvar capturas contendo segredos.</p>
             </div>
             <Button type="button" variant="outline" onClick={onClear}><Trash2 className="mr-2 h-4 w-4" />Limpar Dataprev</Button>
           </div>
@@ -1503,7 +1491,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o Secret ID / client_secret" autoComplete="off" />
             </div>
           </div>
-          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo do Postman antes de executar o Passo 0. Depois volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se algum campo obrigatório estiver vazio, a aplicação não chama a API e informa exatamente o que falta preencher.</p>
+          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo do Postman antes de executar chamadas reais. Quando uma API exigir autenticação técnica, o servidor obtém o token automaticamente; se algum campo obrigatório estiver vazio, a aplicação informa exatamente o que falta preencher.</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
@@ -1581,6 +1569,20 @@ export function compactRunState(mergedState: RunState): Record<string, string | 
   return Object.fromEntries(Object.entries(mergedState).filter(([, value]) => value !== undefined)) as Record<string, string | number | boolean | null>;
 }
 
+export function clearCredentialResultState(previous: RunState, credentialItems: CredentialFolderItem[] = [], evidenceMap: Record<string, Evidence> = {}): RunState {
+  const resultKeys = new Set<string>(["m2mTokenHandle", "m2mExpiresAt", "m2mActive"]);
+  credentialItems.forEach(item => resultKeys.add(item.key));
+  Object.values(evidenceMap).forEach(evidence => {
+    Object.keys(evidence.stateUpdates || {}).forEach(key => resultKeys.add(key));
+  });
+
+  if (!resultKeys.size) return previous;
+
+  const next = { ...previous };
+  resultKeys.forEach(key => delete next[key]);
+  return next;
+}
+
 export function buildExecuteActionInput(actionId: string, mergedState: RunState, credentials?: DataprevCredentialForm) {
   return { actionId, state: compactRunState(mergedState), credentials: buildDataprevCredentialsInput(credentials || { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }) };
 }
@@ -1649,6 +1651,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
 
   const clearDataprevCredentials = () => {
     setDataprevCredentials({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+    clearApiReturnFields();
   };
 
   const updateBtgFutureInfo = (key: BtgFutureInfoKey, value: string) => {
@@ -1656,6 +1659,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   };
 
   const clearApiReturnFields = () => {
+    setState(previous => clearCredentialResultState(previous, credentialFolder, evidences));
     setEvidences({});
     setM2mResult(undefined);
     setCredentialFolder([]);
@@ -1680,6 +1684,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       delete next[active.id];
       return next;
     });
+    clearApiReturnFields();
   };
 
   const runM2MAuthentication = async () => {
@@ -1691,7 +1696,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
 
     const missingCredentials = getMissingM2MCredentialLabels(dataprevCredentials);
     if (missingCredentials.length > 0) {
-      const message = `Antes de executar o Passo 0 M2M, preencha na aba Credenciais os campos obrigatórios: ${missingCredentials.join(", ")}. A API não foi chamada porque esses dados são essenciais para gerar a autenticação M2M.`;
+      const message = `Antes de executar APIs Dataprev com credenciais temporárias, preencha na aba Credenciais os campos obrigatórios: ${missingCredentials.join(", ")}. A chamada não foi realizada porque esses dados são essenciais para gerar a autenticação técnica.`;
       setM2mResult(undefined);
       setErrors(previous => ({ ...previous, m2m: message }));
       return;
@@ -1702,12 +1707,12 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       const typed = result as M2MAuthResult;
       setM2mResult(typed);
       if (typed.ok) {
-        setCredentialFolder(previous => mergeCredentialFolder(previous, createCredentialFolderItems("Passo 0 M2M", { m2mTokenHandle: typed.tokenHandle, m2mExpiresAt: typed.expiresAt, m2mActive: typed.active })));
+        setCredentialFolder(previous => mergeCredentialFolder(previous, createCredentialFolderItems("Autenticação técnica", { m2mTokenHandle: typed.tokenHandle, m2mExpiresAt: typed.expiresAt, m2mActive: typed.active })));
       }
       if (!typed.ok) setErrors(previous => ({ ...previous, m2m: typed.message }));
       await metadata.refetch();
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Falha inesperada ao executar o Passo 0 M2M.";
+      const message = error instanceof Error ? error.message : "Falha inesperada ao executar a autenticação técnica.";
       setErrors(previous => ({ ...previous, m2m: message }));
     }
   };
@@ -1777,7 +1782,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
           <Card className="border-white/20 bg-white/10 text-white backdrop-blur">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" />APIs e evidências</CardTitle>
-              <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local. O Passo 0 M2M é pré-requisito técnico de sandbox e não entra na experiência emulada do usuário.</CardDescription>
+              <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local. A autenticação técnica de sandbox é executada automaticamente quando uma API precisa desse token.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-blue-50">
               <Button type="button" variant="outline" onClick={clearApiReturnFields} className="justify-center border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white">
@@ -1825,7 +1830,6 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         </aside>
 
         <section className="space-y-5">
-          <M2MTokenPanel result={m2mResult} cachedToken={metadata.data?.m2mToken} isRunning={authenticateM2M.isPending} onAuthenticate={runM2MAuthentication} error={errors.m2m} />
           <Tabs defaultValue="tela" className="space-y-5">
             <TabsList className="grid w-full grid-cols-4 bg-white">
               <TabsTrigger value="tela">Tela atual</TabsTrigger>
