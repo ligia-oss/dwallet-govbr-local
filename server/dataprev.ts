@@ -53,9 +53,26 @@ type Evidence = {
   executedAt: string;
 };
 
+type M2MAuthResult = {
+  status: "executed" | "failed";
+  ok: boolean;
+  method: "POST";
+  url: string;
+  httpStatus?: number;
+  tokenHandle?: string;
+  expiresAt?: string;
+  expiresInSeconds?: number;
+  active: boolean;
+  requestHeaders?: Record<string, string>;
+  requestBody?: JsonValue;
+  responseBody?: unknown;
+  message: string;
+  executedAt: string;
+};
+
 const DEFAULT_PASSWORD = "SecurePass123!";
 const tokenStore = new Map<string, string>();
-let m2mCache: { token: string; expiresAt: number } | null = null;
+let m2mCache: { token: string; expiresAt: number; handle: string } | null = null;
 
 function env() {
   return {
@@ -163,15 +180,23 @@ function getStoredToken(handle?: string) {
   return tokenStore.get(handle);
 }
 
-async function getM2MToken() {
+function m2mAuthUrl() {
+  return `${env().baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`;
+}
+
+function hasActiveM2MCache() {
+  return Boolean(m2mCache && m2mCache.expiresAt > Date.now() + 60_000);
+}
+
+async function requestM2MToken(forceRefresh = false) {
   const config = env();
   if (!config.apiKey || !config.clientId || !config.clientSecret) {
     throw new Error("Credenciais DATAPREV_* não estão configuradas no servidor.");
   }
   const isVitest = Boolean(process.env.VITEST) || process.env.NODE_ENV === "test";
-  if (!isVitest && m2mCache && m2mCache.expiresAt > Date.now() + 60_000) return m2mCache.token;
+  if (!forceRefresh && !isVitest && hasActiveM2MCache() && m2mCache) return { token: m2mCache.token, expiresAt: m2mCache.expiresAt, handle: m2mCache.handle, reused: true };
 
-  const response = await fetch(`${config.baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`, {
+  const response = await fetch(m2mAuthUrl(), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -187,13 +212,67 @@ async function getM2MToken() {
   if (!response.ok || typeof data.access_token !== "string") {
     throw new Error(`Falha ao obter token M2M: HTTP ${response.status}`);
   }
-  if (!isVitest) {
+  const expiresAt = Date.now() + Number(data.expires_in || 3600) * 1000;
+  const handle = randomUUID();
+  if (!isVitest || forceRefresh) {
     m2mCache = {
       token: data.access_token,
-      expiresAt: Date.now() + Number(data.expires_in || 3600) * 1000,
+      expiresAt,
+      handle,
     };
   }
-  return data.access_token;
+  return { token: data.access_token, expiresAt, handle, reused: false };
+}
+
+async function getM2MToken() {
+  const result = await requestM2MToken(false);
+  return result.token;
+}
+
+async function authenticateM2MExplicitly(): Promise<M2MAuthResult> {
+  const executedAt = new Date().toISOString();
+  const requestBody = {
+    client_id: env().clientId || "<MISSING>",
+    client_secret: env().clientSecret || "<MISSING>",
+    grant_type: "client_credentials",
+  };
+  try {
+    const auth = await requestM2MToken(true);
+    const expiresInSeconds = Math.max(0, Math.floor((auth.expiresAt - Date.now()) / 1000));
+    return {
+      status: "executed",
+      ok: true,
+      method: "POST",
+      url: m2mAuthUrl(),
+      httpStatus: 200,
+      tokenHandle: auth.handle,
+      expiresAt: new Date(auth.expiresAt).toISOString(),
+      expiresInSeconds,
+      active: auth.expiresAt > Date.now(),
+      requestHeaders: sanitizeDataprevEvidence(headers({ content: true })) as Record<string, string>,
+      requestBody: sanitizeDataprevEvidence(requestBody) as JsonValue,
+      responseBody: { tokenHandle: auth.handle, expiresAt: new Date(auth.expiresAt).toISOString(), expiresInSeconds, tokenArmazenado: true, tokenBruto: "<REDACTED>" },
+      message: "Passo 0 executado: token M2M armazenado no servidor até a expiração e disponível para reutilização nas próximas chamadas que exigirem Authorization Bearer.",
+      executedAt,
+    };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Falha desconhecida ao obter token M2M.";
+    const statusMatch = message.match(/HTTP\s+(\d+)/i);
+    const status = statusMatch ? Number(statusMatch[1]) : undefined;
+    return {
+      status: "failed",
+      ok: false,
+      method: "POST",
+      url: m2mAuthUrl(),
+      httpStatus: status,
+      active: false,
+      requestHeaders: sanitizeDataprevEvidence(headers({ content: true })) as Record<string, string>,
+      requestBody: sanitizeDataprevEvidence(requestBody) as JsonValue,
+      responseBody: { etapa: "passo_zero_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor." },
+      message: status ? authFailureMessage(status, "m2m") : message,
+      executedAt,
+    };
+  }
 }
 
 function headers(options: { m2m?: string; userToken?: string; region?: boolean; content?: boolean }) {
@@ -688,9 +767,16 @@ export const dataprevRouter = router({
   metadata: publicProcedure.query(() => ({
     credentialsConfigured: Boolean(env().baseUrl && env().apiKey && env().clientId && env().clientSecret),
     baseUrl: env().baseUrl,
+    m2mToken: m2mCache ? {
+      tokenHandle: m2mCache.handle,
+      expiresAt: new Date(m2mCache.expiresAt).toISOString(),
+      active: m2mCache.expiresAt > Date.now() + 60_000,
+      expiresInSeconds: Math.max(0, Math.floor((m2mCache.expiresAt - Date.now()) / 1000)),
+    } : null,
     initialState: initialState(),
     steps,
   })),
+  authenticateM2M: publicProcedure.mutation(async () => authenticateM2MExplicitly()),
   executeAction: publicProcedure
     .input(z.object({ actionId: z.string(), state: runStateSchema.optional() }))
     .mutation(async ({ input }) => {

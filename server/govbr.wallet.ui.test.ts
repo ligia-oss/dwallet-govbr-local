@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { buildExecuteActionInput, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, TestVariablesPanel, updateRunStateValue, type Evidence } from "../client/src/pages/GovBRWalletApp";
+import { buildExecuteActionInput, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -59,6 +59,36 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("API ausente");
     expect(html).toContain("Endpoint ausente no mapeamento atual");
     expect(html).toContain("Endpoint Dataprev não configurado para este fluxo");
+  });
+
+  it("renders the Passo 0 M2M panel with sanitized token metadata and explicit authentication button", () => {
+    const result: M2MAuthResult = {
+      status: "executed",
+      ok: true,
+      method: "POST",
+      url: "https://sandbox.test.local/v1/auth/token/iam/authn/services/oauth2/token",
+      httpStatus: 200,
+      tokenHandle: "opaque-token-handle",
+      expiresAt: "2026-05-05T15:30:00.000Z",
+      expiresInSeconds: 1800,
+      active: true,
+      responseBody: { tokenHandle: "opaque-token-handle", tokenBruto: "<REDACTED>", tokenArmazenado: true },
+      message: "Passo 0 executado: token M2M armazenado no servidor até a expiração.",
+      executedAt: "2026-05-05T15:00:00.000Z",
+    };
+
+    const html = renderToStaticMarkup(React.createElement(M2MTokenPanel, {
+      result,
+      isRunning: false,
+      onAuthenticate: () => undefined,
+    }));
+
+    expect(html).toContain("Passo 0");
+    expect(html).toContain("Passo 0 — Autenticar M2M");
+    expect(html).toContain("ativo no servidor");
+    expect(html).toContain("opaque-token-handle");
+    expect(html).toContain("&lt;REDACTED&gt;");
+    expect(html).not.toContain("eyJ");
   });
 
   it("renders editable test variables and credential guidance for operators", () => {

@@ -61,6 +61,23 @@ export type Evidence = {
   executedAt: string;
 };
 
+export type M2MAuthResult = {
+  status: "executed" | "failed";
+  ok: boolean;
+  method: "POST";
+  url: string;
+  httpStatus?: number;
+  tokenHandle?: string;
+  expiresAt?: string;
+  expiresInSeconds?: number;
+  active: boolean;
+  requestHeaders?: Record<string, string>;
+  requestBody?: unknown;
+  responseBody?: unknown;
+  message: string;
+  executedAt: string;
+};
+
 type ScreenField = { key: string; label: string; placeholder: string; type?: string; required?: boolean };
 
 type GovScreen = {
@@ -649,6 +666,49 @@ export function DirectScreenVariablesPanel({ variables, values, activeFields, sc
   );
 }
 
+export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, error }: { result?: M2MAuthResult; cachedToken?: { tokenHandle?: string; expiresAt?: string; active?: boolean; expiresInSeconds?: number } | null; isRunning?: boolean; onAuthenticate: () => void; error?: string }) {
+  const tokenStatus = result ?? cachedToken;
+  const active = Boolean(tokenStatus?.active);
+  const expiresAt = tokenStatus?.expiresAt ? new Date(tokenStatus.expiresAt).toLocaleString("pt-BR") : "não obtido";
+  const tokenHandle = tokenStatus?.tokenHandle || "indisponível";
+  const details = result?.responseBody ? readableJson(result.responseBody) : readableJson(tokenStatus ? { tokenHandle, expiresAt: tokenStatus.expiresAt, expiresInSeconds: tokenStatus.expiresInSeconds, active } : { status: "token ainda não solicitado nesta sessão" });
+
+  return (
+    <Card className="border-blue-200 bg-white shadow-sm">
+      <CardHeader>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-2">
+            <Badge className="bg-[#FFCD07] text-[#071D41]">Passo 0</Badge>
+            <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Autenticação M2M token</CardTitle>
+            <CardDescription className="max-w-3xl text-base leading-7">Execute explicitamente a API de autenticação M2M para capturar o token no servidor. O token bruto não é exibido; apenas um handle opaco e a validade ficam visíveis para auditoria.</CardDescription>
+          </div>
+          <Button type="button" onClick={onAuthenticate} disabled={isRunning} className="bg-[#1351B4] hover:bg-[#0C326F]">
+            {isRunning ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <ShieldCheck className="mr-2 h-4 w-4" />}
+            {isRunning ? "Autenticando M2M" : "Passo 0 — Autenticar M2M"}
+          </Button>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error ? <Alert className="border-amber-200 bg-amber-50 text-amber-950"><ShieldAlert className="h-4 w-4" /><AlertTitle>Falha no Passo 0</AlertTitle><AlertDescription>{error}</AlertDescription></Alert> : null}
+        <div className="grid gap-3 md:grid-cols-3">
+          <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Status do token</p><p className={active ? "mt-1 font-semibold text-green-700" : "mt-1 font-semibold text-amber-700"}>{active ? "ativo no servidor" : tokenStatus ? "expirado ou inválido" : "não obtido"}</p></div>
+          <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Handle opaco</p><p className="mt-1 break-all font-mono text-xs text-slate-800">{tokenHandle}</p></div>
+          <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Expiração</p><p className="mt-1 font-semibold text-slate-800">{expiresAt}</p></div>
+        </div>
+        <Alert className="border-blue-200 bg-blue-50 text-blue-950">
+          <ShieldCheck className="h-4 w-4" />
+          <AlertTitle>Reutilização nas chamadas seguintes</AlertTitle>
+          <AlertDescription>{result?.message || "Quando o token estiver ativo, as ações que exigem M2M reutilizam o cache server-side e renovam a autenticação apenas quando a validade estiver próxima do fim."}</AlertDescription>
+        </Alert>
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Resultado sanitizado do Passo 0</p>
+          <Textarea readOnly value={details} className="min-h-36 border-slate-700 bg-slate-950 font-mono text-xs text-slate-100" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 export function CredentialsPanel({ baseUrl, configured }: { baseUrl?: string; configured?: boolean }) {
   const secretRows = [
     { key: "DATAPREV_BASE_URL", purpose: "Base da sandbox/API DrumWave-Dataprev usada pelo servidor." },
@@ -702,9 +762,11 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const testVariables = isPersonal ? personalTestVariables : businessTestVariables;
   const metadata = trpc.dataprev.metadata.useQuery();
   const executeAction = trpc.dataprev.executeAction.useMutation();
+  const authenticateM2M = trpc.dataprev.authenticateM2M.useMutation();
   const [activeId, setActiveId] = useState(screens[0]?.id ?? "entrada");
   const [state, setState] = useState<RunState>({});
   const [evidences, setEvidences] = useState<Record<string, Evidence>>({});
+  const [m2mResult, setM2mResult] = useState<M2MAuthResult>();
   const [runningId, setRunningId] = useState<string>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
@@ -739,6 +801,24 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
     setErrors({});
+  };
+
+  const runM2MAuthentication = async () => {
+    setErrors(previous => {
+      const next = { ...previous };
+      delete next.m2m;
+      return next;
+    });
+    try {
+      const result = await authenticateM2M.mutateAsync();
+      const typed = result as M2MAuthResult;
+      setM2mResult(typed);
+      if (!typed.ok) setErrors(previous => ({ ...previous, m2m: typed.message }));
+      await metadata.refetch();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha inesperada ao executar o Passo 0 M2M.";
+      setErrors(previous => ({ ...previous, m2m: message }));
+    }
   };
 
   const run = async () => {
@@ -848,6 +928,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         </aside>
 
         <section className="space-y-5">
+          <M2MTokenPanel result={m2mResult} cachedToken={metadata.data?.m2mToken} isRunning={authenticateM2M.isPending} onAuthenticate={runM2MAuthentication} error={errors.m2m} />
           <Tabs defaultValue="tela" className="space-y-5">
             <TabsList className="grid w-full grid-cols-3 bg-white">
               <TabsTrigger value="tela">Tela atual</TabsTrigger>

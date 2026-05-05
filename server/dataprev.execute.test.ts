@@ -170,6 +170,27 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(evidence)).not.toContain("api-key-teste");
   });
 
+  it("executa explicitamente o Passo 0 M2M, armazena o token em cache e retorna apenas metadados sanitizados", async () => {
+    const caller = appRouter.createCaller(ctx);
+    globalThis.fetch = vi.fn(async () => jsonResponse(200, { access_token: "eyJm2m.token.jwt", expires_in: 1800, token_type: "Bearer" })) as any;
+
+    const result = await caller.dataprev.authenticateM2M();
+    const metadata = await caller.dataprev.metadata();
+
+    expect(result.status).toBe("executed");
+    expect(result.ok).toBe(true);
+    expect(result.active).toBe(true);
+    expect(result.tokenHandle).toEqual(expect.any(String));
+    expect(result.expiresAt).toEqual(expect.any(String));
+    expect(result.expiresInSeconds).toBeGreaterThan(0);
+    expect(metadata.m2mToken?.tokenHandle).toBe(result.tokenHandle);
+    expect(metadata.m2mToken?.active).toBe(true);
+    expect(JSON.stringify(result)).not.toContain("eyJm2m.token.jwt");
+    expect(JSON.stringify(result)).not.toContain("api-key-teste");
+    expect(JSON.stringify(result)).not.toContain("client-secret-teste");
+    expect(result.message).toContain("armazenado no servidor");
+  });
+
   it("atualiza o estado com identificadores opacos quando o login retorna token", async () => {
     const caller = appRouter.createCaller(ctx);
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {

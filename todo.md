@@ -74,3 +74,11 @@
 - [x] Validar as APIs executáveis da página Personal GovBR após a correção, registrando quais funcionam, quais retornam erro de negócio e quais permanecem ausentes por falta de endpoint.
 - [x] Atualizar testes automatizados para impedir regressão no contrato de endereço da ação `step2_person_signup`.
 - [x] Verificar se o checkpoint `a48d5bbb` está publicado e validar a rota pública `/personal-govbr` no domínio disponível.
+
+- [x] Adicionar procedimento tRPC `dataprev.authenticateM2M` para executar autenticação M2M explícita, armazenar o token em cache até a expiração e retornar apenas metadados sanitizados.
+- [x] Adicionar botão “Passo 0 — Autenticar M2M” na página GovBR Wallet, antes das demais ações executáveis.
+- [x] Exibir na interface o status sanitizado do token M2M, incluindo handle opaco, validade e indicação ativo/expirado sem revelar o token bruto.
+- [x] Garantir que as demais chamadas Dataprev reutilizem o token M2M em cache quando válido e renovem apenas quando necessário.
+- [x] Atualizar testes Vitest para cobrir autenticação M2M explícita, sanitização do retorno e integração da UI do Passo 0.
+- [x] Executar validações técnicas do projeto após a implementação do Passo 0 e salvar checkpoint.
+
