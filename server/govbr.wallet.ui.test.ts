@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, TestVariablesPanel, updateRunStateValue, type Evidence } from "../client/src/pages/GovBRWalletApp";
+import { buildExecuteActionInput, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, TestVariablesPanel, updateRunStateValue, type Evidence } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -131,6 +131,16 @@ describe("GovBR Wallet API response panels", () => {
     expect(directHtml).toContain("Empresa Direta Validada");
     expect(consolidatedHtml).toContain("test-var-businessName");
     expect(consolidatedHtml).toContain("Empresa Direta Validada");
+  });
+
+  it("builds the executeAction input with values edited in direct screen fields", () => {
+    const initialState = { personEmail: "antes@example.com", personFirstName: "Maria" };
+    const directEditedState = updateRunStateValue(initialState, "personEmail", "direto-ui@example.com");
+    const input = buildExecuteActionInput("step2_person_signup", directEditedState);
+
+    expect(input.actionId).toBe("step2_person_signup");
+    expect(input.state.personEmail).toBe("direto-ui@example.com");
+    expect(input.state.personFirstName).toBe("Maria");
   });
 
   it("derives visual status from the active action, evidence and API availability", () => {

@@ -59,3 +59,21 @@ Ao abrir a aba **Variáveis de teste** na mesma rota `/business-govbr`, o campo 
 Após a revisão do checklist, foi adicionada cobertura automatizada explícita para a propagação de valores editados em campos diretos do formulário emulado para o mesmo estado compartilhado usado pela aba **Variáveis de teste**. O teste `server/govbr.wallet.ui.test.ts` agora verifica o valor `Empresa Direta Validada` tanto no input direto `direct-entrada-businessName` quanto no input consolidado `test-var-businessName` após atualização do estado compartilhado.
 
 A validação final executada em 2026-05-04 resultou em `pnpm test` com **6 arquivos aprovados e 18 testes aprovados**. Em seguida, `pnpm exec tsc --noEmit` terminou sem erros. A cobertura de sanitização de senha e credenciais permanece validada pelos testes de execução Dataprev e sanitização de evidências.
+
+## Validação real de chamada API após edição direta
+
+Com confirmação do usuário para submissão controlada, foi executado o script `scripts/validate-direct-edit-api.ts`, que monta um estado sintético equivalente aos campos editados diretamente no formulário emulado Personal GovBR e chama `dataprev.executeAction` para `step2_person_signup`.
+
+A chamada alcançou a API Dataprev sandbox e retornou `HTTP 400`, portanto não criou uma nova conta dentro da faixa esperada. Ainda assim, a evidência registrada em `validation-artifacts/direct-edit-api-evidence.json` confirma que o **payload enviado refletiu os valores alterados diretamente na tela**: e-mail `direct-edit-7946484868@example.com`, nome `Direto`, sobrenome `Validado`, telefone `+5511999988888`, endereço `Rua Validacao Direta 123`, cidade `Brasilia`, UF `DF` e CEP `70000-000`. A senha foi preservada como `<REDACTED>` na evidência sanitizada, confirmando que a edição direta não quebrou a política de não exposição de credenciais.
+
+Resumo observado no terminal: `ok=false`, `status=failed`, `httpStatus=400`, `actionId=step2_person_signup`, `message="A API respondeu fora da faixa esperada; a resposta foi preservada como evidência."`.
+
+
+### Evidência visual da validação em navegador
+
+A captura `validation-artifacts/direct-edit-browser-evidence.png` confirma visualmente que o campo direto `E-mail` da tela **Entrada da Personal dWallet** foi alterado para um valor com prefixo `browser-direct-*` e que a execução subsequente exibiu a seção **Requisição enviada pela tela** com JSON sanitizado. A senha aparece como `<REDACTED>`, preservando o requisito de não expor credenciais. A primeira extração automatizada por `innerText` não encontrou o e-mail completo porque valores de `<input>` não entram em `innerText`; o script foi ajustado em seguida para ler `inputValue()` e `textContent` além do texto visual.
+
+
+### Validação final em navegador da edição direta até a evidência de API
+
+O script `scripts/validate-direct-edit-browser.mjs` foi executado com sucesso na prévia local de `/personal-govbr`. Ele preencheu o campo direto `#direct-entrada-personEmail` com `browser-direct-7946820601@example.com`, acionou o botão **Criar conta gov.br de dados** e aguardou a seção **Requisição enviada pela tela**. O artefato `validation-artifacts/direct-edit-browser-evidence.json` retornou `ok=true`, `containsEditedEmail=true` e `passwordLeaked=false`, confirmando que a própria UI exibiu o payload sanitizado com o valor alterado diretamente no formulário emulado e sem vazamento de senha. A captura correspondente ficou em `validation-artifacts/direct-edit-browser-evidence.png`.

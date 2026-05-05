@@ -64,6 +64,8 @@
 - [x] Atualizar testes automatizados para cobrir edição direta no formulário emulado e preservação da sanitização de senhas/credenciais.
 - [x] Validar visualmente nas rotas `/personal-govbr` e `/business-govbr` que o usuário consegue alterar dados diretamente no aplicativo emulado.
 - [x] Executar validação verificável de sincronização: alterar um campo na tela atual, abrir a aba Variáveis de teste e registrar evidência de propagação do mesmo valor.
-- [ ] Executar chamada de API após editar campos diretamente na tela atual e registrar evidência de que o payload sanitizado refletiu os novos valores.
+- [x] Executar chamada de API após editar campos diretamente na tela atual e registrar evidência de que o payload sanitizado refletiu os novos valores.
 - [x] Revisar testes atualizados para comprovar cobertura de edição direta no formulário emulado e sanitização de senha/credenciais.
 - [x] Realizar interação real no navegador editando inputs em Personal e Business e registrar evidência da alteração bem-sucedida no front-end emulado.
+- [x] Executar no navegador uma ação real a partir da tela atual após editar um campo direto e registrar evidência da própria UI com o payload sanitizado contendo o novo valor.
+- [x] Adicionar cobertura automatizada do fluxo editar campo `direct-*` → acionar execução da tela → confirmar que `executeAction` recebe o estado consolidado atualizado.

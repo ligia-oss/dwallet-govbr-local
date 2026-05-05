@@ -1,0 +1,36 @@
+{
+  "validatedAt": "2026-05-05T02:07:05.113Z",
+  "scenario": "browser-direct-edit-to-ui-executed-api-evidence",
+  "route": "http://127.0.0.1:3000/personal-govbr",
+  "editedFieldSelector": "#direct-entrada-personEmail",
+  "editedEmail": "browser-direct-7946820601@example.com",
+  "inputValue": "browser-direct-7946820601@example.com",
+  "containsEditedEmail": true,
+  "passwordLeaked": false,
+  "requestPanelText": "",
+  "normalizedMatch": true,
+  "bodyTextEmailSnippet": " app: Nenhum identificador novo foi gravado no estado local após esta chamada.Requisição enviada pela tela{\n  \"email\": \"browser-direct-7946820601@example.com\",\n  \"password\": \"<REDACTED>\",\n  \"firstName\": \"João\",\n  \"lastName\": \"Santos\",\n  \"phoneNumber\": \"+5511999990002\",\n  \"address\": {\n    \"line1\": \"Rua Cidadã 456\",\n    \"city\": \"São Paulo\",\n    \"state\": \"SP\",\n    \"zip\": \"01310-20",
+  "screenshotPath": "validation-artifacts/direct-edit-browser-evidence.png",
+  "consoleMessages": [
+    {
+      "type": "debug",
+      "text": "[vite] connecting..."
+    },
+    {
+      "type": "debug",
+      "text": "[Manus] Debug collector initialized (no rrweb, UI events only)"
+    },
+    {
+      "type": "debug",
+      "text": "[vite] connected."
+    },
+    {
+      "type": "info",
+      "text": "%cDownload the React DevTools for a better development experience: https://react.dev/link/react-devtools font-weight:bold"
+    },
+    {
+      "type": "verbose",
+      "text": "[DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o"
+    }
+  ]
+}

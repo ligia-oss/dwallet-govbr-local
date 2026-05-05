@@ -1,0 +1,59 @@
+{
+  "validatedAt": "2026-05-05T02:01:27.156Z",
+  "scenario": "direct-screen-edit-to-api-payload",
+  "note": "Estado sintético equivalente aos campos editados diretamente no formulário emulado Personal GovBR.",
+  "editedFields": {
+    "personEmail": "direct-edit-7946484868@example.com",
+    "personFirstName": "Direto",
+    "personLastName": "Validado",
+    "personPhone": "+5511999988888",
+    "personPassword": "<REDACTED>",
+    "personAddressLine": "Rua Validacao Direta 123",
+    "personCity": "Brasilia",
+    "personState": "DF",
+    "personZip": "70000-000"
+  },
+  "evidence": {
+    "actionId": "step2_person_signup",
+    "actionTitle": "Criar Personal dWallet",
+    "status": "failed",
+    "method": "POST",
+    "url": "https://api.sandbox.drumwave.com.br/v1/dwallet/person/signup",
+    "httpStatus": 400,
+    "ok": false,
+    "requestHeaders": {
+      "x-api-key": "<REDACTED>",
+      "Content-Type": "application/json",
+      "x-region": "BR"
+    },
+    "requestBody": {
+      "email": "direct-edit-7946484868@example.com",
+      "password": "<REDACTED>",
+      "firstName": "Direto",
+      "lastName": "Validado",
+      "phoneNumber": "+5511999988888",
+      "address": {
+        "line1": "Rua Validacao Direta 123",
+        "city": "Brasilia",
+        "state": "DF",
+        "zip": "70000-000"
+      }
+    },
+    "responseBody": {
+      "success": false,
+      "statusCode": 400,
+      "method": "POST",
+      "message": "[\"address.property line1 should not exist\",\"address.property city should not exist\",\"address.property zip should not exist\"]",
+      "url": "/v1/person/signup",
+      "timestamp": "2026-05-05T02:01:26.924Z",
+      "requestId": "ae4883b9-a1f4-4d64-9c1b-a63dd4e023bf",
+      "error": {
+        "name": "BadRequestException",
+        "message": "[\"address.property line1 should not exist\",\"address.property city should not exist\",\"address.property zip should not exist\"]"
+      }
+    },
+    "stateUpdates": {},
+    "message": "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.",
+    "executedAt": "2026-05-05T02:01:24.870Z"
+  }
+}

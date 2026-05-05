@@ -692,6 +692,10 @@ export function CredentialsPanel({ baseUrl, configured }: { baseUrl?: string; co
   );
 }
 
+export function buildExecuteActionInput(actionId: string, mergedState: RunState) {
+  return { actionId, state: mergedState as Record<string, string | number | boolean | null> };
+}
+
 export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const screens = kind === "personal" ? personalScreens : businessScreens;
   const isPersonal = kind === "personal";
@@ -758,7 +762,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
     try {
-      const evidence = await executeAction.mutateAsync({ actionId: active.actionId, state: mergedState as Record<string, string | number | boolean | null> });
+      const evidence = await executeAction.mutateAsync(buildExecuteActionInput(active.actionId, mergedState));
       const typed = evidence as Evidence;
       setEvidences(previous => ({ ...previous, [active.actionId as string]: typed }));
       setState(previous => ({ ...previous, ...(typed.stateUpdates || {}) }));
