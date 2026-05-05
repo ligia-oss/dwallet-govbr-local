@@ -52,13 +52,13 @@
 - [x] Investigar e corrigir retorno Forbidden na criação da Personal dWallet, verificando passo zero/token M2M, credenciais server-side e contrato da API.
 - [x] Destravar investigação do Forbidden publicado na Personal dWallet, documentando causa provável, diferença local versus publicado e ação necessária para credenciais/token M2M.
 - [x] Reexecutar `step2_person_signup` após a atualização das credenciais e registrar evidência verificável de sucesso ou falha atualizada.
-- [ ] Revalidar a rota publicada `/personal-govbr` após publicar o novo checkpoint, registrando se a criação Personal deixou de retornar 403 no runtime publicado.
+- [x] Revalidar a rota publicada `/personal-govbr` após publicar o novo checkpoint, registrando se a criação Personal deixou de retornar 403 no runtime publicado — resultado: o contrato de `address` foi corrigido no publicado, mas a sandbox ainda retornou 403.
 - [x] Registrar verificação específica do fluxo de signup Personal com credenciais corrigidas, além do teste leve de token M2M.
 - [x] Criar interface para edição das variáveis de entrada dos testes de API, incluindo nome, sobrenome, endereço, estado, telefone, e-mail, senha, CNPJ, identificadores e valores reutilizados na jornada.
 - [x] Conectar as variáveis editáveis às ações Personal dWallet e Business dWallet para que cada execução use os valores informados pelo usuário na tela.
 - [x] Criar aba ou seção de credenciais e chaves com orientação clara para atualização segura de `DATAPREV_BASE_URL`, `DATAPREV_API_KEY`, `DATAPREV_CLIENT_ID` e `DATAPREV_CLIENT_SECRET`, sem expor segredos no frontend.
 - [x] Atualizar testes automatizados para cobrir renderização dos campos editáveis, aplicação dos valores customizados nas chamadas e exibição segura da área de credenciais.
-- [ ] Revalidar a criação Personal dWallet na rota publicada `/personal-govbr` após publicação do checkpoint anterior, registrando se o 403 foi removido no runtime público.
+- [x] Revalidar a criação Personal dWallet na rota publicada `/personal-govbr` após publicação do checkpoint anterior — resultado: o 403 não foi removido no runtime público, indicando bloqueio de credencial/autorização/allowlist após a correção de schema.
 - [x] Permitir edição direta das variáveis de teste nos formulários da tela atual das rotas Personal e Business GovBR, sem depender apenas da aba Variáveis de teste.
 - [x] Sincronizar os campos editados diretamente no front-end emulado com a aba Variáveis de teste e com os payloads enviados às APIs Dataprev.
 - [x] Atualizar testes automatizados para cobrir edição direta no formulário emulado e preservação da sanitização de senhas/credenciais.
@@ -73,3 +73,4 @@
 - [x] Explicar no relatório por que ocorreu o erro `address.property line1 should not exist` e qual alteração foi aplicada.
 - [x] Validar as APIs executáveis da página Personal GovBR após a correção, registrando quais funcionam, quais retornam erro de negócio e quais permanecem ausentes por falta de endpoint.
 - [x] Atualizar testes automatizados para impedir regressão no contrato de endereço da ação `step2_person_signup`.
+- [x] Verificar se o checkpoint `a48d5bbb` está publicado e validar a rota pública `/personal-govbr` no domínio disponível.

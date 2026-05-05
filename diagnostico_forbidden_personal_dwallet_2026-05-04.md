@@ -88,3 +88,15 @@ A correção foi aplicada em `server/dataprev.ts` nos três pontos que montam pa
 Foram adicionadas regressões em `server/dataprev.execute.test.ts` para comprovar que os cadastros Personal e Business não enviam `address.line1`, `address.city` nem `address.zip`. A suíte local foi reexecutada com sucesso: 6 arquivos de teste, 20 testes aprovados. A verificação TypeScript `pnpm exec tsc --noEmit` também concluiu sem erros.
 
 A validação abrangente das ações mapeadas na página GovBR foi registrada em `validation-artifacts/govbr-actions-smoke.json`. Foram identificadas 22 ações mapeadas: a Entrada da Personal Wallet (`step2_person_signup`) passou com HTTP 201 e payload sanitizado contendo `address: { state: "DF" }`; a criação do colaborador Business e a criação da entidade Business também passaram com HTTP 201 usando apenas `address.state`. As ações de consulta, solicitação e aceite de data request, certificados pessoais, DSPs e extrato retornaram dentro das faixas esperadas. Duas chamadas de envio de código retornaram HTTP 500 por erro interno da sandbox (`Failed to fetch locale data for: */subject.json`), não por contrato local; uma chamada de ofertas retornou HTTP 403 dentro do comportamento esperado para o cenário sem oferta elegível; o aceite de oferta ficou não executável porque o passo anterior não retornou `offerId`; e o resgate permanece marcado como API não disponível externamente.
+
+
+## Validação pública após solicitação de publicação — 2026-05-05
+
+Após a solicitação de publicação do checkpoint `a48d5bbb`, a rota pública `https://dwalletgovbr-mmipedog.manus.space/personal-govbr` foi aberta com sucesso. A página carregou o título **dWallet GovBR Local**, a tela **Personal dWallet GovBR**, a ação **Entrada da Personal dWallet** e os campos diretos editáveis de cadastro. A própria interface publicada já exibe a descrição corrigida do contrato de endereço: `address.state` é o único campo de endereço enviado ao cadastro Personal, enquanto endereço, cidade e CEP permanecem apenas como emulação visual.
+
+
+### Submissão pública controlada da Personal dWallet
+
+Com confirmação do usuário, foi executada uma submissão controlada na rota pública `https://dwalletgovbr-mmipedog.manus.space/personal-govbr` usando o e-mail sintético `public-recheck-7950189001@example.com`. A interface publicada enviou o payload sanitizado com `address: { "state": "SP" }`, sem `address.line1`, `address.city` ou `address.zip`, comprovando que a correção de contrato do endereço chegou ao runtime publicado.
+
+A resposta da sandbox, porém, permaneceu `HTTP 403` com corpo `{ "message": "Forbidden" }`. Portanto, o erro original de schema `address.property line1 should not exist` foi corrigido, mas a criação pública da Personal dWallet ainda está bloqueada por autorização/credencial/allowlist no ambiente publicado. A evidência visual do navegador mostrou também que a senha continuou redigida como `<REDACTED>` na requisição exibida pela UI.
