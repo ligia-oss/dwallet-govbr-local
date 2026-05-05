@@ -1267,7 +1267,7 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
           <KeyRound className="h-4 w-4" />
           <AlertTitle>Credenciais obrigatórias antes da execução</AlertTitle>
-          <AlertDescription>Antes de clicar em <strong>Passo 0 — Autenticar M2M</strong>, preencha na aba <strong>Credenciais</strong> os campos <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong>. Se algum deles estiver vazio, a aplicação não executa a API e orienta quais campos precisam ser preenchidos.</AlertDescription>
+          <AlertDescription>Antes de clicar em <strong>Passo 0 — Autenticar M2M</strong>, preencha na aba <strong>Credenciais</strong> os campos <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong>. Se algum deles estiver vazio, a aplicação não executa a API e orienta quais campos precisam ser preenchidos.</AlertDescription>
         </Alert>
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">Status do token</p><p className={active ? "mt-1 font-semibold text-green-700" : "mt-1 font-semibold text-amber-700"}>{active ? "ativo no servidor" : tokenStatus ? "expirado ou inválido" : "não obtido"}</p></div>
@@ -1288,14 +1288,19 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
   );
 }
 
-export function CredentialFolderPanel({ items, values }: { items: CredentialFolderItem[]; values: RunState }) {
+export function CredentialFolderPanel({ items, values, onClear }: { items: CredentialFolderItem[]; values: RunState; onClear?: () => void }) {
   const stateItems = createCredentialFolderItems("Estado atual da jornada", values).filter(item => !items.some(saved => saved.key === item.key));
   const combined = [...items, ...stateItems].slice(0, 24);
   return (
     <Card className="border-blue-200 bg-white shadow-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl"><FolderKey className="h-5 w-5 text-[#1351B4]" />Pasta de credenciais</CardTitle>
-        <CardDescription>Valores gerados ou preenchidos durante as APIs ficam guardados aqui para uso como input em outras etapas. Exemplos: ID da BdW, ID da PdW, IDs de solicitação, tokens opacos, conta BTG e referências de pagamento.</CardDescription>
+        <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+          <div>
+            <CardTitle className="flex items-center gap-2 text-xl"><FolderKey className="h-5 w-5 text-[#1351B4]" />Pasta de credenciais</CardTitle>
+            <CardDescription>Valores gerados ou preenchidos durante as APIs ficam guardados aqui para uso como input em outras etapas. Exemplos: ID da BdW, ID da PdW, IDs de solicitação, tokens opacos, conta BTG e referências de pagamento.</CardDescription>
+          </div>
+          {onClear ? <Button type="button" variant="outline" onClick={onClear} className="shrink-0"><Trash2 className="mr-2 h-4 w-4" />Limpar pasta</Button> : null}
+        </div>
       </CardHeader>
       <CardContent className="space-y-4">
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
@@ -1364,17 +1369,19 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
           <AlertTitle>Antes de começar</AlertTitle>
           <AlertDescription>Use a navegação lateral de cima para baixo. Não pule etapas que ainda não foram executadas, porque algumas telas dependem de IDs ou confirmações gerados pela etapa anterior. Se aparecer erro, corrija o campo destacado no telefone e tente novamente.</AlertDescription>
         </Alert>
-        <div className="overflow-hidden rounded-3xl border border-slate-200">
-          <div className="grid grid-cols-[72px_1fr_1.6fr] bg-[#1351B4] px-4 py-3 text-sm font-bold text-white">
+        <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
+          <div className="hidden bg-[#1351B4] px-4 py-3 text-sm font-bold text-white md:grid md:grid-cols-[72px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4">
             <span>Ordem</span><span>O que testar</span><span>Como executar</span>
           </div>
-          {orderedSteps.map(([order, title, instruction]) => (
-            <div key={order} className="grid grid-cols-[72px_1fr_1.6fr] gap-3 border-t border-slate-200 px-4 py-4 text-sm leading-6">
-              <span className="font-mono font-bold text-[#1351B4]">{order}</span>
-              <span className="font-semibold text-slate-950">{title}</span>
-              <span className="text-slate-600">{instruction}</span>
-            </div>
-          ))}
+          <div className="divide-y divide-slate-200">
+            {orderedSteps.map(([order, title, instruction]) => (
+              <div key={order} className="grid gap-3 px-4 py-4 text-sm leading-6 md:grid-cols-[72px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4 md:items-start">
+                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 font-mono font-bold text-[#1351B4] md:h-auto md:w-auto md:justify-start md:rounded-none md:bg-transparent">{order}</span>
+                <span className="font-semibold text-slate-950">{title}</span>
+                <span className="text-slate-600">{instruction}</span>
+              </div>
+            ))}
+          </div>
         </div>
         <section className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5" aria-label="Checklist visual de progresso da jornada">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
@@ -1424,6 +1431,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
 
 export function getMissingM2MCredentialLabels(credentials: DataprevCredentialForm) {
   const requiredFields: Array<{ key: keyof DataprevCredentialForm; label: string }> = [
+    { key: "baseUrl", label: "API URL" },
     { key: "apiKey", label: "API ID / x-api-key" },
     { key: "clientId", label: "Client ID" },
     { key: "clientSecret", label: "Secret ID / Client secret" },
@@ -1466,21 +1474,21 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
         <Alert className={usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>{usingTypedCredentials ? "Credenciais temporárias serão usadas no Passo 0" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
-          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Preencha API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo do Postman; a Base URL é opcional e, se ficar vazia, a sandbox padrão será usada. A aplicação não mistura parcialmente credenciais secretas digitadas com Secrets publicados." : configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Para homologar pela interface, preencha temporariamente API ID / x-api-key, Client ID e Secret ID / Client secret com os mesmos valores do Postman antes de executar o Passo 0. A Base URL pode ficar vazia para usar a sandbox padrão ou receber a URL completa copiada do Postman." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha API ID / x-api-key, Client ID e Secret ID / Client secret abaixo antes de executar o Passo 0 e demais chamadas reais."}</AlertDescription>
+          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Preencha API URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo do Postman. A aplicação não mistura parcialmente credenciais secretas digitadas com Secrets publicados." : configured ? "A aplicação reconhece variáveis Dataprev no runtime server-side, mas para homologar o Passo 0 pela interface preencha temporariamente API URL, API ID / x-api-key, Client ID e Secret ID / Client secret com os mesmos valores do Postman." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha API URL, API ID / x-api-key, Client ID e Secret ID / Client secret abaixo antes de executar o Passo 0 e demais chamadas reais."}</AlertDescription>
         </Alert>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Credenciais temporárias Dataprev</p>
-              <p className="text-sm leading-6 text-slate-600">Antes de executar o Passo 0, preencha obrigatoriamente API ID / x-api-key, Client ID e Secret ID / Client secret. A Base URL é opcional. Evite salvar capturas contendo segredos.</p>
+              <p className="text-sm leading-6 text-slate-600">Antes de executar o Passo 0, preencha obrigatoriamente API URL, API ID / x-api-key, Client ID e Secret ID / Client secret. Evite salvar capturas contendo segredos.</p>
             </div>
-            <Button type="button" variant="outline" onClick={onClear}>Limpar campos</Button>
+            <Button type="button" variant="outline" onClick={onClear}><Trash2 className="mr-2 h-4 w-4" />Limpar Dataprev</Button>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="dataprev-base-url">Base URL opcional</Label>
-              <Input id="dataprev-base-url" value={credentials.baseUrl} onChange={event => onChange("baseUrl", event.target.value)} placeholder={baseUrl || "https://api.sandbox.drumwave.com.br"} autoComplete="off" />
+              <Label htmlFor="dataprev-base-url">API URL</Label>
+              <Input id="dataprev-base-url" type="url" value={credentials.baseUrl} onChange={event => onChange("baseUrl", event.target.value)} placeholder={baseUrl || "https://api.sandbox.drumwave.com.br"} autoComplete="off" />
             </div>
             <div className="space-y-2">
               <Label htmlFor="dataprev-api-key">API ID / x-api-key</Label>
@@ -1495,7 +1503,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o Secret ID / client_secret" autoComplete="off" />
             </div>
           </div>
-          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo do Postman antes de executar o Passo 0; deixe a Base URL vazia para usar a sandbox padrão ou cole a URL completa do endpoint/token se preferir. Depois volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se algum campo obrigatório estiver vazio, a aplicação não chama a API e informa exatamente o que falta preencher.</p>
+          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo do Postman antes de executar o Passo 0. Depois volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se algum campo obrigatório estiver vazio, a aplicação não chama a API e informa exatamente o que falta preencher.</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
@@ -1562,7 +1570,7 @@ export function BtgFutureInfoPanel({ values, serverBaseUrl, serverConfigured, on
 
         <div className="flex flex-col gap-3 rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950 md:flex-row md:items-center md:justify-between">
           <p><strong>Segurança:</strong> prefira configurar o token definitivo como Secret do projeto quando estiver disponível. Este formulário existe para testes locais e evidências continuam com autorização e tokens mascarados.</p>
-          <Button type="button" variant="outline" onClick={onClear} className="shrink-0 bg-white">Limpar BTG</Button>
+          <Button type="button" variant="outline" onClick={onClear} className="shrink-0 bg-white"><Trash2 className="mr-2 h-4 w-4" />Limpar BTG</Button>
         </div>
       </CardContent>
     </Card>
@@ -1898,7 +1906,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />
             </TabsContent>
             <TabsContent value="credenciais" className="space-y-6">
-              <CredentialFolderPanel items={credentialFolder} values={mergedState} />
+              <CredentialFolderPanel items={credentialFolder} values={mergedState} onClear={clearApiReturnFields} />
               <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} btgBaseUrl={btgMetadata.data?.baseUrl || undefined} btgConfigured={btgMetadata.data?.credentialsConfigured} credentials={dataprevCredentials} onChange={updateDataprevCredential} onClear={clearDataprevCredentials} />
               <BtgFutureInfoPanel values={mergedState} serverBaseUrl={btgMetadata.data?.baseUrl || undefined} serverConfigured={btgMetadata.data?.credentialsConfigured} onChange={updateBtgFutureInfo} onClear={clearBtgFutureInfo} />
             </TabsContent>

@@ -87,6 +87,7 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("Passo 0");
     expect(html).toContain("Passo 0 — Autenticar M2M");
     expect(html).toContain("Credenciais obrigatórias antes da execução");
+    expect(html).toContain("API URL");
     expect(html).toContain("API ID / x-api-key");
     expect(html).toContain("Secret ID / Client secret");
     expect(html).toContain("ativo no servidor");
@@ -123,26 +124,32 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Credenciais temporárias Dataprev");
     expect(credentialsHtml).toContain("Antes de executar o Passo 0");
+    expect(credentialsHtml).toContain("API URL");
+    expect(credentialsHtml).not.toContain("Base URL opcional");
     expect(credentialsHtml).toContain("API ID / x-api-key");
     expect(credentialsHtml).toContain("Secret ID / Client secret");
     expect(credentialsHtml).toContain("Executar Passo 0 · autenticação M2M");
+    expect(credentialsHtml).toContain("Limpar Dataprev");
   });
 
   it("identifica credenciais obrigatórias faltantes antes de executar o Passo 0 pela interface", () => {
     expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" })).toEqual([
+      "API URL",
       "API ID / x-api-key",
       "Client ID",
       "Secret ID / Client secret",
     ]);
 
     expect(getMissingM2MCredentialLabels({ baseUrl: "https://endpoint/token", apiKey: "api-id", clientId: "", clientSecret: "secret-id" })).toEqual(["Client ID"]);
-    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: " api-id ", clientId: " client-id ", clientSecret: " secret-id " })).toEqual([]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: " api-id ", clientId: " client-id ", clientSecret: " secret-id " })).toEqual(["API URL"]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: " https://endpoint/token ", apiKey: " api-id ", clientId: " client-id ", clientSecret: " secret-id " })).toEqual([]);
   });
 
   it("renders generated API outputs in the credential folder for reuse between steps", () => {
     const html = renderToStaticMarkup(React.createElement(CredentialFolderPanel, {
       items: [{ key: "businessWalletId", value: "bdw_123", source: "Criar Business dWallet", savedAt: "2026-05-05T20:00:00.000Z", purpose: "Use como entrada em solicitações da Personal dWallet." }],
       values: { requestId: "req_456" },
+      onClear: () => undefined,
     }));
 
     expect(html).toContain("Pasta de credenciais");
@@ -150,6 +157,7 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("requestId");
     expect(html).toContain("solicitações da Personal dWallet");
     expect(html).toContain("abra a BdW para gerar o ID da BdW");
+    expect(html).toContain("Limpar pasta");
   });
 
   it("renders the BTG future information panel without requiring a token today", () => {
@@ -172,6 +180,7 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("Extrato:");
     expect(html).toContain("Pagamentos:");
     expect(html).toContain("btg-••••3456");
+    expect(html).toContain("Limpar BTG");
     expect(html).toContain('type="password"');
     expect(btgFutureInfoFields.map(field => field.key)).toContain("btgAccessToken");
     expect(hasBtgFutureInfo({})).toBe(false);
@@ -202,12 +211,13 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(html).toContain("Guia de execução das APIs");
     expect(html).toContain("Antes de começar");
-    expect(html).toContain("1</span><span class=\"font-semibold text-slate-950\">Passo 0 — Autenticar M2M");
-    expect(html).toContain('2</span><span class="font-semibold text-slate-950">Criar e validar Personal dWallet');
-    expect(html).toContain('3</span><span class="font-semibold text-slate-950">Abrir a BdW antes de solicitar dados');
-    expect(html).toContain('4</span><span class="font-semibold text-slate-950">Solicitar informações na PdW');
+    expect(html).toContain("minmax(180px,1fr)");
+    expect(html).toContain("Passo 0 — Autenticar M2M");
+    expect(html).toContain("Criar e validar Personal dWallet");
+    expect(html).toContain("Abrir a BdW antes de solicitar dados");
+    expect(html).toContain("Solicitar informações na PdW");
     expect(html).toContain("abra a Business dWallet");
-    expect(html).toContain('5</span><span class="font-semibold text-slate-950">Executar telas finais e financeiras');
+    expect(html).toContain("Executar telas finais e financeiras");
     expect(html).toContain("Resultado esperado OK");
     expect(html).toContain("Resultado esperado com pendência");
     expect(html).toContain("Quando usar Variáveis de teste");

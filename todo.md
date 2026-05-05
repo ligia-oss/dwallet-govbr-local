@@ -187,3 +187,10 @@
 - [x] Bloquear a execução do Passo 0 pela interface quando credenciais essenciais estiverem vazias, exibindo mensagem orientando a pessoa responsável pela homologação a preencher os campos faltantes na aba Credenciais.
 - [x] Atualizar testes automatizados para cobrir instrução de credenciais obrigatórias e bloqueio preventivo do Passo 0 sem chamada à API.
 - [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da validação preventiva do Passo 0.
+
+- [x] Renomear a credencial "Base URL opcional" para "API URL" e tratá-la como campo essencial para execução do Passo 0 M2M.
+- [x] Atualizar a validação preventiva do Passo 0 para bloquear a execução quando API URL, API ID / x-api-key, Client ID ou Secret ID / Client secret estiverem vazios.
+- [x] Revisar e corrigir o layout do quadro que orienta a ordem de execução das ações do Passo 0 para evitar desconfiguração visual.
+- [x] Adicionar botões de limpeza para todos os blocos de dados da aba Credenciais, sem apagar blocos não relacionados.
+- [x] Atualizar testes automatizados para cobrir API URL obrigatória, novo rótulo, layout de orientação e limpeza por bloco.
+- [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint dos ajustes da aba Credenciais.
