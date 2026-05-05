@@ -307,6 +307,30 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(result)).not.toContain("eyJtemporary.m2m.jwt");
     expect(JSON.stringify(result.requestHeaders)).toContain("<REDACTED>");
     expect(JSON.stringify(result.requestBody)).toContain("<REDACTED>");
+    expect(JSON.stringify(result.responseBody)).toContain("temporary_form");
+    expect(JSON.stringify(result.responseBody)).toContain("temporaryCredentialsComplete");
+    expect(JSON.stringify(result.responseBody)).toContain("apiKeyFingerprint");
+  });
+
+  it("rejeita credenciais temporárias incompletas no Passo 0 sem misturar com Secrets do servidor", async () => {
+    const caller = appRouter.createCaller(ctx);
+    globalThis.fetch = vi.fn() as any;
+
+    const result = await caller.dataprev.authenticateM2M({
+      credentials: {
+        baseUrl: "https://sandbox.ui.local/",
+        apiKey: "api-key-do-postman",
+        clientId: "client-id-do-postman",
+      },
+    });
+
+    expect(result.status).toBe("failed");
+    expect(result.ok).toBe(false);
+    expect(result.message).toContain("Credenciais temporárias Dataprev incompletas");
+    expect(JSON.stringify(result.responseBody)).toContain("temporary_form");
+    expect(JSON.stringify(result.responseBody)).toContain('"temporaryCredentialsComplete":false');
+    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(JSON.stringify(result)).not.toContain("api-key-do-postman");
   });
 
   it("propaga as credenciais temporárias da interface para o token M2M e para a API executada", async () => {

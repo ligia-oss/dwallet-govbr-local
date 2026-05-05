@@ -1332,7 +1332,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
         <Alert className={usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>{usingTypedCredentials ? "Credenciais temporárias serão usadas no Passo 0" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
-          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Campos deixados em branco continuam usando o valor seguro configurado no servidor." : configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Se ocorrer 401/403, revise se o par client_id/client_secret e a x-api-key pertencem ao mesmo ambiente." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha os campos temporários abaixo antes de executar chamadas reais."}</AlertDescription>
+          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Preencha API key, Client ID e Client secret como um conjunto completo do Postman; a aplicação não mistura parcialmente valores digitados com Secrets publicados." : configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Se ocorrer 401/403 no publicado mas o Postman funcionar, preencha temporariamente os quatro campos abaixo com os mesmos valores do Postman ou atualize os Secrets e publique novamente." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha os campos temporários abaixo antes de executar chamadas reais."}</AlertDescription>
         </Alert>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
@@ -1361,7 +1361,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o client_secret" autoComplete="off" />
             </div>
           </div>
-          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> depois de preencher os campos, volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se houver erro, a resposta mostrará status HTTP, diagnóstico e se a falha veio de credencial inválida, ambiente incompatível ou endpoint indisponível.</p>
+          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> depois de preencher os campos do Postman como conjunto completo, volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se houver erro, a resposta mostrará status HTTP, diagnóstico, origem das credenciais e fingerprints seguros para comparar o runtime local/publicado sem revelar segredos.</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">

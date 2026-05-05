@@ -162,3 +162,9 @@
 - [x] Preservar sanitização visual do token BTG nas instruções, resumos e evidências, mantendo o campo como senha quando for necessário enviá-lo localmente ao backend de teste.
 - [x] Atualizar testes automatizados para cobrir o novo painel de informações BTG e a propagação dos dados para as ações financeiras.
 - [x] Validar Vitest, build/status, revisar checklist e salvar checkpoint da versão com cadastro frontend de informações BTG.
+
+- [x] Investigar por que o Passo 0 M2M funciona no Postman, mas falha pela aplicação web.
+- [x] Corrigir o contrato de autenticação M2M usado pelo backend/frontend para gerar a chave M2M pela interface.
+- [x] Validar a geração da chave M2M pelo site e atualizar testes automatizados para impedir regressão.
+- [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da correção do Passo 0.
+- [x] Corrigir o Passo 0 M2M para funcionar pela interface web, com diagnóstico claro quando o ambiente publicado usar secrets divergentes do Postman/local.

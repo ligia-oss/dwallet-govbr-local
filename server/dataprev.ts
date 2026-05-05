@@ -1,4 +1,4 @@
-import { createHmac, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
 
@@ -84,6 +84,18 @@ type DataprevCredentialsInput = {
 
 type DataprevConfig = Required<DataprevCredentialsInput>;
 
+type DataprevCredentialDiagnostics = {
+  credentialSource: "server_secrets" | "temporary_form";
+  baseUrl: string;
+  apiKeyPresent: boolean;
+  clientIdPresent: boolean;
+  clientSecretPresent: boolean;
+  temporaryCredentialsComplete: boolean;
+  apiKeyFingerprint: string;
+  clientIdFingerprint: string;
+  clientSecretFingerprint: string;
+};
+
 const credentialsInputSchema = z.object({
   baseUrl: z.string().trim().optional(),
   apiKey: z.string().trim().optional(),
@@ -93,10 +105,55 @@ const credentialsInputSchema = z.object({
 
 function env(credentials?: DataprevCredentialsInput): DataprevConfig {
   return {
-    baseUrl: (credentials?.baseUrl || process.env.DATAPREV_BASE_URL || "https://api.sandbox.drumwave.com.br").replace(/\/+$/, ""),
-    apiKey: credentials?.apiKey || process.env.DATAPREV_API_KEY || "",
-    clientId: credentials?.clientId || process.env.DATAPREV_CLIENT_ID || "",
-    clientSecret: credentials?.clientSecret || process.env.DATAPREV_CLIENT_SECRET || "",
+    baseUrl: (credentials?.baseUrl?.trim() || process.env.DATAPREV_BASE_URL || "https://api.sandbox.drumwave.com.br").replace(/\/+$/, ""),
+    apiKey: credentials?.apiKey?.trim() || process.env.DATAPREV_API_KEY || "",
+    clientId: credentials?.clientId?.trim() || process.env.DATAPREV_CLIENT_ID || "",
+    clientSecret: credentials?.clientSecret?.trim() || process.env.DATAPREV_CLIENT_SECRET || "",
+  };
+}
+
+function hasTemporaryCredentialValue(credentials: DataprevCredentialsInput | undefined, key: keyof DataprevCredentialsInput) {
+  return Boolean(typeof credentials?.[key] === "string" && credentials[key]?.trim());
+}
+
+function usesTemporaryCredentials(credentials?: DataprevCredentialsInput) {
+  return Boolean(credentials && (["baseUrl", "apiKey", "clientId", "clientSecret"] as const).some(key => hasTemporaryCredentialValue(credentials, key)));
+}
+
+function missingTemporaryAuthFields(credentials?: DataprevCredentialsInput) {
+  if (!usesTemporaryCredentials(credentials)) return [];
+  return (["apiKey", "clientId", "clientSecret"] as const).filter(key => !hasTemporaryCredentialValue(credentials, key));
+}
+
+function temporaryCredentialError(credentials?: DataprevCredentialsInput) {
+  const missing = missingTemporaryAuthFields(credentials);
+  if (!missing.length) return undefined;
+  const labels: Record<typeof missing[number], string> = {
+    apiKey: "API key",
+    clientId: "Client ID",
+    clientSecret: "Client secret",
+  };
+  return "Credenciais temporárias Dataprev incompletas: preencha " + missing.map(key => labels[key]).join(", ") + " ou limpe todos os campos para usar somente os Secrets do servidor. A aplicação não mistura parcialmente credenciais do Postman com Secrets publicados, pois isso costuma causar rejeição 401/403 no Passo 0.";
+}
+
+function credentialFingerprint(value?: string) {
+  if (!value) return "<missing>";
+  return createHash("sha256").update(value).digest("hex").slice(0, 12);
+}
+
+function credentialDiagnostics(credentials?: DataprevCredentialsInput): DataprevCredentialDiagnostics {
+  const config = env(credentials);
+  const temporary = usesTemporaryCredentials(credentials);
+  return {
+    credentialSource: temporary ? "temporary_form" : "server_secrets",
+    baseUrl: config.baseUrl,
+    apiKeyPresent: Boolean(config.apiKey),
+    clientIdPresent: Boolean(config.clientId),
+    clientSecretPresent: Boolean(config.clientSecret),
+    temporaryCredentialsComplete: !temporary || missingTemporaryAuthFields(credentials).length === 0,
+    apiKeyFingerprint: credentialFingerprint(config.apiKey),
+    clientIdFingerprint: credentialFingerprint(config.clientId),
+    clientSecretFingerprint: credentialFingerprint(config.clientSecret),
   };
 }
 
@@ -219,6 +276,8 @@ function hasActiveM2MCache() {
 }
 
 async function requestM2MToken(forceRefresh = false, credentials?: DataprevCredentialsInput) {
+  const temporaryError = temporaryCredentialError(credentials);
+  if (temporaryError) throw new Error(temporaryError);
   const config = env(credentials);
   if (!config.apiKey || !config.clientId || !config.clientSecret) {
     throw new Error("Credenciais DATAPREV_* não estão configuradas no servidor.");
@@ -261,6 +320,7 @@ async function getM2MToken(credentials?: DataprevCredentialsInput) {
 
 async function authenticateM2MExplicitly(credentials?: DataprevCredentialsInput): Promise<M2MAuthResult> {
   const executedAt = new Date().toISOString();
+  const diagnostics = credentialDiagnostics(credentials);
   const requestBody = {
     client_id: env(credentials).clientId || "<MISSING>",
     client_secret: env(credentials).clientSecret || "<MISSING>",
@@ -281,8 +341,8 @@ async function authenticateM2MExplicitly(credentials?: DataprevCredentialsInput)
       active: auth.expiresAt > Date.now(),
       requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
       requestBody: sanitizeDataprevEvidence(requestBody, 0, sensitiveValues(env(credentials))) as JsonValue,
-      responseBody: { tokenHandle: auth.handle, expiresAt: new Date(auth.expiresAt).toISOString(), expiresInSeconds, tokenArmazenado: true, tokenBruto: "<REDACTED>" },
-      message: "Passo 0 executado: token M2M armazenado no servidor até a expiração e disponível para reutilização nas próximas chamadas que exigirem Authorization Bearer.",
+      responseBody: { tokenHandle: auth.handle, expiresAt: new Date(auth.expiresAt).toISOString(), expiresInSeconds, tokenArmazenado: true, tokenBruto: "<REDACTED>", diagnostics },
+      message: diagnostics.credentialSource === "temporary_form" ? "Passo 0 executado com as credenciais temporárias digitadas na interface; token M2M armazenado no servidor até a expiração." : "Passo 0 executado com os Secrets do servidor; token M2M armazenado no servidor até a expiração e disponível para reutilização nas próximas chamadas que exigirem Authorization Bearer.",
       executedAt,
     };
   } catch (error) {
@@ -298,7 +358,7 @@ async function authenticateM2MExplicitly(credentials?: DataprevCredentialsInput)
       active: false,
       requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
       requestBody: sanitizeDataprevEvidence(requestBody, 0, sensitiveValues(env(credentials))) as JsonValue,
-      responseBody: { etapa: "passo_zero_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor." },
+      responseBody: { etapa: "passo_zero_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor.", diagnostics },
       message: status ? authFailureMessage(status, "m2m") : message,
       executedAt,
     };
@@ -319,7 +379,7 @@ function headers(options: { m2m?: string; userToken?: string; region?: boolean; 
 function authFailureMessage(status: number, context: "m2m" | "api") {
   if (status !== 401 && status !== 403) return "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.";
   if (context === "m2m") {
-    return "A sandbox recusou o passo zero de autenticação M2M. Verifique no ambiente publicado DATAPREV_API_KEY, DATAPREV_CLIENT_ID e DATAPREV_CLIENT_SECRET; quando local funciona e publicado retorna 403, a causa provável é credencial publicada divergente, ausente ou sem permissão.";
+    return "A sandbox recusou o passo zero de autenticação M2M. Se o Postman funciona, preencha todos os campos temporários da aba Credenciais com o mesmo base_url, x-api-key, client_id e client_secret, ou atualize os Secrets publicados e publique novamente. Quando local funciona e publicado retorna 403, a causa provável é x-api-key/client_secret divergente, expirado ou sem permissão no runtime publicado.";
   }
   return "A sandbox recusou a chamada com Forbidden/Unauthorized. Para cadastro Personal/Business, isso normalmente indica DATAPREV_API_KEY inválida, divergente entre local e publicado, expirada ou sem permissão para a base configurada.";
 }
@@ -776,7 +836,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
       httpStatus: status,
       ok: false,
       requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
-      responseBody: { etapa: "passo_zero_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor." },
+      responseBody: { etapa: "passo_zero_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor.", diagnostics: credentialDiagnostics(credentials) },
       stateUpdates: {},
       message: status ? authFailureMessage(status, "m2m") : message,
       executedAt,
