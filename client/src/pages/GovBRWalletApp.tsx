@@ -42,6 +42,11 @@ type WalletKind = "personal" | "business";
 type ScreenGroup = "acesso" | "onboarding" | "wallet" | "mercado" | "financeiro" | "configuracoes";
 export type VisualStatus = "pending" | "running" | "done" | "failed" | "missing";
 type RunState = Record<string, string | number | boolean | null | undefined>;
+
+export function updateRunStateValue(previous: RunState, key: string, value: string): RunState {
+  return { ...previous, [key]: value };
+}
+
 export type Evidence = {
   actionId: string;
   actionTitle: string;
@@ -56,6 +61,8 @@ export type Evidence = {
   executedAt: string;
 };
 
+type ScreenField = { key: string; label: string; placeholder: string; type?: string; required?: boolean };
+
 type GovScreen = {
   id: string;
   route: string;
@@ -67,7 +74,7 @@ type GovScreen = {
   apiLabel: string;
   apiHint: string;
   primaryCta: string;
-  fields: Array<{ key: string; label: string; placeholder: string; type?: string; required?: boolean }>;
+  fields: ScreenField[];
   observedFrom: string;
   blocks?: string[];
 };
@@ -572,6 +579,76 @@ export function TestVariablesPanel({ variables, values, onChange, onReset }: { v
   );
 }
 
+export function DirectScreenVariablesPanel({ variables, values, activeFields, screenId, screenTitle, group, onChange, errors }: { variables: TestVariable[]; values: RunState; activeFields: ScreenField[]; screenId: string; screenTitle: string; group: ScreenGroup; onChange: (key: string, value: string) => void; errors?: Record<string, string> }) {
+  const directVariables = useMemo(() => {
+    const activeKeys = new Set(activeFields.map(field => field.key));
+    const inferredSections = new Set<string>();
+
+    if (group === "acesso" || group === "onboarding") {
+      variables.forEach(item => {
+        if (!item.section.toLowerCase().includes("identificadores")) inferredSections.add(item.section);
+      });
+    }
+
+    if (screenId === "empresa") {
+      inferredSections.add("Empresa");
+      inferredSections.add("Endereço da empresa");
+    }
+
+    if (group === "wallet" || group === "mercado" || group === "financeiro") {
+      inferredSections.add("Identificadores da jornada");
+    }
+
+    if (group === "configuracoes") {
+      variables.forEach(item => inferredSections.add(item.section));
+    }
+
+    const selected = variables.filter(item => activeKeys.has(item.key) || inferredSections.has(item.section));
+    return selected.length ? selected : activeFields.map(field => ({ ...field, section: "Campos da tela", description: "Campo operacional usado nesta tela." }));
+  }, [activeFields, group, screenId, variables]);
+
+  const sections = useMemo(() => directVariables.reduce<Record<string, TestVariable[]>>((acc, item) => {
+    acc[item.section] = [...(acc[item.section] || []), item];
+    return acc;
+  }, {}), [directVariables]);
+
+  if (!directVariables.length) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-4 text-sm leading-6 text-slate-600">
+        Esta tela emulada não exige variáveis editáveis para executar a ação principal. Use a aba <strong>Variáveis de teste</strong> se quiser alterar o estado global da jornada.
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4 rounded-3xl border border-blue-100 bg-white p-5 shadow-sm">
+      <div className="space-y-1">
+        <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Campos editáveis nesta tela emulada</p>
+        <p className="text-sm leading-6 text-slate-600">Altere aqui os dados que o usuário digitaria no aplicativo Dataprev emulado em <strong>{screenTitle}</strong>. Os mesmos valores ficam sincronizados com a aba <strong>Variáveis de teste</strong> e alimentam a próxima chamada da API.</p>
+      </div>
+      {Object.entries(sections).map(([section, items]) => (
+        <div key={section} className="space-y-3">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{section}</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {items.map(item => {
+              const activeField = activeFields.find(field => field.key === item.key);
+              const error = errors?.[item.key];
+              return (
+                <div key={item.key} className="space-y-2">
+                  <Label htmlFor={`direct-${screenId}-${item.key}`}>{item.label}{activeField?.required ? " *" : ""}</Label>
+                  <Input id={`direct-${screenId}-${item.key}`} type={item.type || activeField?.type || "text"} value={String(values[item.key] ?? "")} placeholder={item.placeholder || activeField?.placeholder} aria-invalid={Boolean(error)} onChange={event => onChange(item.key, event.target.value)} className={error ? "border-red-500 focus-visible:ring-red-500" : undefined} />
+                  <p className="text-xs leading-5 text-slate-500">{item.description}{item.sensitive ? " O valor é redigido nos painéis de evidência." : ""}</p>
+                  {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function CredentialsPanel({ baseUrl, configured }: { baseUrl?: string; configured?: boolean }) {
   const secretRows = [
     { key: "DATAPREV_BASE_URL", purpose: "Base da sandbox/API DrumWave-Dataprev usada pelo servidor." },
@@ -641,7 +718,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   }, [screens]);
 
   const updateField = (key: string, value: string) => {
-    setState(previous => ({ ...previous, [key]: value }));
+    setState(previous => updateRunStateValue(previous, key, value));
     setErrors(previous => {
       const next = { ...previous };
       delete next[key];
@@ -807,16 +884,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                   <div className="grid gap-3 md:grid-cols-2">
                     {(active.blocks || []).map(block => <div key={block} className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 shadow-sm">{block}</div>)}
                   </div>
-                  {active.fields.length ? <div className="grid gap-4 md:grid-cols-2">{active.fields.map(field => {
-                    const error = errors[field.key];
-                    return (
-                      <div key={field.key} className="space-y-2">
-                        <Label htmlFor={`${active.id}-${field.key}`}>{field.label}</Label>
-                        <Input id={`${active.id}-${field.key}`} type={field.type || "text"} value={String(mergedState[field.key] || "")} placeholder={field.placeholder} aria-invalid={Boolean(error)} onChange={event => updateField(field.key, event.target.value)} className={error ? "border-red-500 focus-visible:ring-red-500" : undefined} />
-                        {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
-                      </div>
-                    );
-                  })}</div> : null}
+                  <DirectScreenVariablesPanel variables={testVariables} values={mergedState} activeFields={active.fields} screenId={active.id} screenTitle={active.title} group={active.group} onChange={updateField} errors={errors} />
                   <Button onClick={run} disabled={Boolean(runningId)} className="bg-[#1351B4] hover:bg-[#0C326F]">
                     {runningId === active.actionId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
                     {runningId === active.actionId ? "Consultando API desta tela" : active.primaryCta}

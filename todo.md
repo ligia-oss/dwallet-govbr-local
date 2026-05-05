@@ -59,3 +59,11 @@
 - [x] Criar aba ou seção de credenciais e chaves com orientação clara para atualização segura de `DATAPREV_BASE_URL`, `DATAPREV_API_KEY`, `DATAPREV_CLIENT_ID` e `DATAPREV_CLIENT_SECRET`, sem expor segredos no frontend.
 - [x] Atualizar testes automatizados para cobrir renderização dos campos editáveis, aplicação dos valores customizados nas chamadas e exibição segura da área de credenciais.
 - [ ] Revalidar a criação Personal dWallet na rota publicada `/personal-govbr` após publicação do checkpoint anterior, registrando se o 403 foi removido no runtime público.
+- [x] Permitir edição direta das variáveis de teste nos formulários da tela atual das rotas Personal e Business GovBR, sem depender apenas da aba Variáveis de teste.
+- [x] Sincronizar os campos editados diretamente no front-end emulado com a aba Variáveis de teste e com os payloads enviados às APIs Dataprev.
+- [x] Atualizar testes automatizados para cobrir edição direta no formulário emulado e preservação da sanitização de senhas/credenciais.
+- [x] Validar visualmente nas rotas `/personal-govbr` e `/business-govbr` que o usuário consegue alterar dados diretamente no aplicativo emulado.
+- [x] Executar validação verificável de sincronização: alterar um campo na tela atual, abrir a aba Variáveis de teste e registrar evidência de propagação do mesmo valor.
+- [ ] Executar chamada de API após editar campos diretamente na tela atual e registrar evidência de que o payload sanitizado refletiu os novos valores.
+- [x] Revisar testes atualizados para comprovar cobertura de edição direta no formulário emulado e sanitização de senha/credenciais.
+- [x] Realizar interação real no navegador editando inputs em Personal e Business e registrar evidência da alteração bem-sucedida no front-end emulado.

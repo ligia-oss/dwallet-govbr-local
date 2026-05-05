@@ -1,7 +1,7 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CredentialsPanel, EvidenceBox, getVisualStatus, TestVariablesPanel, type Evidence } from "../client/src/pages/GovBRWalletApp";
+import { CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, TestVariablesPanel, updateRunStateValue, type Evidence } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -79,6 +79,58 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("Credenciais e chaves");
     expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
     expect(credentialsHtml).toContain("Settings → Secrets");
+  });
+
+  it("renders editable variables directly inside the emulated Dataprev app screen", () => {
+    const html = renderToStaticMarkup(React.createElement(DirectScreenVariablesPanel, {
+      variables: [
+        { key: "personName", label: "Nome", section: "Pessoa física", placeholder: "Maria", description: "Nome enviado no cadastro." },
+        { key: "personEmail", label: "E-mail", section: "Pessoa física", placeholder: "cidadao@example.com", type: "email", description: "E-mail de login." },
+        { key: "personalWalletId", label: "Wallet ID", section: "Identificadores da jornada", placeholder: "wallet_123", description: "Identificador retornado pela API." },
+      ],
+      values: { personName: "Ana Teste", personEmail: "ana@example.com", personalWalletId: "wallet_abc" },
+      activeFields: [{ key: "personEmail", label: "E-mail", placeholder: "cidadao@example.com", type: "email", required: true }],
+      screenId: "cadastro",
+      screenTitle: "Cadastro Personal dWallet",
+      group: "onboarding",
+      onChange: () => undefined,
+      errors: { personEmail: "Campo obrigatório" },
+    }));
+
+    expect(html).toContain("Campos editáveis nesta tela emulada");
+    expect(html).toContain("Ana Teste");
+    expect(html).toContain("ana@example.com");
+    expect(html).toContain("Campo obrigatório");
+    expect(html).toContain("Variáveis de teste");
+  });
+
+  it("propagates a direct screen edit to the shared variables state used by the consolidated tab", () => {
+    const variables = [
+      { key: "businessName", label: "Razão/nome empresarial", section: "Empresa", placeholder: "Empresa Dataprev Local", description: "Nome enviado na criação da Business dWallet." },
+    ];
+    const values = updateRunStateValue({ businessName: "Empresa Dataprev Local" }, "businessName", "Empresa Direta Validada");
+
+    const directHtml = renderToStaticMarkup(React.createElement(DirectScreenVariablesPanel, {
+      variables,
+      values,
+      activeFields: [{ key: "businessName", label: "Razão/nome empresarial", placeholder: "Empresa Dataprev Local", required: true }],
+      screenId: "entrada",
+      screenTitle: "Entrada da Business dWallet",
+      group: "acesso",
+      onChange: () => undefined,
+    }));
+    const consolidatedHtml = renderToStaticMarkup(React.createElement(TestVariablesPanel, {
+      variables,
+      values,
+      onChange: () => undefined,
+      onReset: () => undefined,
+    }));
+
+    expect(values.businessName).toBe("Empresa Direta Validada");
+    expect(directHtml).toContain("direct-entrada-businessName");
+    expect(directHtml).toContain("Empresa Direta Validada");
+    expect(consolidatedHtml).toContain("test-var-businessName");
+    expect(consolidatedHtml).toContain("Empresa Direta Validada");
   });
 
   it("derives visual status from the active action, evidence and API availability", () => {

@@ -44,3 +44,18 @@ Portanto, a correção está validada no ambiente atual do projeto, mas a versã
 Foi adicionada uma aba **Variáveis de teste** nas rotas `/personal-govbr` e `/business-govbr`, permitindo alterar valores usados durante as execuções das APIs, incluindo nome, sobrenome, e-mail, telefone, senha de teste, endereço, cidade, UF, CEP, dados empresariais, CNPJ e identificadores reutilizados na jornada. Também foi adicionada a aba **Credenciais**, que lista as variáveis server-side relevantes (`DATAPREV_BASE_URL`, `DATAPREV_API_KEY`, `DATAPREV_CLIENT_ID`, `DATAPREV_CLIENT_SECRET`) sem expor valores sensíveis no cliente e orienta a atualização pelo painel seguro de Secrets antes de publicar novo checkpoint.
 
 Validação executada: `pnpm test` resultou em 6 arquivos aprovados e 16 testes aprovados; `pnpm exec tsc --noEmit` terminou sem erros; a prévia local foi verificada visualmente em `/personal-govbr` e `/business-govbr`, confirmando a presença das abas **Tela atual**, **Variáveis de teste** e **Credenciais**.
+
+## Validação de edição direta no app emulado — Personal
+
+Na prévia local de `/personal-govbr`, o campo direto `direct-entrada-personFirstName` foi alterado de `João` para `Ana Teste Direto` dentro da própria tela emulada **Entrada da Personal dWallet**. Em seguida, a aba **Variáveis de teste** foi aberta e o campo consolidado `test-var-personFirstName` exibiu o mesmo valor `Ana Teste Direto`, comprovando sincronização visual entre o formulário principal emulado e o painel de variáveis.
+
+## Validação de edição direta no app emulado — Business
+
+Na prévia local de `/business-govbr`, o campo direto `direct-entrada-businessName` foi alterado no próprio fluxo emulado **Entrada da Business dWallet** para `Empresa Direta Validada`. A alteração ficou visível imediatamente no input da tela atual, comprovando que o front-end emulado empresarial aceita edição inline sem depender exclusivamente da aba **Variáveis de teste**.
+Ao abrir a aba **Variáveis de teste** na mesma rota `/business-govbr`, o campo consolidado `test-var-businessName` exibiu `Empresa Direta Validada`, o mesmo valor inserido no campo direto `direct-entrada-businessName`. Essa verificação confirma a sincronização bidirecional esperada entre o formulário principal emulado e o painel consolidado de variáveis para o fluxo Business.
+
+## Validação automatizada final — edição direta e sanitização
+
+Após a revisão do checklist, foi adicionada cobertura automatizada explícita para a propagação de valores editados em campos diretos do formulário emulado para o mesmo estado compartilhado usado pela aba **Variáveis de teste**. O teste `server/govbr.wallet.ui.test.ts` agora verifica o valor `Empresa Direta Validada` tanto no input direto `direct-entrada-businessName` quanto no input consolidado `test-var-businessName` após atualização do estado compartilhado.
+
+A validação final executada em 2026-05-04 resultou em `pnpm test` com **6 arquivos aprovados e 18 testes aprovados**. Em seguida, `pnpm exec tsc --noEmit` terminou sem erros. A cobertura de sanitização de senha e credenciais permanece validada pelos testes de execução Dataprev e sanitização de evidências.
