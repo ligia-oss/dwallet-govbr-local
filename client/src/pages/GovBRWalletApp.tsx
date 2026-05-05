@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -38,8 +38,9 @@ import {
 
 type WalletKind = "personal" | "business";
 type ScreenGroup = "acesso" | "onboarding" | "wallet" | "mercado" | "financeiro" | "configuracoes";
+export type VisualStatus = "pending" | "running" | "done" | "failed" | "missing";
 type RunState = Record<string, string | number | boolean | null | undefined>;
-type Evidence = {
+export type Evidence = {
   actionId: string;
   actionTitle: string;
   status: "executed" | "not_executable" | "failed";
@@ -67,6 +68,14 @@ type GovScreen = {
   fields: Array<{ key: string; label: string; placeholder: string; type?: string; required?: boolean }>;
   observedFrom: string;
   blocks?: string[];
+};
+
+const statusLabel: Record<VisualStatus, string> = {
+  pending: "aguardando ação",
+  running: "consultando API",
+  done: "resposta recebida",
+  failed: "falha na API",
+  missing: "API ausente",
 };
 
 const groupLabel: Record<ScreenGroup, string> = {
@@ -416,20 +425,60 @@ function validateField(key: string, label: string, value: unknown, required?: bo
   return undefined;
 }
 
-function EvidenceBox({ evidence }: { evidence?: Evidence }) {
+function readableJson(value: unknown) {
+  return JSON.stringify(value ?? null, null, 2);
+}
+
+export function getVisualStatus(screen: GovScreen, evidence: Evidence | undefined, runningId: string | undefined): VisualStatus {
+  if (screen.actionId && runningId === screen.actionId) return "running";
+  if (!screen.actionId) return "missing";
+  if (!evidence) return "pending";
+  if (evidence.status === "not_executable") return evidence.ok ? "missing" : "failed";
+  return evidence.ok ? "done" : "failed";
+}
+
+function summarizeStateUpdates(updates?: RunState) {
+  const entries = Object.entries(updates || {}).filter(([, value]) => value !== undefined && value !== null && value !== "");
+  if (!entries.length) return "Nenhum identificador novo foi gravado no estado local após esta chamada.";
+  return entries.map(([key, value]) => `${key}: ${String(value)}`).join(" · ");
+}
+
+export function EvidenceBox({ evidence, status, actionId }: { evidence?: Evidence; status: VisualStatus; actionId?: string }) {
+  if (!actionId) {
+    return <div role="status" aria-live="polite" className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600"><strong>Status:</strong> {statusLabel[status]}. Esta tela é visual ou operacional local. Não há endpoint externo associado para exibir resposta de API.</div>;
+  }
+
+  if (status === "running") {
+    return <div role="status" aria-live="polite" className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950"><strong>Status:</strong> {statusLabel[status]}. A wallet está consultando a API desta tela e exibirá o retorno sanitizado aqui assim que a chamada terminar.</div>;
+  }
+
   if (!evidence) {
-    return <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">Nenhuma chamada executada nesta tela. Use o botão principal para gerar evidência sanitizada.</div>;
+    return <div role="status" aria-live="polite" className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600"><strong>Status:</strong> {statusLabel[status]}. Nenhuma resposta de API foi carregada nesta tela. Acione o botão principal para consultar a API e mostrar aqui a requisição, a resposta sanitizada e os identificadores retornados.</div>;
   }
 
   return (
-    <div className="space-y-3 rounded-2xl bg-slate-950 p-4 text-slate-50">
+    <div role="region" aria-live="polite" aria-label={`Resposta da API ${evidence.actionTitle}`} className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
       <div className="flex flex-wrap items-center gap-2">
-        <Badge className={evidence.ok ? "bg-green-700" : "bg-red-700"}>{evidence.ok ? "OK" : "Atenção"}</Badge>
-        <Badge variant="secondary">{evidence.httpStatus ? `HTTP ${evidence.httpStatus}` : evidence.status}</Badge>
-        <span className="text-xs text-slate-300">{new Date(evidence.executedAt).toLocaleString("pt-BR")}</span>
+        <Badge className={evidence.ok ? "bg-green-700" : "bg-red-700"}>{evidence.ok ? "Resposta recebida" : evidence.status === "not_executable" ? "API ausente" : "Resposta com atenção"}</Badge>
+        <Badge variant="outline">{evidence.httpStatus ? `HTTP ${evidence.httpStatus}` : statusLabel[status]}</Badge>
+        <span className="text-xs text-slate-500">{new Date(evidence.executedAt).toLocaleString("pt-BR")}</span>
       </div>
-      <p className="text-sm text-slate-200">{evidence.message || evidence.missingReason || "Evidência registrada."}</p>
-      <Textarea readOnly value={JSON.stringify({ requisicao: evidence.requestBody, resposta: evidence.responseBody, estado: evidence.stateUpdates }, null, 2)} className="min-h-44 border-slate-700 bg-slate-900 font-mono text-xs text-slate-100" />
+      <Alert className={evidence.ok ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
+        <ShieldCheck className="h-4 w-4" />
+        <AlertTitle>Resultado utilizado pelo aplicativo</AlertTitle>
+        <AlertDescription>{evidence.message || evidence.missingReason || "A resposta sanitizada foi recebida e vinculada a esta tela da wallet."}</AlertDescription>
+      </Alert>
+      <div className="rounded-xl bg-slate-50 p-3 text-sm text-slate-700"><strong>Dados atualizados no app:</strong> {summarizeStateUpdates(evidence.stateUpdates)}</div>
+      <div className="grid gap-3 xl:grid-cols-2">
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Requisição enviada pela tela</p>
+          <Textarea readOnly value={readableJson(evidence.requestBody)} className="min-h-52 border-slate-700 bg-slate-950 font-mono text-xs text-slate-100" />
+        </div>
+        <div className="space-y-2">
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Resposta da API exibida ao usuário</p>
+          <Textarea readOnly value={readableJson(evidence.responseBody || evidence)} className="min-h-52 border-slate-700 bg-slate-950 font-mono text-xs text-slate-100" />
+        </div>
+      </div>
     </div>
   );
 }
@@ -445,6 +494,8 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const [runningId, setRunningId] = useState<string>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
+  const activeEvidence = active.actionId ? evidences[active.actionId] : undefined;
+  const activeStatus = getVisualStatus(active, activeEvidence, runningId);
   const mergedState = useMemo(() => ({ ...(metadata.data?.initialState || {}), ...state }), [metadata.data?.initialState, state]);
   const completed = screens.filter(screen => screen.actionId && evidences[screen.actionId]?.ok).length;
   const callable = screens.filter(screen => screen.actionId).length;
@@ -553,10 +604,11 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                     const Icon = screen.icon;
                     const selected = screen.id === active.id;
                     const evidence = screen.actionId ? evidences[screen.actionId] : undefined;
+                    const visualStatus = getVisualStatus(screen, evidence, runningId);
                     return (
-                      <button key={screen.id} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${selected ? "bg-[#1351B4] text-white" : "text-slate-700 hover:bg-slate-100"}`}>
+                      <button key={screen.id} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition ${selected ? "bg-[#1351B4] text-white" : "text-slate-700 hover:bg-slate-100"}`}>
                         <span className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{screen.title}</span></span>
-                        {evidence?.ok ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : screen.actionId ? <Play className="h-3 w-3 opacity-70" /> : <LockKeyhole className="h-3 w-3 opacity-60" />}
+                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase opacity-80">{statusLabel[visualStatus]}{evidence?.ok ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : screen.actionId ? <Play className="h-3 w-3 opacity-70" /> : <LockKeyhole className="h-3 w-3 opacity-60" />}</span>
                       </button>
                     );
                   })}
@@ -583,7 +635,10 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                   <CardTitle className="text-2xl">{active.title}</CardTitle>
                   <CardDescription className="max-w-3xl text-base leading-7">{active.subtitle}</CardDescription>
                 </div>
-                <Badge className={active.actionId ? "bg-[#168821]" : "bg-slate-600"}>{active.apiLabel}</Badge>
+                <div className="flex flex-wrap gap-2">
+                  <Badge className={active.actionId ? "bg-[#168821]" : "bg-slate-600"}>{active.apiLabel}</Badge>
+                  <Badge variant="outline" className="border-slate-300 text-slate-700">{statusLabel[activeStatus]}</Badge>
+                </div>
               </div>
             </CardHeader>
             <CardContent className="space-y-6">
@@ -614,9 +669,12 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                   })}</div> : null}
                   <Button onClick={run} disabled={Boolean(runningId)} className="bg-[#1351B4] hover:bg-[#0C326F]">
                     {runningId === active.actionId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
-                    {active.primaryCta}
+                    {runningId === active.actionId ? "Consultando API desta tela" : active.primaryCta}
                   </Button>
                   <p className="text-sm leading-6 text-slate-600"><strong>Integração:</strong> {active.apiHint}</p>
+                  <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
+                    <strong>Como o usuário vê o retorno:</strong> quando a ação é executada, a resposta sanitizada da API aparece no painel "Resposta da API exibida ao usuário" e os IDs retornados passam a alimentar automaticamente as próximas telas da wallet.
+                  </div>
                 </div>
                 <div className="space-y-4">
                   <Card className="border-slate-200 bg-white shadow-sm">
@@ -625,9 +683,11 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                       <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Aplicação</span><strong>{isPersonal ? "Personal" : "Business"}</strong></div>
                       <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Grupo</span><strong>{groupLabel[active.group]}</strong></div>
                       <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>API</span><strong>{active.actionId || "visual"}</strong></div>
+                      <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Status da tela</span><strong>{statusLabel[activeStatus]}</strong></div>
+                      <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Última resposta</span><strong>{activeEvidence?.executedAt ? new Date(activeEvidence.executedAt).toLocaleTimeString("pt-BR") : "não executada"}</strong></div>
                     </CardContent>
                   </Card>
-                  <EvidenceBox evidence={active.actionId ? evidences[active.actionId] : undefined} />
+                  <EvidenceBox evidence={activeEvidence} status={activeStatus} actionId={active.actionId} />
                 </div>
               </div>
             </CardContent>

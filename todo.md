@@ -43,3 +43,9 @@
 - [x] Executar e registrar ativação real por Enter e por Espaço nos controles principais de ambas as rotas GovBR.
 - [x] Salvar checkpoint efetivo da versão GovBR com evidência de sucesso.
 - [x] Executar e registrar ativação real por Enter em controle principal da rota `/business-govbr`, com evidência verificável do efeito resultante.
+- [x] Mapear como os aplicativos Personal Wallet e Business Wallet acionam APIs atualmente e onde as respostas são armazenadas ou exibidas.
+- [x] Exibir nas telas utilizadas pelo usuário as respostas sanitizadas das APIs acionadas na Personal Wallet, associadas ao fluxo e formulário correspondente.
+- [x] Exibir nas telas utilizadas pelo usuário as respostas sanitizadas das APIs acionadas na Business Wallet, associadas ao fluxo e formulário correspondente.
+- [x] Implementar estados visuais claros de carregamento, sucesso, erro e API ausente para cada ação executável nas duas wallets.
+- [x] Atualizar ou criar testes automatizados que comprovem a renderização das respostas de API nos aplicativos Personal e Business.
+- [x] Executar validação TypeScript, Vitest e verificação visual das telas alteradas antes de salvar novo checkpoint.
