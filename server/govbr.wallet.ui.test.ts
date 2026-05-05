@@ -102,7 +102,15 @@ describe("GovBR Wallet API response panels", () => {
       onChange: () => undefined,
       onReset: () => undefined,
     }));
-    const credentialsHtml = renderToStaticMarkup(React.createElement(CredentialsPanel, { baseUrl: "https://sandbox.test.local", configured: true }));
+    const credentialsHtml = renderToStaticMarkup(React.createElement(CredentialsPanel, {
+      baseUrl: "https://sandbox.test.local",
+      configured: true,
+      btgBaseUrl: "https://btg.test.local",
+      btgConfigured: true,
+      credentials: { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" },
+      onChange: () => undefined,
+      onClear: () => undefined,
+    }));
 
     expect(variablesHtml).toContain("Variáveis de entrada editáveis");
     expect(variablesHtml).toContain("teste@example.com");
@@ -110,7 +118,8 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("Credenciais e chaves");
     expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
-    expect(credentialsHtml).toContain("Settings → Secrets");
+    expect(credentialsHtml).toContain("Credenciais temporárias Dataprev");
+    expect(credentialsHtml).toContain("Executar Passo 0 · autenticação M2M");
   });
 
   it("renders the Personal beginner guide with five ordered steps and expected result cards", () => {

@@ -22,7 +22,7 @@ type JourneyAction = {
   includeRegion?: boolean;
   acceptLanguage?: string;
   expectedStatus?: [number, number];
-  buildBody?: (state: RunState) => JsonValue;
+  buildBody?: (state: RunState, credentials?: DataprevCredentialsInput) => JsonValue;
   buildPath?: (state: RunState) => string;
   onSuccess?: (body: unknown, state: RunState) => RunState;
   missingReason?: string;
@@ -75,13 +75,34 @@ const DEFAULT_PASSWORD = "SecurePass123!";
 const tokenStore = new Map<string, string>();
 let m2mCache: { token: string; expiresAt: number; handle: string } | null = null;
 
-function env() {
+type DataprevCredentialsInput = {
+  baseUrl?: string;
+  apiKey?: string;
+  clientId?: string;
+  clientSecret?: string;
+};
+
+type DataprevConfig = Required<DataprevCredentialsInput>;
+
+const credentialsInputSchema = z.object({
+  baseUrl: z.string().trim().optional(),
+  apiKey: z.string().trim().optional(),
+  clientId: z.string().trim().optional(),
+  clientSecret: z.string().trim().optional(),
+}).optional();
+
+function env(credentials?: DataprevCredentialsInput): DataprevConfig {
   return {
-    baseUrl: (process.env.DATAPREV_BASE_URL || "https://api.sandbox.drumwave.com.br").replace(/\/+$/, ""),
-    apiKey: process.env.DATAPREV_API_KEY || "",
-    clientId: process.env.DATAPREV_CLIENT_ID || "",
-    clientSecret: process.env.DATAPREV_CLIENT_SECRET || "",
+    baseUrl: (credentials?.baseUrl || process.env.DATAPREV_BASE_URL || "https://api.sandbox.drumwave.com.br").replace(/\/+$/, ""),
+    apiKey: credentials?.apiKey || process.env.DATAPREV_API_KEY || "",
+    clientId: credentials?.clientId || process.env.DATAPREV_CLIENT_ID || "",
+    clientSecret: credentials?.clientSecret || process.env.DATAPREV_CLIENT_SECRET || "",
   };
+}
+
+function sensitiveValues(config?: DataprevConfig) {
+  const resolved = config || env();
+  return [resolved.apiKey, resolved.clientSecret].filter(Boolean);
 }
 
 function createRunId() {
@@ -143,19 +164,19 @@ function extractDataRequestId(obj: unknown): string | undefined {
   return record?.data?.dataRequests?.[0]?.id || record?.data?.page?.[0]?.id || findFirst(obj, ["dataRequestId", "requestId", "id"]);
 }
 
-export function sanitizeDataprevEvidence(value: unknown, depth = 0): unknown {
+export function sanitizeDataprevEvidence(value: unknown, depth = 0, extraSecrets: string[] = []): unknown {
   if (depth > 7) return "<TRUNCATED_DEPTH>";
   if (value === null || value === undefined) return value;
   if (typeof value === "string") {
     let output = value;
-    for (const secret of [env().apiKey, env().clientSecret]) {
+    for (const secret of [...sensitiveValues(), ...extraSecrets]) {
       if (secret) output = output.replaceAll(secret, "<REDACTED_SECRET>");
     }
     output = output.replace(/eyJ[A-Za-z0-9_\-.]+/g, "<JWT_REDACTED>");
     return output.length > 5000 ? `${output.slice(0, 5000)}...` : output;
   }
   if (typeof value !== "object") return value;
-  if (Array.isArray(value)) return value.slice(0, 5).map(item => sanitizeDataprevEvidence(item, depth + 1));
+  if (Array.isArray(value)) return value.slice(0, 5).map(item => sanitizeDataprevEvidence(item, depth + 1, extraSecrets));
   const out: Record<string, unknown> = {};
   for (const [key, item] of Object.entries(value)) {
     const lower = key.toLowerCase();
@@ -163,7 +184,7 @@ export function sanitizeDataprevEvidence(value: unknown, depth = 0): unknown {
     if (!isOpaqueHandle && ["token", "secret", "authorization", "x-api-key", "apikey", "api_key", "clientsecret", "password", "senha"].some(marker => lower.includes(marker))) {
       out[key] = item ? "<REDACTED>" : item;
     } else {
-      out[key] = sanitizeDataprevEvidence(item, depth + 1);
+      out[key] = sanitizeDataprevEvidence(item, depth + 1, extraSecrets);
     }
   }
   return out;
@@ -181,31 +202,31 @@ function getStoredToken(handle?: string) {
   return tokenStore.get(handle);
 }
 
-function verificationSecretHash(email: unknown) {
+function verificationSecretHash(email: unknown, credentials?: DataprevCredentialsInput) {
   const value = String(email || "").trim();
-  const { clientId, clientSecret } = env();
+  const { clientId, clientSecret } = env(credentials);
   if (!value) throw new Error("E-mail obrigatório para calcular secretHash de verificação.");
   if (!clientId || !clientSecret) throw new Error("DATAPREV_CLIENT_ID e DATAPREV_CLIENT_SECRET são obrigatórios para confirmar código de verificação.");
   return createHmac("sha256", clientSecret).update(`${value}${clientId}`).digest("base64");
 }
 
-function m2mAuthUrl() {
-  return `${env().baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`;
+function m2mAuthUrl(credentials?: DataprevCredentialsInput) {
+  return `${env(credentials).baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`;
 }
 
 function hasActiveM2MCache() {
   return Boolean(m2mCache && m2mCache.expiresAt > Date.now() + 60_000);
 }
 
-async function requestM2MToken(forceRefresh = false) {
-  const config = env();
+async function requestM2MToken(forceRefresh = false, credentials?: DataprevCredentialsInput) {
+  const config = env(credentials);
   if (!config.apiKey || !config.clientId || !config.clientSecret) {
     throw new Error("Credenciais DATAPREV_* não estão configuradas no servidor.");
   }
   const isVitest = Boolean(process.env.VITEST) || process.env.NODE_ENV === "test";
-  if (!forceRefresh && !isVitest && hasActiveM2MCache() && m2mCache) return { token: m2mCache.token, expiresAt: m2mCache.expiresAt, handle: m2mCache.handle, reused: true };
+  if (!credentials && !forceRefresh && !isVitest && hasActiveM2MCache() && m2mCache) return { token: m2mCache.token, expiresAt: m2mCache.expiresAt, handle: m2mCache.handle, reused: true };
 
-  const response = await fetch(m2mAuthUrl(), {
+  const response = await fetch(m2mAuthUrl(credentials), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -233,33 +254,33 @@ async function requestM2MToken(forceRefresh = false) {
   return { token: data.access_token, expiresAt, handle, reused: false };
 }
 
-async function getM2MToken() {
-  const result = await requestM2MToken(false);
+async function getM2MToken(credentials?: DataprevCredentialsInput) {
+  const result = await requestM2MToken(false, credentials);
   return result.token;
 }
 
-async function authenticateM2MExplicitly(): Promise<M2MAuthResult> {
+async function authenticateM2MExplicitly(credentials?: DataprevCredentialsInput): Promise<M2MAuthResult> {
   const executedAt = new Date().toISOString();
   const requestBody = {
-    client_id: env().clientId || "<MISSING>",
-    client_secret: env().clientSecret || "<MISSING>",
+    client_id: env(credentials).clientId || "<MISSING>",
+    client_secret: env(credentials).clientSecret || "<MISSING>",
     grant_type: "client_credentials",
   };
   try {
-    const auth = await requestM2MToken(true);
+    const auth = await requestM2MToken(true, credentials);
     const expiresInSeconds = Math.max(0, Math.floor((auth.expiresAt - Date.now()) / 1000));
     return {
       status: "executed",
       ok: true,
       method: "POST",
-      url: m2mAuthUrl(),
+      url: m2mAuthUrl(credentials),
       httpStatus: 200,
       tokenHandle: auth.handle,
       expiresAt: new Date(auth.expiresAt).toISOString(),
       expiresInSeconds,
       active: auth.expiresAt > Date.now(),
-      requestHeaders: sanitizeDataprevEvidence(headers({ content: true })) as Record<string, string>,
-      requestBody: sanitizeDataprevEvidence(requestBody) as JsonValue,
+      requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
+      requestBody: sanitizeDataprevEvidence(requestBody, 0, sensitiveValues(env(credentials))) as JsonValue,
       responseBody: { tokenHandle: auth.handle, expiresAt: new Date(auth.expiresAt).toISOString(), expiresInSeconds, tokenArmazenado: true, tokenBruto: "<REDACTED>" },
       message: "Passo 0 executado: token M2M armazenado no servidor até a expiração e disponível para reutilização nas próximas chamadas que exigirem Authorization Bearer.",
       executedAt,
@@ -272,11 +293,11 @@ async function authenticateM2MExplicitly(): Promise<M2MAuthResult> {
       status: "failed",
       ok: false,
       method: "POST",
-      url: m2mAuthUrl(),
+      url: m2mAuthUrl(credentials),
       httpStatus: status,
       active: false,
-      requestHeaders: sanitizeDataprevEvidence(headers({ content: true })) as Record<string, string>,
-      requestBody: sanitizeDataprevEvidence(requestBody) as JsonValue,
+      requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
+      requestBody: sanitizeDataprevEvidence(requestBody, 0, sensitiveValues(env(credentials))) as JsonValue,
       responseBody: { etapa: "passo_zero_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor." },
       message: status ? authFailureMessage(status, "m2m") : message,
       executedAt,
@@ -284,8 +305,8 @@ async function authenticateM2MExplicitly(): Promise<M2MAuthResult> {
   }
 }
 
-function headers(options: { m2m?: string; userToken?: string; region?: boolean; content?: boolean; acceptLanguage?: string }) {
-  const config = env();
+function headers(options: { m2m?: string; userToken?: string; region?: boolean; content?: boolean; acceptLanguage?: string }, credentials?: DataprevCredentialsInput) {
+  const config = env(credentials);
   const out: Record<string, string> = { "x-api-key": config.apiKey };
   if (options.content !== false) out["Content-Type"] = "application/json";
   if (options.m2m) out.Authorization = `Bearer ${options.m2m}`;
@@ -339,7 +360,7 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     description: "Confirma o OTP recebido no e-mail corporativo antes de liberar o login do colaborador Business.",
-    buildBody: state => ({ attribute: "email", value: state.employeeEmail, code: state.employeeVerificationCode || state.businessOtp || "", refreshToken: "", secretHash: verificationSecretHash(state.employeeEmail), clientId: env().clientId }),
+    buildBody: (state, credentials) => ({ attribute: "email", value: state.employeeEmail, code: state.employeeVerificationCode || state.businessOtp || "", refreshToken: "", secretHash: verificationSecretHash(state.employeeEmail, credentials), clientId: env(credentials).clientId }),
   },
   {
     id: "step1_employee_signin",
@@ -405,7 +426,7 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     description: "Confirma o OTP recebido no e-mail da pessoa física antes de liberar o login da Personal dWallet.",
-    buildBody: state => ({ attribute: "email", value: state.personEmail, code: state.personVerificationCode || state.otp || "", refreshToken: "", secretHash: verificationSecretHash(state.personEmail), clientId: env().clientId }),
+    buildBody: (state, credentials) => ({ attribute: "email", value: state.personEmail, code: state.personVerificationCode || state.otp || "", refreshToken: "", secretHash: verificationSecretHash(state.personEmail, credentials), clientId: env(credentials).clientId }),
   },
   {
     id: "step2_person_signin",
@@ -705,7 +726,7 @@ function missingPrerequisite(action: JourneyAction, state: RunState) {
   return undefined;
 }
 
-async function execute(action: JourneyAction, inputState: RunState): Promise<Evidence> {
+async function execute(action: JourneyAction, inputState: RunState, credentials?: DataprevCredentialsInput): Promise<Evidence> {
   const state = { ...initialState(), ...inputState };
   const executedAt = new Date().toISOString();
 
@@ -737,7 +758,7 @@ async function execute(action: JourneyAction, inputState: RunState): Promise<Evi
 
   let m2m: string | undefined;
   try {
-    m2m = action.requiresM2M ? await getM2MToken() : undefined;
+    m2m = action.requiresM2M ? await getM2MToken(credentials) : undefined;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha desconhecida ao obter token M2M.";
     const statusMatch = message.match(/HTTP\s+(\d+)/i);
@@ -747,10 +768,10 @@ async function execute(action: JourneyAction, inputState: RunState): Promise<Evi
       actionTitle: action.title,
       status: "failed",
       method: action.method,
-      url: `${env().baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`,
+      url: `${env(credentials).baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`,
       httpStatus: status,
       ok: false,
-      requestHeaders: sanitizeDataprevEvidence(headers({ content: true })) as Record<string, string>,
+      requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
       responseBody: { etapa: "passo_zero_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor." },
       stateUpdates: {},
       message: status ? authFailureMessage(status, "m2m") : message,
@@ -772,7 +793,7 @@ async function execute(action: JourneyAction, inputState: RunState): Promise<Evi
   }
   let body: JsonValue;
   try {
-    body = action.buildBody?.(state);
+    body = action.buildBody?.(state, credentials);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao montar o payload da chamada Dataprev.";
     return {
@@ -786,8 +807,8 @@ async function execute(action: JourneyAction, inputState: RunState): Promise<Evi
       executedAt,
     };
   }
-  const requestHeaders = headers({ m2m, userToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage });
-  const url = `${env().baseUrl}${path}`;
+  const requestHeaders = headers({ m2m, userToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage }, credentials);
+  const url = `${env(credentials).baseUrl}${path}`;
   const response = await fetch(url, {
     method: action.method,
     headers: requestHeaders,
@@ -807,10 +828,10 @@ async function execute(action: JourneyAction, inputState: RunState): Promise<Evi
     url,
     httpStatus: response.status,
     ok,
-    requestHeaders: sanitizeDataprevEvidence(requestHeaders) as Record<string, string>,
-    requestBody: sanitizeDataprevEvidence(body) as JsonValue,
-    responseBody: sanitizeDataprevEvidence(responseBody),
-    stateUpdates: sanitizeDataprevEvidence(stateUpdates) as RunState,
+    requestHeaders: sanitizeDataprevEvidence(requestHeaders, 0, sensitiveValues(env(credentials))) as Record<string, string>,
+    requestBody: sanitizeDataprevEvidence(body, 0, sensitiveValues(env(credentials))) as JsonValue,
+    responseBody: sanitizeDataprevEvidence(responseBody, 0, sensitiveValues(env(credentials))),
+    stateUpdates: sanitizeDataprevEvidence(stateUpdates, 0, sensitiveValues(env(credentials))) as RunState,
     message: ok ? "Chamada executada dentro da faixa esperada." : authFailureMessage(response.status, "api"),
     executedAt,
   };
@@ -829,13 +850,15 @@ export const dataprevRouter = router({
     initialState: initialState(),
     steps,
   })),
-  authenticateM2M: publicProcedure.mutation(async () => authenticateM2MExplicitly()),
+  authenticateM2M: publicProcedure
+    .input(z.object({ credentials: credentialsInputSchema }).optional())
+    .mutation(async ({ input }) => authenticateM2MExplicitly(input?.credentials)),
   executeAction: publicProcedure
-    .input(z.object({ actionId: z.string(), state: runStateSchema.optional() }))
+    .input(z.object({ actionId: z.string(), state: runStateSchema.optional(), credentials: credentialsInputSchema }))
     .mutation(async ({ input }) => {
       const action = actions.find(item => item.id === input.actionId);
       if (!action) throw new Error(`Ação não mapeada: ${input.actionId}`);
-      return execute(action, (input.state || {}) as RunState);
+      return execute(action, (input.state || {}) as RunState, input.credentials);
     }),
 });
 

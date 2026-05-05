@@ -271,4 +271,77 @@ describe("execução Dataprev", () => {
     expect(evidence.stateUpdates?.employeeDwalletId).toBe("dwallet-123");
     expect(JSON.stringify(evidence)).not.toContain("eyJuser.token.jwt");
   });
+
+  it("usa credenciais temporárias digitadas na interface ao executar o Passo 0 M2M sem vazar segredos", async () => {
+    const caller = appRouter.createCaller(ctx);
+    const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({
+        url: String(input),
+        headers: init?.headers as Record<string, string>,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      return jsonResponse(200, { access_token: "eyJtemporary.m2m.jwt", expires_in: 1200 });
+    }) as any;
+
+    const result = await caller.dataprev.authenticateM2M({
+      credentials: {
+        baseUrl: "https://sandbox.ui.local/",
+        apiKey: "api-key-digitada-ui",
+        clientId: "client-id-digitado-ui",
+        clientSecret: "client-secret-digitado-ui",
+      },
+    });
+
+    expect(result.status).toBe("executed");
+    expect(result.ok).toBe(true);
+    expect(calls[0].url).toBe("https://sandbox.ui.local/v1/auth/token/iam/authn/services/oauth2/token");
+    expect(calls[0].headers["x-api-key"]).toBe("api-key-digitada-ui");
+    expect(calls[0].body).toEqual({
+      client_id: "client-id-digitado-ui",
+      client_secret: "client-secret-digitado-ui",
+      grant_type: "client_credentials",
+    });
+    expect(JSON.stringify(result)).not.toContain("api-key-digitada-ui");
+    expect(JSON.stringify(result)).not.toContain("client-secret-digitado-ui");
+    expect(JSON.stringify(result)).not.toContain("eyJtemporary.m2m.jwt");
+    expect(JSON.stringify(result.requestHeaders)).toContain("<REDACTED>");
+    expect(JSON.stringify(result.requestBody)).toContain("<REDACTED>");
+  });
+
+  it("propaga as credenciais temporárias da interface para o token M2M e para a API executada", async () => {
+    const caller = appRouter.createCaller(ctx);
+    const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({
+        url,
+        headers: init?.headers as Record<string, string>,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "eyJui.action.m2m", expires_in: 3600 });
+      return jsonResponse(200, [{ id: "schema-ui-1" }]);
+    }) as any;
+
+    const evidence = await caller.dataprev.executeAction({
+      actionId: "step3_list_schemas",
+      state: { runId: "128" },
+      credentials: {
+        baseUrl: "https://sandbox.ui.local",
+        apiKey: "api-key-acao-ui",
+        clientId: "client-id-acao-ui",
+        clientSecret: "client-secret-acao-ui",
+      },
+    });
+
+    expect(evidence.status).toBe("executed");
+    expect(calls[0].headers["x-api-key"]).toBe("api-key-acao-ui");
+    expect(calls[0].body.client_id).toBe("client-id-acao-ui");
+    expect(calls[1].url).toBe("https://sandbox.ui.local/v1/data-registry/value-schemas/standard");
+    expect(calls[1].headers["x-api-key"]).toBe("api-key-acao-ui");
+    expect(calls[1].headers.Authorization).toBe("Bearer eyJui.action.m2m");
+    expect(JSON.stringify(evidence)).not.toContain("api-key-acao-ui");
+    expect(JSON.stringify(evidence)).not.toContain("client-secret-acao-ui");
+    expect(JSON.stringify(evidence)).not.toContain("eyJui.action.m2m");
+  });
 });

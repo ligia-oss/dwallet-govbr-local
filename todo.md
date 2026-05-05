@@ -131,3 +131,9 @@
 - [x] Permitir interação manual segura no checklist visual para o usuário marcar ou revisar etapas durante o teste leigo.
 - [x] Atualizar testes automatizados para cobrir renderização, interação e atualização de progresso do checklist visual do guia.
 - [x] Validar a implementação, revisar o checklist e salvar checkpoint da versão com acompanhamento visual de progresso.
+
+- [x] Criar frontend no aplicativo para informar credenciais Dataprev/DrumWave necessárias ao Passo 0 M2M, sem exibir segredos após digitados.
+- [x] Integrar as credenciais informadas na aplicação ao procedimento de autenticação M2M do Passo 0, preservando fallback para credenciais server-side.
+- [x] Atualizar testes automatizados para cobrir o formulário de credenciais, sanitização visual e envio controlado ao Passo 0.
+- [x] Testar o Passo 0 com as credenciais disponíveis e registrar sucesso ou explicar claramente o motivo do erro.
+- [x] Validar TypeScript, Vitest, status do projeto e salvar checkpoint da versão com frontend de credenciais.

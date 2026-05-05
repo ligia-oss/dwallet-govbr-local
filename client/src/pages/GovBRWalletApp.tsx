@@ -69,6 +69,13 @@ export type Evidence = {
   executedAt: string;
 };
 
+export type DataprevCredentialForm = {
+  baseUrl: string;
+  apiKey: string;
+  clientId: string;
+  clientSecret: string;
+};
+
 export type M2MAuthResult = {
   status: "executed" | "failed";
   ok: boolean;
@@ -1203,7 +1210,18 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
   );
 }
 
-export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigured }: { baseUrl?: string; configured?: boolean; btgBaseUrl?: string; btgConfigured?: boolean }) {
+export function buildDataprevCredentialsInput(credentials: DataprevCredentialForm) {
+  const trimmed = {
+    baseUrl: credentials.baseUrl.trim(),
+    apiKey: credentials.apiKey.trim(),
+    clientId: credentials.clientId.trim(),
+    clientSecret: credentials.clientSecret.trim(),
+  };
+  return Object.values(trimmed).some(Boolean) ? trimmed : undefined;
+}
+
+export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigured, credentials, onChange, onClear }: { baseUrl?: string; configured?: boolean; btgBaseUrl?: string; btgConfigured?: boolean; credentials: DataprevCredentialForm; onChange: (key: keyof DataprevCredentialForm, value: string) => void; onClear: () => void }) {
+  const usingTypedCredentials = Boolean(buildDataprevCredentialsInput(credentials));
   const secretRows = [
     { key: "DATAPREV_BASE_URL", purpose: "Base da sandbox/API DrumWave-Dataprev usada pelo servidor." },
     { key: "DATAPREV_API_KEY", purpose: "Chave x-api-key enviada em todas as chamadas server-side." },
@@ -1218,21 +1236,51 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
     <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Credenciais e chaves</CardTitle>
-        <CardDescription>Área de operação para saber quais variáveis controlam a autenticação. Por segurança, chaves reais não são lidas nem gravadas pelo navegador.</CardDescription>
+        <CardDescription>Informe credenciais Dataprev temporárias para testar o Passo 0 sem alterar os Secrets do projeto. Os valores ficam apenas no estado desta tela e são enviados ao backend somente durante a execução da API.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <Alert className={configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
+        <Alert className={usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>{configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
-          <AlertDescription>{configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Se ocorrer 401/403, atualize os valores publicados no painel seguro de Secrets e publique novo checkpoint." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets antes de executar chamadas reais."}</AlertDescription>
+          <AlertTitle>{usingTypedCredentials ? "Credenciais temporárias serão usadas no Passo 0" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
+          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Campos deixados em branco continuam usando o valor seguro configurado no servidor." : configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Se ocorrer 401/403, revise se o par client_id/client_secret e a x-api-key pertencem ao mesmo ambiente." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha os campos temporários abaixo antes de executar chamadas reais."}</AlertDescription>
         </Alert>
+
+        <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
+          <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Credenciais temporárias Dataprev</p>
+              <p className="text-sm leading-6 text-slate-600">Preencha estes campos para testar autenticação M2M diretamente pela interface. Evite salvar capturas contendo segredos.</p>
+            </div>
+            <Button type="button" variant="outline" onClick={onClear}>Limpar campos</Button>
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="dataprev-base-url">Base URL</Label>
+              <Input id="dataprev-base-url" value={credentials.baseUrl} onChange={event => onChange("baseUrl", event.target.value)} placeholder={baseUrl || "https://api.sandbox.drumwave.com.br"} autoComplete="off" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dataprev-api-key">API key</Label>
+              <Input id="dataprev-api-key" type="password" value={credentials.apiKey} onChange={event => onChange("apiKey", event.target.value)} placeholder="Cole a x-api-key" autoComplete="off" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dataprev-client-id">Client ID</Label>
+              <Input id="dataprev-client-id" value={credentials.clientId} onChange={event => onChange("clientId", event.target.value)} placeholder="Cole o client_id" autoComplete="off" />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="dataprev-client-secret">Client secret</Label>
+              <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o client_secret" autoComplete="off" />
+            </div>
+          </div>
+          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> depois de preencher os campos, volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se houver erro, a resposta mostrará status HTTP, diagnóstico e se a falha veio de credencial inválida, ambiente incompatível ou endpoint indisponível.</p>
+        </div>
+
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
           <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Resumo atual</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base Dataprev</span><strong className="break-all text-slate-900">{baseUrl || "não informada"}</strong></div>
+            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base Dataprev do servidor</span><strong className="break-all text-slate-900">{baseUrl || "não informada"}</strong></div>
             <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base BTG</span><strong className="break-all text-slate-900">{btgBaseUrl || "não informada"}</strong></div>
             <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Credenciais BTG</span><strong className={btgConfigured ? "text-green-700" : "text-amber-700"}>{btgConfigured ? "detectadas no servidor" : "pendentes no servidor"}</strong></div>
-            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Chaves sensíveis</span><strong className="text-slate-900">mascaradas no cliente</strong></div>
+            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Entrada Dataprev temporária</span><strong className={usingTypedCredentials ? "text-blue-700" : "text-slate-700"}>{usingTypedCredentials ? "informada nesta sessão" : "não informada"}</strong></div>
           </div>
         </div>
         <div className="space-y-3">
@@ -1243,15 +1291,13 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
             </div>
           ))}
         </div>
-        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">          <strong>Como alterar com segurança:</strong> abra o painel de gerenciamento do projeto, entre em <strong>Settings → Secrets</strong>, atualize as variáveis acima, salve, gere/publique um novo checkpoint e execute novamente os testes de Dataprev e BTG. A aplicação nunca deve receber client_secret, access token ou API key em campos comuns de formulário.
-        </div>
       </CardContent>
     </Card>
   );
 }
 
-export function buildExecuteActionInput(actionId: string, mergedState: RunState) {
-  return { actionId, state: mergedState as Record<string, string | number | boolean | null> };
+export function buildExecuteActionInput(actionId: string, mergedState: RunState, credentials?: DataprevCredentialForm) {
+  return { actionId, state: mergedState as Record<string, string | number | boolean | null>, credentials: buildDataprevCredentialsInput(credentials || { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }) };
 }
 
 export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
@@ -1270,6 +1316,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const [runningId, setRunningId] = useState<string>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [reviewedGuideSteps, setReviewedGuideSteps] = useState<Record<string, boolean>>({});
+  const [dataprevCredentials, setDataprevCredentials] = useState<DataprevCredentialForm>({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
   const activeIndex = screens.findIndex(screen => screen.id === active.id);
   const nextScreen = activeIndex >= 0 ? screens[activeIndex + 1] : undefined;
@@ -1310,6 +1357,14 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
     setReviewedGuideSteps(previous => ({ ...previous, [stepId]: checked }));
   };
 
+  const updateDataprevCredential = (key: keyof DataprevCredentialForm, value: string) => {
+    setDataprevCredentials(previous => ({ ...previous, [key]: value }));
+  };
+
+  const clearDataprevCredentials = () => {
+    setDataprevCredentials({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+  };
+
   const runM2MAuthentication = async () => {
     setErrors(previous => {
       const next = { ...previous };
@@ -1317,7 +1372,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
     try {
-      const result = await authenticateM2M.mutateAsync();
+      const result = await authenticateM2M.mutateAsync({ credentials: buildDataprevCredentialsInput(dataprevCredentials) });
       const typed = result as M2MAuthResult;
       setM2mResult(typed);
       if (!typed.ok) setErrors(previous => ({ ...previous, m2m: typed.message }));
@@ -1349,8 +1404,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
     try {
-      const executor = active.actionId.startsWith("btg_") ? executeBtgAction : executeAction;
-      const evidence = await executor.mutateAsync(buildExecuteActionInput(active.actionId, mergedState));
+      const evidence = active.actionId.startsWith("btg_")
+        ? await executeBtgAction.mutateAsync(buildExecuteActionInput(active.actionId, mergedState))
+        : await executeAction.mutateAsync(buildExecuteActionInput(active.actionId, mergedState, dataprevCredentials));
       const typed = evidence as Evidence;
       setEvidences(previous => ({ ...previous, [active.actionId as string]: typed }));
       setState(previous => ({ ...previous, ...(typed.stateUpdates || {}) }));
@@ -1513,7 +1569,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />
             </TabsContent>
             <TabsContent value="credenciais">
-              <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} btgBaseUrl={btgMetadata.data?.baseUrl || undefined} btgConfigured={btgMetadata.data?.credentialsConfigured} />
+              <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} btgBaseUrl={btgMetadata.data?.baseUrl || undefined} btgConfigured={btgMetadata.data?.credentialsConfigured} credentials={dataprevCredentials} onChange={updateDataprevCredential} onClear={clearDataprevCredentials} />
             </TabsContent>
           </Tabs>
         </section>
