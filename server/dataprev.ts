@@ -103,12 +103,29 @@ const credentialsInputSchema = z.object({
   clientSecret: z.string().trim().optional(),
 }).optional();
 
+function normalizeDataprevBaseUrl(value?: string) {
+  const raw = (value || "https://api.sandbox.drumwave.com.br").trim().replace(/^['\"]|['\"]$/g, "").replace(/\s+/g, "");
+  try {
+    const parsed = new URL(raw);
+    if (parsed.pathname.includes("/v1/auth/token/iam/authn/services/oauth2/token")) {
+      return parsed.origin.replace(/\/+$/, "");
+    }
+    return `${parsed.origin}${parsed.pathname.replace(/\/+$/, "")}`.replace(/\/+$/, "");
+  } catch {
+    return raw.replace(/\/+$/, "");
+  }
+}
+
+function normalizeCredentialValue(value?: string) {
+  return (value || "").trim().replace(/^['\"]|['\"]$/g, "");
+}
+
 function env(credentials?: DataprevCredentialsInput): DataprevConfig {
   return {
-    baseUrl: (credentials?.baseUrl?.trim() || process.env.DATAPREV_BASE_URL || "https://api.sandbox.drumwave.com.br").replace(/\/+$/, ""),
-    apiKey: credentials?.apiKey?.trim() || process.env.DATAPREV_API_KEY || "",
-    clientId: credentials?.clientId?.trim() || process.env.DATAPREV_CLIENT_ID || "",
-    clientSecret: credentials?.clientSecret?.trim() || process.env.DATAPREV_CLIENT_SECRET || "",
+    baseUrl: normalizeDataprevBaseUrl(credentials?.baseUrl || process.env.DATAPREV_BASE_URL || "https://api.sandbox.drumwave.com.br"),
+    apiKey: normalizeCredentialValue(credentials?.apiKey || process.env.DATAPREV_API_KEY),
+    clientId: normalizeCredentialValue(credentials?.clientId || process.env.DATAPREV_CLIENT_ID),
+    clientSecret: normalizeCredentialValue(credentials?.clientSecret || process.env.DATAPREV_CLIENT_SECRET),
   };
 }
 
@@ -116,12 +133,16 @@ function hasTemporaryCredentialValue(credentials: DataprevCredentialsInput | und
   return Boolean(typeof credentials?.[key] === "string" && credentials[key]?.trim());
 }
 
+function usesTemporaryAuthCredentials(credentials?: DataprevCredentialsInput) {
+  return Boolean(credentials && (["apiKey", "clientId", "clientSecret"] as const).some(key => hasTemporaryCredentialValue(credentials, key)));
+}
+
 function usesTemporaryCredentials(credentials?: DataprevCredentialsInput) {
   return Boolean(credentials && (["baseUrl", "apiKey", "clientId", "clientSecret"] as const).some(key => hasTemporaryCredentialValue(credentials, key)));
 }
 
 function missingTemporaryAuthFields(credentials?: DataprevCredentialsInput) {
-  if (!usesTemporaryCredentials(credentials)) return [];
+  if (!usesTemporaryAuthCredentials(credentials)) return [];
   return (["apiKey", "clientId", "clientSecret"] as const).filter(key => !hasTemporaryCredentialValue(credentials, key));
 }
 
@@ -133,7 +154,7 @@ function temporaryCredentialError(credentials?: DataprevCredentialsInput) {
     clientId: "Client ID",
     clientSecret: "Client secret",
   };
-  return "Credenciais temporárias Dataprev incompletas: preencha " + missing.map(key => labels[key]).join(", ") + " ou limpe todos os campos para usar somente os Secrets do servidor. A aplicação não mistura parcialmente credenciais do Postman com Secrets publicados, pois isso costuma causar rejeição 401/403 no Passo 0.";
+  return "Credenciais temporárias Dataprev incompletas: preencha " + missing.map(key => labels[key]).join(", ") + " ou limpe os campos API key, Client ID e Client secret para usar somente os Secrets do servidor. A Base URL é opcional e, quando vazia, usa a sandbox padrão do projeto. A aplicação não mistura parcialmente credenciais secretas do Postman com Secrets publicados, pois isso costuma causar rejeição 401/403 no Passo 0.";
 }
 
 function credentialFingerprint(value?: string) {

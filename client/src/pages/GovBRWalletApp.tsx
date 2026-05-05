@@ -37,6 +37,7 @@ import {
   ShieldCheck,
   ShoppingCart,
   Smartphone,
+  Trash2,
   UserRound,
   WalletCards,
 } from "lucide-react";
@@ -1448,7 +1449,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
         <Alert className={usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>{usingTypedCredentials ? "Credenciais temporárias serão usadas no Passo 0" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
-          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Preencha API key, Client ID e Client secret como um conjunto completo do Postman; a aplicação não mistura parcialmente valores digitados com Secrets publicados." : configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Se ocorrer 401/403 no publicado mas o Postman funcionar, preencha temporariamente os quatro campos abaixo com os mesmos valores do Postman ou atualize os Secrets e publique novamente." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha os campos temporários abaixo antes de executar chamadas reais."}</AlertDescription>
+          <AlertDescription>{usingTypedCredentials ? "Ao executar o Passo 0, a aplicação priorizará os valores digitados abaixo. Preencha API key, Client ID e Client secret como um conjunto completo do Postman; a Base URL é opcional e, se ficar vazia, a sandbox padrão será usada. A aplicação não mistura parcialmente credenciais secretas digitadas com Secrets publicados." : configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Se ocorrer 401/403 no publicado mas o Postman funcionar, preencha temporariamente API key, Client ID e Client secret com os mesmos valores do Postman, deixando a Base URL vazia para usar a sandbox padrão ou preenchendo a URL completa copiada do Postman." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha os campos temporários abaixo antes de executar chamadas reais."}</AlertDescription>
         </Alert>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
@@ -1461,7 +1462,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="dataprev-base-url">Base URL</Label>
+              <Label htmlFor="dataprev-base-url">Base URL opcional</Label>
               <Input id="dataprev-base-url" value={credentials.baseUrl} onChange={event => onChange("baseUrl", event.target.value)} placeholder={baseUrl || "https://api.sandbox.drumwave.com.br"} autoComplete="off" />
             </div>
             <div className="space-y-2">
@@ -1477,7 +1478,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o client_secret" autoComplete="off" />
             </div>
           </div>
-          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> depois de preencher os campos do Postman como conjunto completo, volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se houver erro, a resposta mostrará status HTTP, diagnóstico, origem das credenciais e fingerprints seguros para comparar o runtime local/publicado sem revelar segredos.</p>
+          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha API key, Client ID e Client secret como conjunto completo do Postman; deixe a Base URL vazia para usar a sandbox padrão ou cole a URL completa do endpoint/token se preferir. Depois volte ao Guia de teste e clique em <strong>Executar Passo 0 · autenticação M2M</strong>. Se houver erro, a resposta mostrará status HTTP, diagnóstico, origem das credenciais e fingerprints seguros para comparar o runtime local/publicado sem revelar segredos.</p>
         </div>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
@@ -1629,6 +1630,19 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
     updateField(key, value);
   };
 
+  const clearApiReturnFields = () => {
+    setEvidences({});
+    setM2mResult(undefined);
+    setCredentialFolder([]);
+    setRunningId(undefined);
+    setErrors(previous => {
+      const next = { ...previous };
+      delete next.m2m;
+      screens.forEach(screen => delete next[screen.id]);
+      return next;
+    });
+  };
+
   const clearBtgFutureInfo = () => {
     setState(previous => {
       const next = { ...previous };
@@ -1732,6 +1746,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local. O Passo 0 M2M é pré-requisito técnico de sandbox e não entra na experiência emulada do usuário.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-blue-50">
+              <Button type="button" variant="outline" onClick={clearApiReturnFields} className="justify-center border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white">
+                <Trash2 className="mr-2 h-4 w-4" />Limpar retornos das APIs executadas
+              </Button>
               <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base Dataprev</span><span className="font-mono text-xs">{metadata.data?.baseUrl || "carregando"}</span></div>
               <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base BTG</span><span className="font-mono text-xs">{btgMetadata.data?.baseUrl || "pendente"}</span></div>
             </CardContent>
@@ -1827,6 +1844,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                   <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm text-blue-950">
                     <strong>Como testar no telefone:</strong> edite os campos diretamente dentro do mockup, pressione o botão principal do próprio aplicativo para disparar a API e, se a resposta for OK, a tela do telefone avançará para a próxima etapa real da jornada.
                   </div>
+                  <Button type="button" variant="outline" onClick={clearApiReturnFields} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
+                    <Trash2 className="mr-2 h-4 w-4" />Limpar retornos das APIs executadas
+                  </Button>
                 </div>
                 <div className="space-y-4">
                   <Card className="border-slate-200 bg-white shadow-sm">

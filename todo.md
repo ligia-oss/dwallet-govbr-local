@@ -176,3 +176,9 @@
 - [x] Atualizar as telas de avatar, montagem de telas e fluxos similares para exibir no mockup exemplos visuais concretos da tela montada.
 - [x] Atualizar testes automatizados para cobrir navegação apenas GovBR, instruções de ordem/dependência, persistência na pasta de credenciais e exemplos visuais no mockup.
 - [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint dos ajustes de experiência GovBR com mockup.
+
+- [x] Criar botão na interface para limpar os retornos/evidências das APIs já executadas sem apagar credenciais persistidas.
+- [x] Retestar o Passo 0 M2M com as credenciais informadas na interface e registrar a falha real observada.
+- [x] Corrigir a causa da falha do Passo 0 M2M, garantindo que o contrato usado pelo site gere a chave M2M quando as credenciais estiverem corretas.
+- [x] Atualizar testes automatizados para cobrir a limpeza de retornos de API e a nova validação do Passo 0 M2M.
+- [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da correção de limpeza e Passo 0.

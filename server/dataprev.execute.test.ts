@@ -312,6 +312,71 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(result.responseBody)).toContain("apiKeyFingerprint");
   });
 
+  it("aceita Base URL temporária isolada usando as credenciais secretas dos Secrets do servidor", async () => {
+    const caller = appRouter.createCaller(ctx);
+    const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({
+        url: String(input),
+        headers: init?.headers as Record<string, string>,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      return jsonResponse(200, { access_token: "eyJbase.url.only", expires_in: 900 });
+    }) as any;
+
+    const result = await caller.dataprev.authenticateM2M({
+      credentials: {
+        baseUrl: "https://sandbox.base.only.local",
+      },
+    });
+
+    expect(result.status).toBe("executed");
+    expect(result.ok).toBe(true);
+    expect(calls[0].url).toBe("https://sandbox.base.only.local/v1/auth/token/iam/authn/services/oauth2/token");
+    expect(calls[0].headers["x-api-key"]).toBe("api-key-teste");
+    expect(calls[0].body).toEqual({
+      client_id: "client-id-teste",
+      client_secret: "client-secret-teste",
+      grant_type: "client_credentials",
+    });
+    expect(JSON.stringify(result.responseBody)).toContain('"credentialSource":"temporary_form"');
+    expect(JSON.stringify(result.responseBody)).toContain('"temporaryCredentialsComplete":true');
+  });
+
+  it("normaliza a URL completa do endpoint de token quando ela é copiada do Postman para a Base URL", async () => {
+    const caller = appRouter.createCaller(ctx);
+    const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      calls.push({
+        url: String(input),
+        headers: init?.headers as Record<string, string>,
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+      });
+      return jsonResponse(200, { access_token: "eyJpostman.full.url", expires_in: 900 });
+    }) as any;
+
+    const result = await caller.dataprev.authenticateM2M({
+      credentials: {
+        baseUrl: "https://sandbox.ui.local/v1/auth/token/iam/authn/services/oauth2/token",
+        apiKey: " 'api-key-copiada' ",
+        clientId: ' "client-id-copiado" ',
+        clientSecret: " 'client-secret-copiado' ",
+      },
+    });
+
+    expect(result.status).toBe("executed");
+    expect(result.ok).toBe(true);
+    expect(calls[0].url).toBe("https://sandbox.ui.local/v1/auth/token/iam/authn/services/oauth2/token");
+    expect(calls[0].headers["x-api-key"]).toBe("api-key-copiada");
+    expect(calls[0].body).toEqual({
+      client_id: "client-id-copiado",
+      client_secret: "client-secret-copiado",
+      grant_type: "client_credentials",
+    });
+    expect(JSON.stringify(result)).not.toContain("api-key-copiada");
+    expect(JSON.stringify(result)).not.toContain("client-secret-copiado");
+  });
+
   it("rejeita credenciais temporárias incompletas no Passo 0 sem misturar com Secrets do servidor", async () => {
     const caller = appRouter.createCaller(ctx);
     globalThis.fetch = vi.fn() as any;
