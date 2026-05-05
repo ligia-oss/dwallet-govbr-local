@@ -1,7 +1,8 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { buildExecuteActionInput, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { BadgeCheck } from "lucide-react";
+import { AppEmulatedScreen, buildExecuteActionInput, businessScreens, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -171,6 +172,86 @@ describe("GovBR Wallet API response panels", () => {
     expect(input.actionId).toBe("step2_person_signup");
     expect(input.state.personEmail).toBe("direto-ui@example.com");
     expect(input.state.personFirstName).toBe("Maria");
+  });
+
+  it("places employee account creation and login before BdWallet opening in the Business journey metadata", () => {
+    const orderedActionIds = businessScreens.map(screen => screen.actionId).filter(Boolean);
+    const employeeSignupIndex = orderedActionIds.indexOf("step1_employee_signup");
+    const employeeSendCodeIndex = orderedActionIds.indexOf("step1_employee_send_code");
+    const employeeVerifyCodeIndex = orderedActionIds.indexOf("step1_employee_verify_code");
+    const employeeSigninIndex = orderedActionIds.indexOf("step1_employee_signin");
+    const businessCreateIndex = orderedActionIds.indexOf("step1_business_create");
+
+    expect(employeeSignupIndex).toBeGreaterThanOrEqual(0);
+    expect(employeeSendCodeIndex).toBeGreaterThan(employeeSignupIndex);
+    expect(employeeVerifyCodeIndex).toBeGreaterThan(employeeSendCodeIndex);
+    expect(employeeSigninIndex).toBeGreaterThan(employeeVerifyCodeIndex);
+    expect(businessCreateIndex).toBeGreaterThan(employeeSigninIndex);
+
+    const businessCreateScreen = businessScreens.find(screen => screen.actionId === "step1_business_create");
+    expect(businessCreateScreen?.apiHint).toContain("conta do empregado");
+    expect(businessCreateScreen?.appEmulation?.footerNote).toContain("conta do empregado já criada e autenticada");
+  });
+
+  it("reuses employee account state when building the subsequent BdWallet opening action", () => {
+    const employeeSignupState = updateRunStateValue({ businessName: "Empresa Dataprev Local" }, "employeeEmail", "colaborador@example.com");
+    const employeeLoginState = {
+      ...employeeSignupState,
+      employeePassword: "Senha123!",
+      employeeTokenHandle: "opaque-employee-token",
+      employeeUserId: "usr_employee_123",
+    };
+    const businessCreateInput = buildExecuteActionInput("step1_business_create", employeeLoginState);
+
+    expect(businessCreateInput.actionId).toBe("step1_business_create");
+    expect(businessCreateInput.state.employeeEmail).toBe("colaborador@example.com");
+    expect(businessCreateInput.state.employeeTokenHandle).toBe("opaque-employee-token");
+    expect(businessCreateInput.state.businessName).toBe("Empresa Dataprev Local");
+  });
+
+  it("renders the employee account flow before BdWallet opening and shows app-like input/response screens", () => {
+    const loginInput = buildExecuteActionInput("step1_employee_signin", { employeeEmail: "colaborador@example.com", employeePassword: "Senha123!" });
+    const evidence: Evidence = {
+      actionId: "step1_business_create",
+      actionTitle: "Abrir BdWallet empresarial",
+      status: "executed",
+      ok: true,
+      httpStatus: 201,
+      responseBody: { businessId: "biz_123", status: "created" },
+      stateUpdates: { businessId: "biz_123" },
+      message: "BdWallet criada com sucesso.",
+      executedAt: "2026-05-05T16:00:00.000Z",
+    };
+    const html = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: {
+        id: "empresa",
+        route: "/enter-business-information",
+        title: "Abrir BdWallet empresarial",
+        subtitle: "Formulário do aplicativo para cadastrar a empresa.",
+        group: "onboarding",
+        icon: BadgeCheck,
+        actionId: "step1_business_create",
+        apiLabel: "Criar empresa",
+        apiHint: "Depende da conta do empregado criada e autenticada.",
+        primaryCta: "Abrir BdWallet",
+        fields: [
+          { key: "businessName", label: "Nome empresarial", placeholder: "DrumWave Brasil", required: true },
+          { key: "businessCnpj", label: "CNPJ", placeholder: "00000000000100", required: true },
+        ],
+        observedFrom: "br.business.drumwave.me/enter-business-information",
+        appEmulation: { kind: "input-response", header: "Abrir Business dWallet", lead: "Preencha as informações da empresa.", responseEmpty: "Aguardando API." },
+      },
+      values: { businessName: "Empresa Direta Validada", businessCnpj: "00000000000100" },
+      evidence,
+      status: "done",
+    }));
+
+    expect(loginInput.actionId).toBe("step1_employee_signin");
+    expect(html).toContain("App dWallet");
+    expect(html).toContain("Abrir Business dWallet");
+    expect(html).toContain("Empresa Direta Validada");
+    expect(html).toContain("Tela de resposta do app");
+    expect(html).toContain("businessId: biz_123");
   });
 
   it("renders verification-code screens with dedicated OTP input and mapped Dataprev action ids", () => {

@@ -90,3 +90,11 @@
 - [x] Atualizar testes Vitest para cobrir o mapeamento dos endpoints de verificação, payloads esperados, sanitização e renderização das novas telas.
 - [x] Salvar novo checkpoint da integração de envio/validação de código OTP após testes, build e revisão do checklist.
 
+
+- [x] Reordenar a jornada da BdWallet para que o passo de criação da conta do empregado apareça antes das etapas de abertura da BdWallet.
+- [x] Garantir que as informações produzidas pela criação da conta do empregado alimentem as telas e chamadas seguintes da jornada BdWallet.
+- [x] Separar visualmente o Passo 0 de autenticação M2M como pré-requisito técnico de sandbox, sem apresentá-lo como parte da experiência do usuário final.
+- [x] Criar telas emuladas do aplicativo para as etapas aplicáveis da BdWallet, com campos de entrada equivalentes aos dados que o usuário informaria no app.
+- [x] Criar telas de resposta emuladas do aplicativo para exibir, quando aplicável, as respostas sanitizadas recebidas pelas APIs.
+- [x] Atualizar testes Vitest para cobrir a ordem da jornada BdWallet, a presença da criação da conta do empregado e a renderização das telas emuladas.
+- [ ] Salvar checkpoint da reorganização da jornada BdWallet após testes, build e revisão do checklist.

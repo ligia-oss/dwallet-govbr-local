@@ -80,6 +80,14 @@ export type M2MAuthResult = {
 
 type ScreenField = { key: string; label: string; placeholder: string; type?: string; required?: boolean };
 
+type AppEmulation = {
+  kind: "input" | "response" | "input-response" | "technical";
+  header: string;
+  lead: string;
+  responseEmpty: string;
+  footerNote?: string;
+};
+
 type GovScreen = {
   id: string;
   route: string;
@@ -94,6 +102,7 @@ type GovScreen = {
   fields: ScreenField[];
   observedFrom: string;
   blocks?: string[];
+  appEmulation?: AppEmulation;
 };
 
 const statusLabel: Record<VisualStatus, string> = {
@@ -160,7 +169,7 @@ const businessTestVariables: TestVariable[] = [
   { key: "dspAccountId", label: "Conta DSP", section: "Identificadores da jornada", placeholder: "Conta DSP conhecida", description: "Apoia telas financeiras e extrato parcial." },
 ];
 
-const personalScreens: GovScreen[] = [
+export const personalScreens: GovScreen[] = [
   {
     id: "entrada",
     route: "/",
@@ -340,21 +349,27 @@ const personalScreens: GovScreen[] = [
   },
 ];
 
-const businessScreens: GovScreen[] = [
+export const businessScreens: GovScreen[] = [
   {
     id: "entrada",
     route: "/",
-    title: "Entrada da Business dWallet",
-    subtitle: "Landing e acesso corporativo para colaborador responsável pela carteira empresarial.",
+    title: "Criar conta do empregado",
+    subtitle: "Tela inicial da jornada BdWallet em que o empregado responsável cria a própria conta antes de abrir a carteira empresarial.",
     group: "acesso",
     icon: Building2,
     actionId: "step1_employee_signup",
-    apiLabel: "Cadastro de colaborador",
-    apiHint: "Cria colaborador Business com e-mail corporativo.",
-    primaryCta: "Criar acesso empresarial",
-    fields: [{ key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@example.com", type: "email", required: true }],
+    apiLabel: "Cadastro de empregado",
+    apiHint: "Cria a conta do empregado Business com e-mail corporativo; este passo precisa vir antes das telas de abertura da BdWallet para disponibilizar e-mail, senha e token de usuário nas chamadas seguintes.",
+    primaryCta: "Criar conta do empregado",
+    fields: [
+      { key: "employeeFirstName", label: "Nome", placeholder: "Maria", required: true },
+      { key: "employeeLastName", label: "Sobrenome", placeholder: "Silva", required: true },
+      { key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@example.com", type: "email", required: true },
+      { key: "employeePassword", label: "Senha", placeholder: "Senha de teste", type: "password", required: true },
+    ],
     observedFrom: "br.business.drumwave.me/enter-name, /enter-email e /password",
-    blocks: ["Nome e sobrenome", "E-mail corporativo", "Senha e aceite", "Verificação por e-mail"],
+    blocks: ["Nome e sobrenome", "E-mail corporativo", "Senha e aceite", "Próximo: verificação por e-mail"],
+    appEmulation: { kind: "input-response", header: "Criar sua conta", lead: "Informe seus dados de empregado para iniciar a Business dWallet.", responseEmpty: "Após criar a conta, o app habilita o envio do código de verificação.", footerNote: "Esta é uma tela visível ao usuário final; o Passo 0 M2M permanece fora desta experiência." },
   },
   {
     id: "envio-email",
@@ -370,6 +385,7 @@ const businessScreens: GovScreen[] = [
     fields: [{ key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@example.com", type: "email", required: true }],
     observedFrom: "Coleção Postman Dataprev Sandbox Test e br.business.drumwave.me/email-verification",
     blocks: ["E-mail corporativo", "Solicitação de envio", "Mensagem de código enviado", "Reenvio"],
+    appEmulation: { kind: "input-response", header: "Verifique seu e-mail", lead: "Confirme o endereço corporativo para receber o código de segurança.", responseEmpty: "Depois do envio, o app informa que o código foi enviado e mostra a opção de reenviar.", footerNote: "O envio usa o e-mail criado na etapa anterior." },
   },
   {
     id: "email",
@@ -385,21 +401,48 @@ const businessScreens: GovScreen[] = [
     fields: [{ key: "employeeVerificationCode", label: "Código de verificação", placeholder: "000000", required: true }],
     observedFrom: "Coleção Postman Dataprev Sandbox Test e br.business.drumwave.me/email-verification",
     blocks: ["Seis campos de código", "Mensagem de envio", "Reenvio", "Continuar"],
+    appEmulation: { kind: "input-response", header: "Digite o código", lead: "Insira o código recebido no e-mail corporativo para ativar a conta do empregado.", responseEmpty: "Após a validação, o app libera a entrada na conta do empregado e a abertura da BdWallet.", footerNote: "O secretHash é calculado no servidor e não aparece para o usuário." },
+  },
+  {
+    id: "login-empregado",
+    route: "/signin",
+    title: "Entrar na conta do empregado",
+    subtitle: "Autentica o empregado recém-criado para obter o token de usuário necessário à abertura da BdWallet empresarial.",
+    group: "onboarding",
+    icon: KeyRound,
+    actionId: "step1_employee_signin",
+    apiLabel: "Login do empregado",
+    apiHint: "Executa o login do empregado Business antes de criar a entidade empresarial; o access token retornado alimenta as telas seguintes.",
+    primaryCta: "Entrar como empregado",
+    fields: [
+      { key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@example.com", type: "email", required: true },
+      { key: "employeePassword", label: "Senha", placeholder: "Senha criada no cadastro", type: "password", required: true },
+    ],
+    observedFrom: "br.business.drumwave.me/signin e contrato Postman de login IAM",
+    blocks: ["E-mail corporativo", "Senha", "Entrar", "Sessão do empregado"],
+    appEmulation: { kind: "input-response", header: "Entrar", lead: "Use as credenciais do empregado para continuar a abertura da BdWallet.", responseEmpty: "Após o login, o app recebe o token de usuário e habilita o formulário de empresa.", footerNote: "Esta etapa torna explícita a dependência técnica usada pelas chamadas seguintes." },
   },
   {
     id: "empresa",
     route: "/enter-business-information",
-    title: "Informações da empresa",
-    subtitle: "Formulário interno com dados empresariais, responsável, telefone, website e cargo.",
+    title: "Abrir BdWallet empresarial",
+    subtitle: "Formulário do aplicativo para cadastrar a empresa e iniciar a carteira empresarial usando a sessão do empregado.",
     group: "onboarding",
     icon: FileCheck2,
     actionId: "step1_business_create",
     apiLabel: "Criar empresa",
-    apiHint: "Registra a entidade Business que receberá solicitações de dados.",
-    primaryCta: "Salvar empresa",
-    fields: [{ key: "businessCnpj", label: "CNPJ", placeholder: "00000000000100", required: true }],
+    apiHint: "Registra a entidade Business depois que a conta do empregado foi criada, verificada e autenticada; os identificadores retornados alimentam dashboard, produtos e solicitações.",
+    primaryCta: "Abrir BdWallet",
+    fields: [
+      { key: "businessName", label: "Nome empresarial", placeholder: "DrumWave Brasil", required: true },
+      { key: "businessCnpj", label: "CNPJ", placeholder: "00000000000100", required: true },
+      { key: "businessWebsite", label: "Website", placeholder: "https://empresa.example.com" },
+      { key: "businessPhone", label: "Telefone", placeholder: "+55 11 99999-0000" },
+      { key: "employeeRole", label: "Cargo do empregado", placeholder: "Administrador", required: true },
+    ],
     observedFrom: "br.business.drumwave.me/enter-business-information",
     blocks: ["Nome empresarial", "CNPJ", "Website", "Telefone", "Cargo do usuário"],
+    appEmulation: { kind: "input-response", header: "Abrir Business dWallet", lead: "Preencha as informações da empresa para criar a carteira empresarial.", responseEmpty: "Quando a API responder, o app mostra a Business dWallet criada e passa a usar businessId nas telas posteriores.", footerNote: "Esta tela depende da conta do empregado já criada e autenticada." },
   },
   {
     id: "kyc",
@@ -546,6 +589,52 @@ function summarizeStateUpdates(updates?: RunState) {
   const entries = Object.entries(updates || {}).filter(([, value]) => value !== undefined && value !== null && value !== "");
   if (!entries.length) return "Nenhum identificador novo foi gravado no estado local após esta chamada.";
   return entries.map(([key, value]) => `${key}: ${String(value)}`).join(" · ");
+}
+
+export function AppEmulatedScreen({ screen, values, evidence, status }: { screen: GovScreen; values: RunState; evidence?: Evidence; status: VisualStatus }) {
+  const emulation = screen.appEmulation ?? {
+    kind: screen.actionId ? "input-response" as const : "input" as const,
+    header: screen.title,
+    lead: screen.subtitle,
+    responseEmpty: screen.actionId ? "Execute a ação da tela para visualizar a resposta que o aplicativo usaria." : "Tela visual sem resposta externa de API.",
+  };
+  const displayedFields: ScreenField[] = screen.fields.length ? screen.fields : (screen.blocks || []).slice(0, 4).map((block, index) => ({ key: `${screen.id}-${index}`, label: block, placeholder: "" }));
+  const responseText = evidence?.message || evidence?.missingReason || emulation.responseEmpty;
+  const responseDetails = evidence ? summarizeStateUpdates(evidence.stateUpdates) : "Sem dados retornados nesta sessão.";
+
+  return (
+    <div className="rounded-[2rem] border border-slate-300 bg-slate-950 p-3 shadow-2xl">
+      <div className="overflow-hidden rounded-[1.55rem] bg-[#F7F8FA] text-slate-950">
+        <div className="flex items-center justify-between bg-[#1351B4] px-4 py-3 text-white">
+          <div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /><span className="text-xs font-bold uppercase tracking-wide">App dWallet</span></div>
+          <span className="text-[10px] font-semibold">{statusLabel[status]}</span>
+        </div>
+        <div className="space-y-4 p-4">
+          <div className="space-y-1">
+            <p className="text-lg font-bold text-[#071D41]">{emulation.header}</p>
+            <p className="text-sm leading-6 text-slate-600">{emulation.lead}</p>
+          </div>
+          {(emulation.kind === "input" || emulation.kind === "input-response") ? (
+            <div className="space-y-3">
+              {displayedFields.map(field => {
+                const raw = values[field.key];
+                const shown = field.type === "password" && raw ? "••••••••" : String(raw || field.placeholder || "Aguardando preenchimento");
+                return <div key={field.key} className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{field.label}</p><p className="mt-1 break-words text-sm font-semibold text-slate-800">{shown}</p></div>;
+              })}
+            </div>
+          ) : null}
+          {(emulation.kind === "response" || emulation.kind === "input-response") ? (
+            <div className={evidence?.ok ? "rounded-2xl border border-green-200 bg-green-50 p-3" : "rounded-2xl border border-blue-100 bg-blue-50 p-3"}>
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Tela de resposta do app</p>
+              <p className="mt-2 text-sm font-semibold text-slate-900">{responseText}</p>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{responseDetails}</p>
+            </div>
+          ) : null}
+          {emulation.footerNote ? <p className="rounded-xl bg-white px-3 py-2 text-xs leading-5 text-slate-500">{emulation.footerNote}</p> : null}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export function EvidenceBox({ evidence, status, actionId }: { evidence?: Evidence; status: VisualStatus; actionId?: string }) {
@@ -917,7 +1006,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
           <Card className="border-white/20 bg-white/10 text-white backdrop-blur">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" />APIs e evidências</CardTitle>
-              <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local.</CardDescription>
+              <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local. O Passo 0 M2M é pré-requisito técnico de sandbox e não entra na experiência emulada do usuário.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-blue-50">
               <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base sandbox</span><span className="font-mono text-xs">{metadata.data?.baseUrl || "carregando"}</span></div>
@@ -992,6 +1081,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
 
               <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
                 <div className="space-y-4 rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
+                  <AppEmulatedScreen screen={active} values={mergedState} evidence={activeEvidence} status={activeStatus} />
                   <div className="flex items-center gap-3">
                     <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#1351B4] text-white"><active.icon className="h-5 w-5" /></div>
                     <div>

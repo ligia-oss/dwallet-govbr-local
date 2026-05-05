@@ -7,6 +7,22 @@ const requiredEnv = [
   "DATAPREV_CLIENT_SECRET",
 ] as const;
 
+async function fetchWithTransientRetry(url: string, init: RequestInit, attempts = 3): Promise<Response> {
+  let lastError: unknown;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    try {
+      return await fetch(url, init);
+    } catch (error) {
+      lastError = error;
+      if (attempt === attempts) break;
+      await new Promise(resolve => setTimeout(resolve, 250 * attempt));
+    }
+  }
+
+  throw lastError;
+}
+
 describe("credenciais Dataprev/DrumWave", () => {
   it("obtém token M2M com as variáveis de ambiente do servidor", async () => {
     for (const key of requiredEnv) {
@@ -14,7 +30,7 @@ describe("credenciais Dataprev/DrumWave", () => {
     }
 
     const baseUrl = String(process.env.DATAPREV_BASE_URL).replace(/\/+$/, "");
-    const response = await fetch(`${baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`, {
+    const response = await fetchWithTransientRetry(`${baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
