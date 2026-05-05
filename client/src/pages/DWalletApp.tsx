@@ -60,7 +60,7 @@ const personalScreens: ScreenConfig[] = [
   { id: "login", title: "Login da pessoa", subtitle: "Obtém token de usuário protegido no servidor para as próximas ações da Personal dWallet.", actionId: "step2_person_signin", apiStatus: "external", fields: [{ key: "personEmail", label: "E-mail", placeholder: "pessoa@example.com", type: "email", required: true }] },
   { id: "carteira", title: "Minha carteira", subtitle: "Consulta dados pessoais, certificados e produtos disponíveis para solicitação de dados.", actionId: "step5_person_catalog", apiStatus: "external", fields: [] },
   { id: "solicitacoes", title: "Solicitar dados", subtitle: "Envia data request para a empresa criada na Business dWallet.", actionId: "step6_create_data_request", apiStatus: "external", fields: [{ key: "businessId", label: "Business ID", placeholder: "Gerado no cadastro empresarial", required: true }] },
-  { id: "dsp", title: "Planos DSP", subtitle: "Lista planos comerciais e cria uma conta DSP quando disponível.", actionId: "step10_list_dsps", apiStatus: "external", fields: [] },
+  { id: "dsp", title: "Planos DSP", subtitle: "Lista planos comerciais e cria uma conta DSP quando disponível.", actionId: "step10_commercial_dsps", apiStatus: "external", fields: [] },
   { id: "ofertas", title: "Ofertas e aceite", subtitle: "Visualiza ofertas retornadas pela API e tenta registrar aceite quando há offerId utilizável.", actionId: "step12_person_offers", apiStatus: "partial", fields: [{ key: "offerId", label: "Offer ID", placeholder: "Preenchido pelo passo 12 quando disponível", required: true }] },
   { id: "checkout", title: "Carrinho e checkout", subtitle: "Tela operacional para evidenciar a lacuna de criação externa de ofertas/carrinho.", actionId: "step11_business_offers_gap", apiStatus: "gap", fields: [] },
   { id: "extrato", title: "Extrato", subtitle: "Consulta extrato financeiro parcial por contas DSP conhecidas.", actionId: "step14_wallet_statement", apiStatus: "partial", fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Gerada na adesão ao DSP", required: true }] },
@@ -74,8 +74,8 @@ const businessScreens: ScreenConfig[] = [
   { id: "login", title: "Login Business", subtitle: "Gera token de usuário do colaborador e mantém o segredo fora do navegador.", actionId: "step1_employee_signin", apiStatus: "external", fields: [{ key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@example.com", type: "email", required: true }] },
   { id: "empresa", title: "Cadastro empresarial", subtitle: "Cria a entidade empresarial, com CNPJ sintético, para receber solicitações de dados.", actionId: "step1_business_create", apiStatus: "external", fields: [{ key: "businessCnpj", label: "CNPJ", placeholder: "00000000000100", required: true }] },
   { id: "schemas", title: "Schemas", subtitle: "Consulta schemas de dados disponíveis para configurar produtos e solicitações.", actionId: "step3_list_schemas", apiStatus: "external", fields: [] },
-  { id: "produtos", title: "Produtos e catálogo", subtitle: "Consulta produtos existentes e cria produto de marketplace quando há permissão.", actionId: "step4_create_product", apiStatus: "external", fields: [{ key: "businessId", label: "Business ID", placeholder: "Gerado no cadastro empresarial", required: true }] },
-  { id: "planos", title: "Planos comerciais", subtitle: "Consulta planos DSP aplicáveis para a operação financeira da empresa e para a etapa de adesão da pessoa.", actionId: "step10_list_dsps", apiStatus: "external", fields: [] },
+  { id: "produtos", title: "Produtos e catálogo", subtitle: "Consulta produtos existentes e cria produto de marketplace quando há permissão.", actionId: "step4_list_products", apiStatus: "external", fields: [{ key: "businessId", label: "Business ID", placeholder: "Gerado no cadastro empresarial", required: true }] },
+  { id: "planos", title: "Planos comerciais", subtitle: "Consulta planos DSP aplicáveis para a operação financeira da empresa e para a etapa de adesão da pessoa.", actionId: "step10_commercial_dsps", apiStatus: "external", fields: [] },
   { id: "solicitacoes", title: "Solicitações de dados", subtitle: "Lista e aceita solicitações recebidas da Personal dWallet.", actionId: "step7_list_business_requests", apiStatus: "external", fields: [{ key: "businessId", label: "Business ID", placeholder: "Gerado no cadastro empresarial", required: true }] },
   { id: "certificados", title: "Certificados empresariais", subtitle: "Consulta certificados associados à empresa, quando autorizados pela sandbox.", actionId: "step9_business_certificates", apiStatus: "partial", fields: [] },
   { id: "ofertas", title: "Ofertas comerciais", subtitle: "Mostra lacuna de endpoint externo para criação/publicação de ofertas.", actionId: "step11_business_offers_gap", apiStatus: "gap", fields: [] },
@@ -85,6 +85,10 @@ const businessScreens: ScreenConfig[] = [
 
 function readableJson(value: unknown) {
   return JSON.stringify(value ?? null, null, 2);
+}
+
+function compactRunState(value: RunState): Record<string, string | number | boolean | null> {
+  return Object.fromEntries(Object.entries(value).filter(([, item]) => item !== undefined)) as Record<string, string | number | boolean | null>;
 }
 
 function getVisualStatus(screen: ScreenConfig, evidence: Evidence | undefined, runningId: string | undefined): VisualStatus {
@@ -150,9 +154,9 @@ export function DWalletApp({ kind }: { kind: AppKind }) {
       return next;
     });
     try {
-      const evidence = await executeAction.mutateAsync({ actionId: screen.actionId, state: mergedState as Record<string, string | number | boolean | null> });
+      const evidence = await executeAction.mutateAsync({ actionId: screen.actionId, state: compactRunState(mergedState) });
       setEvidences(previous => ({ ...previous, [screen.actionId]: evidence as Evidence }));
-      setState(previous => ({ ...previous, ...((evidence as Evidence).stateUpdates || {}) }));
+      setState(previous => compactRunState({ ...previous, ...((evidence as Evidence).stateUpdates || {}) }));
       if (!(evidence as Evidence).ok) {
         setOperationErrors(previous => ({ ...previous, [screen.actionId]: (evidence as Evidence).message || "A API retornou uma falha operacional. Consulte a evidência." }));
       }

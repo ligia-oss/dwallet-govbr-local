@@ -255,6 +255,25 @@ export const personalScreens: GovScreen[] = [
     blocks: ["Código de 6 dígitos", "Botão continuar", "Reenvio de e-mail", "Estado de erro quando o código não confere"],
   },
   {
+    id: "login-pessoal",
+    route: "/login",
+    title: "Login da Personal dWallet",
+    subtitle: "Autentica a pessoa física após o cadastro e gera token de usuário para as ações protegidas da carteira.",
+    group: "acesso",
+    icon: KeyRound,
+    actionId: "step2_person_signin",
+    apiLabel: "Login da pessoa",
+    apiHint: "Executa a autenticação da pessoa física e mantém o token de usuário no servidor como handle sanitizado.",
+    primaryCta: "Entrar na carteira",
+    fields: [
+      { key: "personEmail", label: "E-mail", placeholder: "cidadao@example.com", type: "email", required: true },
+      { key: "personPassword", label: "Senha", placeholder: "Senha cadastrada", type: "password", required: true },
+    ],
+    observedFrom: "br.personal.drumwave.me/login e jornada de APIs Dataprev",
+    blocks: ["E-mail", "Senha", "Sessão da carteira", "Token protegido no servidor"],
+    appEmulation: { kind: "input-response", header: "Entrar na sua Personal dWallet", lead: "Informe suas credenciais para liberar solicitações, ofertas e carteira de dados.", responseEmpty: "Toque em Entrar na carteira para autenticar e habilitar as APIs protegidas do app." },
+  },
+  {
     id: "foto-perfil",
     route: "/profile-picture",
     title: "Foto de perfil opcional",
@@ -319,7 +338,7 @@ export const personalScreens: GovScreen[] = [
     subtitle: "Adesão a planos DSP que remuneram a pessoa pelo uso autorizado dos dados.",
     group: "mercado",
     icon: PiggyBank,
-    actionId: "step10_list_dsps",
+    actionId: "step10_commercial_dsps",
     apiLabel: "Listar DSPs",
     apiHint: "Consulta planos DSP disponíveis na sandbox.",
     primaryCta: "Consultar planos",
@@ -611,10 +630,10 @@ export const businessScreens: GovScreen[] = [
     subtitle: "Criação e gerenciamento de produtos que podem originar ofertas e campanhas.",
     group: "mercado",
     icon: PackageCheck,
-    actionId: "step4_create_product",
-    apiLabel: "Criar produto",
-    apiHint: "Tenta criar produto de marketplace para a empresa registrada.",
-    primaryCta: "Criar produto",
+    actionId: "step4_list_products",
+    apiLabel: "Listar produtos",
+    apiHint: "Consulta o catálogo de dSKUs/produtos disponível para a empresa registrada.",
+    primaryCta: "Consultar produtos",
     fields: [{ key: "businessId", label: "Identificador da empresa", placeholder: "Gerado no cadastro empresarial", required: true }],
     observedFrom: "Labels Products, Marketplace e Create product dos bundles",
     blocks: ["Lista de produtos", "Novo produto", "Schema usado", "Status de publicação"],
@@ -626,7 +645,7 @@ export const businessScreens: GovScreen[] = [
     subtitle: "Planos comerciais, contribuições de dados, assinatura e renovação automática.",
     group: "mercado",
     icon: PiggyBank,
-    actionId: "step10_list_dsps",
+    actionId: "step10_commercial_dsps",
     apiLabel: "Listar DSPs",
     apiHint: "Consulta planos DSP aplicáveis às operações Business e Personal.",
     primaryCta: "Ver planos",
@@ -810,6 +829,52 @@ function getDisplayedFields(screen: GovScreen): ScreenField[] {
 function getShownFieldValue(field: ScreenField, values: RunState) {
   const raw = values[field.key];
   return field.type === "password" && raw ? "••••••••" : String(raw || field.placeholder || "Aguardando preenchimento");
+}
+
+export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, status, m2mReady, evidence }: { screen: GovScreen; stepNumber: number; totalSteps: number; status: VisualStatus; m2mReady: boolean; evidence?: Evidence }) {
+  const hasExternalAction = Boolean(screen.actionId);
+  const needsM2M = hasExternalAction && screen.actionId?.startsWith("step");
+  const prerequisitePending = needsM2M && !m2mReady;
+  const fieldsLabel = screen.fields.length ? "preencha os campos obrigatórios destacados no telefone" : "confira as informações já exibidas na tela";
+  const actionLabel = hasExternalAction ? `a ação ${screen.actionId}` : "uma validação visual/local";
+  const resultInstruction = status === "done"
+    ? "revise a resposta OK e confirme se o telefone avançou ou exibiu o resumo esperado"
+    : status === "failed"
+      ? "leia a mensagem de erro sanitizada e ajuste campo, credencial ou pré-requisito antes de tentar novamente"
+      : hasExternalAction
+        ? "aguarde a resposta da API e confira o status no painel de evidências ao lado"
+        : "marque esta tela como conferida quando a navegação e o conteúdo visual estiverem coerentes";
+
+  return (
+    <div className="rounded-3xl border border-[#1351B4]/25 bg-white p-4 shadow-sm" aria-label="Instruções de teste desta tela">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="bg-[#1351B4] text-white">Etapa {stepNumber} de {totalSteps}</Badge>
+            <Badge variant="outline" className="border-slate-300 text-slate-700">{statusLabel[status]}</Badge>
+            {hasExternalAction ? <Badge variant="outline" className="border-green-200 bg-green-50 text-green-800">API: {screen.actionId}</Badge> : <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600">sem API externa</Badge>}
+          </div>
+          <p className="text-base font-bold text-slate-950">Como testar esta tela antes de usar o mockup</p>
+          <p className="text-sm leading-6 text-slate-600">Use o telefone logo abaixo como área principal de teste. O formulário auxiliar permanece disponível apenas para ajuste fino dos mesmos valores.</p>
+        </div>
+        {evidence?.httpStatus ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Último HTTP {evidence.httpStatus}</span> : null}
+      </div>
+
+      {prerequisitePending ? (
+        <div className="mt-3 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-sm leading-6 text-amber-950">
+          <strong>Pré-requisito pendente:</strong> execute primeiro o Passo 0 de autenticação M2M no topo da página. Sem token técnico ativo, esta chamada pode falhar mesmo com os campos corretos.
+        </div>
+      ) : null}
+
+      <ol className="mt-4 grid gap-3 text-sm leading-6 md:grid-cols-3">
+        <li className="rounded-2xl border border-blue-100 bg-blue-50 p-3 text-blue-950"><strong>1. Dados:</strong> {fieldsLabel} diretamente no mockup.</li>
+        <li className="rounded-2xl border border-green-100 bg-green-50 p-3 text-green-950"><strong>2. Execução:</strong> pressione o botão principal do telefone para disparar {actionLabel}.</li>
+        <li className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-700"><strong>3. Resultado:</strong> {resultInstruction}.</li>
+      </ol>
+        <p className="mt-3 text-xs leading-5 text-slate-500"><strong>Integração esperada:</strong> {screen.apiHint}</p>
+        {screen.actionId === "step6_create_data_request" ? <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950"><strong>Ordem obrigatória:</strong> antes desta tela, crie a Business dWallet e confirme que o campo Business ID foi preenchido pelo retorno da API empresarial.</p> : null}
+    </div>
+  );
 }
 
 export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status, onChange, onRun, onOpenNextScreen, isRunning, errors }: { screen: GovScreen; nextScreen?: GovScreen; values: RunState; evidence?: Evidence; status: VisualStatus; onChange: (key: string, value: string) => void; onRun: () => void; onOpenNextScreen?: () => void; isRunning?: boolean; errors?: Record<string, string> }) {
@@ -1112,7 +1177,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
     ["1", "Passo 0 — Autenticar M2M", "Clique no botão de autenticação no topo da página. Espere aparecer token ativo no servidor. Este passo é técnico e prepara as APIs; ele não representa uma tela do usuário final."],
     ["2", "Criar Personal dWallet", "Na aba Tela atual, escolha a primeira etapa de criação. Edite nome, e-mail, CPF e telefone diretamente dentro do celular. Clique no botão azul dentro do telefone. Se a API responder OK, o próprio telefone deve mostrar a tela seguinte de envio de código."],
     ["3", "Enviar e validar código", "Na tela seguinte, confira o canal e o destino do código. Continue a jornada até a tela de validação, preenchendo o código no telefone e acionando o botão principal."],
-    ["4", "Login e abertura da wallet", "Siga as telas de login e abertura da carteira na navegação lateral. Em cada tela, altere dados no celular, acione o botão principal e verifique se a próxima tela ou o resultado aparece no próprio aplicativo."],
+    ["4", "Login, Business ID e abertura da wallet", "Siga as telas de login e abertura da carteira na navegação lateral. Antes de Solicitar dados, crie a Business dWallet na aplicação empresarial e volte para a Personal com o Business ID preenchido pelo retorno da API."],
     ["5", "Telas financeiras", "Depois da wallet criada, teste saldo, extrato, Pix e pagamento. Nessas telas, o resultado OK pode aparecer como comprovante ou resumo da operação, porque essa é a tela final usada pelo aplicativo para exibir a resposta da API."],
   ] : [
     ["1", "Passo 0 — Autenticar M2M", "Execute a autenticação técnica no topo da página antes das telas empresariais. Se já houver token ativo na sessão, avance para a primeira tela da Business dWallet."],
@@ -1296,8 +1361,12 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
   );
 }
 
+export function compactRunState(mergedState: RunState): Record<string, string | number | boolean | null> {
+  return Object.fromEntries(Object.entries(mergedState).filter(([, value]) => value !== undefined)) as Record<string, string | number | boolean | null>;
+}
+
 export function buildExecuteActionInput(actionId: string, mergedState: RunState, credentials?: DataprevCredentialForm) {
-  return { actionId, state: mergedState as Record<string, string | number | boolean | null>, credentials: buildDataprevCredentialsInput(credentials || { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }) };
+  return { actionId, state: compactRunState(mergedState), credentials: buildDataprevCredentialsInput(credentials || { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }) };
 }
 
 export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
@@ -1409,7 +1478,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         : await executeAction.mutateAsync(buildExecuteActionInput(active.actionId, mergedState, dataprevCredentials));
       const typed = evidence as Evidence;
       setEvidences(previous => ({ ...previous, [active.actionId as string]: typed }));
-      setState(previous => ({ ...previous, ...(typed.stateUpdates || {}) }));
+      setState(previous => compactRunState({ ...previous, ...(typed.stateUpdates || {}) }));
       if (!typed.ok) setErrors(previous => ({ ...previous, [active.id]: typed.message || typed.missingReason || "A chamada retornou falha operacional." }));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha inesperada na execução da API.";
@@ -1523,6 +1592,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
 
               <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
                 <div className="space-y-4 rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
+                  <ScreenApiInstructionPanel screen={active} stepNumber={activeIndex + 1} totalSteps={screens.length} status={activeStatus} m2mReady={Boolean(m2mResult?.ok || metadata.data?.m2mToken?.active)} evidence={activeEvidence} />
                   <AppEmulatedScreen screen={active} nextScreen={nextScreen} values={mergedState} evidence={activeEvidence} status={activeStatus} onChange={updateField} onRun={run} onOpenNextScreen={() => nextScreen ? setActiveId(nextScreen.id) : undefined} isRunning={runningId === active.actionId} errors={errors} />
                   <div className="flex items-center gap-3">
                     <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#1351B4] text-white"><active.icon className="h-5 w-5" /></div>

@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, businessScreens, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, personalScreens, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, businessScreens, compactRunState, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -130,11 +130,35 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("1</span><span class=\"font-semibold text-slate-950\">Passo 0 — Autenticar M2M");
     expect(html).toContain("2</span><span class=\"font-semibold text-slate-950\">Criar Personal dWallet");
     expect(html).toContain("3</span><span class=\"font-semibold text-slate-950\">Enviar e validar código");
-    expect(html).toContain("4</span><span class=\"font-semibold text-slate-950\">Login e abertura da wallet");
+    expect(html).toContain("4</span><span class=\"font-semibold text-slate-950\">Login, Business ID e abertura da wallet");
+    expect(html).toContain("crie a Business dWallet na aplicação empresarial");
     expect(html).toContain("5</span><span class=\"font-semibold text-slate-950\">Telas financeiras");
     expect(html).toContain("Resultado esperado OK");
     expect(html).toContain("Resultado esperado com pendência");
     expect(html).toContain("Quando usar Variáveis de teste");
+    expect(personalScreens.some(screen => screen.actionId === "step2_person_signin")).toBe(true);
+  });
+
+  it("renders mandatory Business ID guidance above the mockup for the Personal data request screen", () => {
+    const screen = personalScreens.find(item => item.actionId === "step6_create_data_request");
+    expect(screen).toBeDefined();
+
+    const html = renderToStaticMarkup(React.createElement(ScreenApiInstructionPanel, {
+      screen: screen!,
+      stepNumber: 6,
+      totalSteps: personalScreens.length,
+      status: "pending",
+      m2mReady: true,
+    }));
+
+    expect(html).toContain("Como testar esta tela antes de usar o mockup");
+    expect(html).toContain("Ordem obrigatória");
+    expect(html).toContain("crie a Business dWallet");
+  });
+
+  it("removes undefined values before sending frontend state to tRPC mutations", () => {
+    expect(compactRunState({ personTokenHandle: undefined, businessId: "biz_123", consent: true, amount: null })).toEqual({ businessId: "biz_123", consent: true, amount: null });
+    expect(buildExecuteActionInput("step2_person_signin", { personEmail: "teste@example.com", personTokenHandle: undefined }, { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }).state).toEqual({ personEmail: "teste@example.com" });
   });
 
   it("renders the Business beginner guide with business-specific ordered steps", () => {

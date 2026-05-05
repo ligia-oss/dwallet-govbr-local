@@ -683,6 +683,10 @@ const steps: JourneyStep[] = [
 
 const runStateSchema = z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).default({});
 
+function compactStateUpdates(updates: RunState): RunState {
+  return Object.fromEntries(Object.entries(updates).filter(([, value]) => value !== undefined)) as RunState;
+}
+
 function initialState(): RunState {
   const runId = createRunId();
   return {
@@ -818,7 +822,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   const responseBody = contentType.includes("json") ? await response.json().catch(() => ({})) : await response.text().catch(() => "");
   const [min, max] = action.expectedStatus || [200, 300];
   const ok = response.status >= min && response.status < max;
-  const stateUpdates = ok && action.onSuccess ? action.onSuccess(responseBody, state) : {};
+  const stateUpdates = ok && action.onSuccess ? compactStateUpdates(action.onSuccess(responseBody, state)) : {};
 
   return {
     actionId: action.id,

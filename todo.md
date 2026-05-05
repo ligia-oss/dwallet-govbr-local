@@ -137,3 +137,14 @@
 - [x] Atualizar testes automatizados para cobrir o formulário de credenciais, sanitização visual e envio controlado ao Passo 0.
 - [x] Testar o Passo 0 com as credenciais disponíveis e registrar sucesso ou explicar claramente o motivo do erro.
 - [x] Validar TypeScript, Vitest, status do projeto e salvar checkpoint da versão com frontend de credenciais.
+
+- [x] Mapear todas as APIs executáveis atualmente disponíveis nas jornadas Personal e Business GovBR para teste via frontend.
+- [x] Inserir instruções de teste didáticas logo acima do mockup das telas da aplicação, explicando ordem de execução, uso de credenciais e leitura dos resultados.
+- [x] Executar via frontend todas as ações de API disponíveis, registrando sucesso, erro de negócio, API ausente ou falha técnica.
+- [x] Corrigir erros de payload, contrato, estado ou exibição identificados durante a execução das APIs pelo frontend.
+- [x] Atualizar testes automatizados para cobrir as instruções acima do mockup e regressões das APIs corrigidas.
+- [x] Validar TypeScript, Vitest, status do projeto e salvar checkpoint da versão com APIs testadas via frontend.
+
+- [x] Corrigir actionIds Dataprev obsoletos nas telas frontend, substituindo `step10_list_dsps` e `step4_create_product` por ações existentes no roteador.
+- [x] Garantir que o frontend envie estado de execução sem campos `undefined` e que o backend não devolva `stateUpdates` inválidos.
+- [x] Adicionar tela/ação de login Personal GovBR (`step2_person_signin`) ao frontend para que as APIs dependentes de token de usuário possam ser testadas pela jornada.
