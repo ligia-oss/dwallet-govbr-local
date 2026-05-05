@@ -168,3 +168,11 @@
 - [x] Validar a geração da chave M2M pelo site e atualizar testes automatizados para impedir regressão.
 - [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da correção do Passo 0.
 - [x] Corrigir o Passo 0 M2M para funcionar pela interface web, com diagnóstico claro quando o ambiente publicado usar secrets divergentes do Postman/local.
+
+- [x] Manter na navegação apenas os links para as experiências com mockup visual gov.br, removendo os caminhos antigos Personal e Business baseados somente em evidências.
+- [x] Remover da interface referências ao usuário como “leigo” e substituir por linguagem de teste clara e profissional.
+- [x] Deixar explícita a ordem de execução das APIs e as dependências entre etapas, incluindo quais identificadores devem ser guardados para uso posterior.
+- [x] Salvar automaticamente na área de credenciais as informações geradas por respostas de API que possam ser usadas como input em outras etapas.
+- [x] Atualizar as telas de avatar, montagem de telas e fluxos similares para exibir no mockup exemplos visuais concretos da tela montada.
+- [x] Atualizar testes automatizados para cobrir navegação apenas GovBR, instruções de ordem/dependência, persistência na pasta de credenciais e exemplos visuais no mockup.
+- [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint dos ajustes de experiência GovBR com mockup.

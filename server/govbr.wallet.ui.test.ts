@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, compactRunState, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -122,6 +122,19 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("Executar Passo 0 · autenticação M2M");
   });
 
+  it("renders generated API outputs in the credential folder for reuse between steps", () => {
+    const html = renderToStaticMarkup(React.createElement(CredentialFolderPanel, {
+      items: [{ key: "businessWalletId", value: "bdw_123", source: "Criar Business dWallet", savedAt: "2026-05-05T20:00:00.000Z", purpose: "Use como entrada em solicitações da Personal dWallet." }],
+      values: { requestId: "req_456" },
+    }));
+
+    expect(html).toContain("Pasta de credenciais");
+    expect(html).toContain("bdw_123");
+    expect(html).toContain("requestId");
+    expect(html).toContain("solicitações da Personal dWallet");
+    expect(html).toContain("abra a BdW para gerar o ID da BdW");
+  });
+
   it("renders the BTG future information panel without requiring a token today", () => {
     const html = renderToStaticMarkup(React.createElement(BtgFutureInfoPanel, {
       values: {
@@ -167,17 +180,17 @@ describe("GovBR Wallet API response panels", () => {
     expect(input.state).not.toHaveProperty("optionalUnset");
   });
 
-  it("renders the Personal beginner guide with five ordered steps and expected result cards", () => {
+  it("renders the Personal API execution guide with five ordered steps and expected result cards", () => {
     const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, { walletKind: "personal" }));
 
-    expect(html).toContain("Guia de teste para leigos");
+    expect(html).toContain("Guia de execução das APIs");
     expect(html).toContain("Antes de começar");
     expect(html).toContain("1</span><span class=\"font-semibold text-slate-950\">Passo 0 — Autenticar M2M");
-    expect(html).toContain("2</span><span class=\"font-semibold text-slate-950\">Criar Personal dWallet");
-    expect(html).toContain("3</span><span class=\"font-semibold text-slate-950\">Enviar e validar código");
-    expect(html).toContain("4</span><span class=\"font-semibold text-slate-950\">Login, Business ID e abertura da wallet");
-    expect(html).toContain("crie a Business dWallet na aplicação empresarial");
-    expect(html).toContain("5</span><span class=\"font-semibold text-slate-950\">Telas financeiras");
+    expect(html).toContain('2</span><span class="font-semibold text-slate-950">Criar e validar Personal dWallet');
+    expect(html).toContain('3</span><span class="font-semibold text-slate-950">Abrir a BdW antes de solicitar dados');
+    expect(html).toContain('4</span><span class="font-semibold text-slate-950">Solicitar informações na PdW');
+    expect(html).toContain("abra a Business dWallet");
+    expect(html).toContain('5</span><span class="font-semibold text-slate-950">Executar telas finais e financeiras');
     expect(html).toContain("Resultado esperado OK");
     expect(html).toContain("Resultado esperado com pendência");
     expect(html).toContain("Quando usar Variáveis de teste");
@@ -198,7 +211,7 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(html).toContain("Como testar esta tela antes de usar o mockup");
     expect(html).toContain("Ordem obrigatória");
-    expect(html).toContain("crie a Business dWallet");
+    expect(html).toContain("abra a Business dWallet primeiro");
   });
 
   it("removes undefined values before sending frontend state to tRPC mutations", () => {
@@ -211,10 +224,10 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(html).toContain("Business dWallet");
     expect(html).toContain("Criar Business dWallet");
-    expect(html).toContain("razão social, CNPJ, e-mail e telefone");
-    expect(html).toContain("Validação e acesso empresarial");
-    expect(html).toContain("Abertura e operação da carteira");
-    expect(html).toContain("Saldo, extrato, Pix, cobranças e pagamentos");
+    expect(html).toContain("ID da BdW");
+    expect(html).toContain("Abrir e validar a BdW");
+    expect(html).toContain("Produtos, schemas e solicitações");
+    expect(html).toContain("Operações financeiras");
     expect(html).not.toContain("Criar Personal dWallet");
   });
 
@@ -244,7 +257,7 @@ describe("GovBR Wallet API response panels", () => {
     }));
 
     expect(html).toContain("Checklist visual de progresso");
-    expect(html).toContain("Cada linha representa uma etapa do teste");
+    expect(html).toContain("Cada linha representa uma etapa da execução");
     expect(html).toContain("3 de 3 revisadas");
     expect(html).toContain("100% do roteiro acompanhado nesta sessão");
     expect(html).toContain("guide-check-personal-m2m");

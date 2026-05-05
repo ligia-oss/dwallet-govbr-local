@@ -20,6 +20,7 @@ import {
   ClipboardList,
   Database,
   FileCheck2,
+  FolderKey,
   KeyRound,
   Landmark,
   LayoutDashboard,
@@ -44,6 +45,14 @@ type WalletKind = "personal" | "business";
 type ScreenGroup = "acesso" | "onboarding" | "wallet" | "mercado" | "financeiro" | "configuracoes";
 export type VisualStatus = "pending" | "running" | "done" | "failed" | "missing";
 type RunState = Record<string, string | number | boolean | null | undefined>;
+
+type CredentialFolderItem = {
+  key: string;
+  value: string;
+  source: string;
+  savedAt: string;
+  purpose: string;
+};
 
 export function updateRunStateValue(previous: RunState, key: string, value: string): RunState {
   return { ...previous, [key]: value };
@@ -856,6 +865,33 @@ function getShownFieldValue(field: ScreenField, values: RunState) {
   return field.type === "password" && raw ? "••••••••" : String(raw || field.placeholder || "Aguardando preenchimento");
 }
 
+function credentialPurpose(key: string) {
+  const normalized = key.toLowerCase();
+  if (normalized.includes("business") || normalized.includes("company") || normalized.includes("bdw")) return "Use como entrada em solicitações da Personal dWallet e chamadas que dependem da Business dWallet.";
+  if (normalized.includes("personal") || normalized.includes("pdw") || normalized.includes("wallet")) return "Use para login, abertura de carteira, consultas e operações da Personal dWallet.";
+  if (normalized.includes("request") || normalized.includes("consent") || normalized.includes("solicit")) return "Use para consultar, aprovar ou acompanhar solicitações de dados entre wallets.";
+  if (normalized.includes("token") || normalized.includes("handle")) return "Use como referência técnica de sessão; tokens brutos permanecem protegidos no servidor.";
+  if (normalized.includes("btg") || normalized.includes("account")) return "Use como input das APIs financeiras BTG, como saldo, extrato, Pix e pagamentos.";
+  return "Valor retornado por API e salvo para eventual reutilização em etapas posteriores.";
+}
+
+function createCredentialFolderItems(source: string, updates?: RunState): CredentialFolderItem[] {
+  return Object.entries(updates || {})
+    .filter(([, value]) => value !== undefined && value !== null && String(value).trim() !== "")
+    .map(([key, value]) => ({ key, value: String(value), source, savedAt: new Date().toISOString(), purpose: credentialPurpose(key) }));
+}
+
+function mergeCredentialFolder(previous: CredentialFolderItem[], incoming: CredentialFolderItem[]) {
+  if (!incoming.length) return previous;
+  const next = [...previous];
+  incoming.forEach(item => {
+    const existing = next.findIndex(saved => saved.key === item.key);
+    if (existing >= 0) next[existing] = item;
+    else next.unshift(item);
+  });
+  return next;
+}
+
 export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, status, m2mReady, evidence }: { screen: GovScreen; stepNumber: number; totalSteps: number; status: VisualStatus; m2mReady: boolean; evidence?: Evidence }) {
   const hasExternalAction = Boolean(screen.actionId);
   const needsM2M = hasExternalAction && screen.actionId?.startsWith("step");
@@ -897,9 +933,57 @@ export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, stat
         <li className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-700"><strong>3. Resultado:</strong> {resultInstruction}.</li>
       </ol>
         <p className="mt-3 text-xs leading-5 text-slate-500"><strong>Integração esperada:</strong> {screen.apiHint}</p>
-        {screen.actionId === "step6_create_data_request" ? <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950"><strong>Ordem obrigatória:</strong> antes desta tela, crie a Business dWallet e confirme que o campo Business ID foi preenchido pelo retorno da API empresarial.</p> : null}
+        <p className="mt-2 rounded-2xl border border-blue-100 bg-blue-50 p-3 text-xs leading-5 text-blue-950"><strong>Guardar retorno:</strong> qualquer identificador, token opaco, ID de wallet, ID de solicitação ou dado financeiro retornado por esta API é salvo na aba <strong>Credenciais</strong> para ser reutilizado como input nas próximas etapas.</p>
+        {screen.actionId === "step6_create_data_request" ? <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950"><strong>Ordem obrigatória:</strong> abra a Business dWallet primeiro, crie a BdW e confirme que o ID da BdW foi salvo em Credenciais. Depois volte para a Personal dWallet e use esse ID para solicitar as informações na PdW.</p> : null}
     </div>
   );
+}
+
+function MockupExample({ screen, values }: { screen: GovScreen; values: RunState }) {
+  const initials = String(values.personName || values.employeeName || values.legalName || "GovBR").split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "GB";
+  if (screen.id.includes("foto") || screen.id.includes("kyc") || screen.group === "onboarding") {
+    return (
+      <div className="rounded-[1.35rem] border border-blue-100 bg-[#EAF2FF] p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#1351B4]">Exemplo visual montado</p>
+        <div className="mt-3 flex items-center gap-3 rounded-2xl bg-white p-3 shadow-sm">
+          <div className="grid h-16 w-16 place-items-center overflow-hidden rounded-full bg-[#1351B4] text-xl font-bold text-white">{initials}</div>
+          <div className="min-w-0">
+            <p className="font-bold text-slate-950">Avatar gov.br validado</p>
+            <p className="text-xs leading-5 text-slate-600">Foto, documento e prova de vida aparecem como etapas com selo de validação antes de liberar a carteira.</p>
+          </div>
+          <Badge className="ml-auto bg-green-700 text-white">verificado</Badge>
+        </div>
+      </div>
+    );
+  }
+  if (screen.group === "wallet") {
+    return (
+      <div className="rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-sm">
+        <p className="text-xs font-bold uppercase tracking-wide text-[#1351B4]">Tela de carteira montada</p>
+        <div className="mt-3 rounded-2xl bg-[linear-gradient(135deg,#071D41,#1351B4)] p-4 text-white">
+          <p className="text-xs uppercase tracking-[0.2em] text-blue-100">dWallet ativa</p>
+          <p className="mt-2 text-xl font-bold">{String(values.personName || values.legalName || "Titular GovBR")}</p>
+          <p className="mt-6 font-mono text-xs text-blue-100">ID salvo: {String(values.businessWalletId || values.personalWalletId || values.walletId || "aguardando API")}</p>
+        </div>
+        <div className="mt-3 grid grid-cols-3 gap-2 text-center text-[11px] font-semibold text-slate-600">
+          <span className="rounded-xl bg-slate-50 p-2">Solicitações</span><span className="rounded-xl bg-slate-50 p-2">Dados</span><span className="rounded-xl bg-slate-50 p-2">Credenciais</span>
+        </div>
+      </div>
+    );
+  }
+  if (screen.group === "financeiro" || screen.group === "mercado") {
+    return (
+      <div className="rounded-[1.35rem] border border-green-100 bg-green-50 p-4">
+        <p className="text-xs font-bold uppercase tracking-wide text-green-800">Exemplo de resultado no app</p>
+        <div className="mt-3 space-y-2 rounded-2xl bg-white p-3 shadow-sm">
+          <div className="flex justify-between text-sm"><span>Operação</span><strong>{screen.title}</strong></div>
+          <div className="flex justify-between text-sm"><span>Status</span><strong className="text-green-700">Aguardando execução</strong></div>
+          <div className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-600">Após a API, este espaço mostra comprovante, saldo, extrato ou resumo de marketplace em formato de tela final do aplicativo.</div>
+        </div>
+      </div>
+    );
+  }
+  return null;
 }
 
 export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status, onChange, onRun, onOpenNextScreen, isRunning, errors }: { screen: GovScreen; nextScreen?: GovScreen; values: RunState; evidence?: Evidence; status: VisualStatus; onChange: (key: string, value: string) => void; onRun: () => void; onOpenNextScreen?: () => void; isRunning?: boolean; errors?: Record<string, string> }) {
@@ -961,6 +1045,8 @@ export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status
               <p className="mt-2 text-xs leading-5 text-slate-600">{responseDetails}</p>
             </div>
           ) : null}
+
+          <MockupExample screen={phoneScreen} values={values} />
 
           <div className="space-y-3 rounded-[1.35rem] bg-white p-4 shadow-sm">
             <p className="text-xs font-bold uppercase tracking-wide text-[#1351B4]">{shouldAdvanceToNextScreen && nextScreen ? "Próxima tela do aplicativo" : "Dados da operação"}</p>
@@ -1196,20 +1282,50 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
   );
 }
 
+export function CredentialFolderPanel({ items, values }: { items: CredentialFolderItem[]; values: RunState }) {
+  const stateItems = createCredentialFolderItems("Estado atual da jornada", values).filter(item => !items.some(saved => saved.key === item.key));
+  const combined = [...items, ...stateItems].slice(0, 24);
+  return (
+    <Card className="border-blue-200 bg-white shadow-sm">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-xl"><FolderKey className="h-5 w-5 text-[#1351B4]" />Pasta de credenciais</CardTitle>
+        <CardDescription>Valores gerados ou preenchidos durante as APIs ficam guardados aqui para uso como input em outras etapas. Exemplos: ID da BdW, ID da PdW, IDs de solicitação, tokens opacos, conta BTG e referências de pagamento.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <Alert className="border-blue-200 bg-blue-50 text-blue-950">
+          <ShieldCheck className="h-4 w-4" />
+          <AlertTitle>Reutilização entre APIs</AlertTitle>
+          <AlertDescription>Antes de executar uma etapa dependente, confira nesta pasta se a informação exigida já foi gerada. Por exemplo, abra a BdW para gerar o ID da BdW; depois use esse ID na PdW para solicitar informações.</AlertDescription>
+        </Alert>
+        {combined.length ? (
+          <div className="space-y-3">
+            {combined.map(item => (
+              <div key={item.source + "-" + item.key} className="grid gap-3 rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4 md:grid-cols-[220px_1fr] md:items-start">
+                <div className="space-y-1"><code className="block break-all rounded-lg bg-white px-3 py-2 text-xs font-semibold text-slate-800">{item.key}</code><p className="text-[11px] text-slate-500">{new Date(item.savedAt).toLocaleString("pt-BR")}</p></div>
+                <div className="space-y-2"><p className="break-all font-mono text-xs text-slate-900">{item.value}</p><p className="text-sm leading-6 text-slate-600"><strong>Origem:</strong> {item.source}. <strong>Uso:</strong> {item.purpose}</p></div>
+              </div>
+            ))}
+          </div>
+        ) : <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm leading-6 text-slate-600">Nenhuma informação gerada ainda. Execute o Passo 0 e as telas de criação/abertura para começar a preencher esta pasta.</div>}
+      </CardContent>
+    </Card>
+  );
+}
+
 export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, runningId, m2mCompleted = false, reviewedSteps = {}, onToggleReviewed, onOpenStep }: { walletKind: WalletKind; screens?: GovScreen[]; evidences?: Record<string, Evidence>; runningId?: string; m2mCompleted?: boolean; reviewedSteps?: Record<string, boolean>; onToggleReviewed?: (stepId: string, checked: boolean) => void; onOpenStep?: (screenId: string) => void }) {
   const appName = walletKind === "personal" ? "Personal dWallet" : "Business dWallet";
   const orderedSteps = walletKind === "personal" ? [
-    ["1", "Passo 0 — Autenticar M2M", "Clique no botão de autenticação no topo da página. Espere aparecer token ativo no servidor. Este passo é técnico e prepara as APIs; ele não representa uma tela do usuário final."],
-    ["2", "Criar Personal dWallet", "Na aba Tela atual, escolha a primeira etapa de criação. Edite nome, e-mail, CPF e telefone diretamente dentro do celular. Clique no botão azul dentro do telefone. Se a API responder OK, o próprio telefone deve mostrar a tela seguinte de envio de código."],
-    ["3", "Enviar e validar código", "Na tela seguinte, confira o canal e o destino do código. Continue a jornada até a tela de validação, preenchendo o código no telefone e acionando o botão principal."],
-    ["4", "Login, Business ID e abertura da wallet", "Siga as telas de login e abertura da carteira na navegação lateral. Antes de Solicitar dados, crie a Business dWallet na aplicação empresarial e volte para a Personal com o Business ID preenchido pelo retorno da API."],
-    ["5", "Telas financeiras", "Depois da wallet criada, teste saldo, extrato, Pix e pagamento. Nessas telas, o resultado OK pode aparecer como comprovante ou resumo da operação, porque essa é a tela final usada pelo aplicativo para exibir a resposta da API."],
+    ["1", "Passo 0 — Autenticar M2M", "Execute a autenticação técnica no topo da página e confirme token ativo. Guarde o handle opaco exibido em Credenciais apenas como referência de auditoria."],
+    ["2", "Criar e validar Personal dWallet", "Execute criação, envio de código e validação na ordem da navegação lateral. IDs da PdW, usuário ou sessão retornados pela API são salvos automaticamente em Credenciais."],
+    ["3", "Abrir a BdW antes de solicitar dados", "Quando uma tela Personal exigir Business ID, abra a Business dWallet, crie/abra a BdW e copie da pasta Credenciais o ID da BdW gerado pela API empresarial."],
+    ["4", "Solicitar informações na PdW", "Volte para a Personal dWallet, confirme que o Business ID está preenchido e execute a solicitação de dados. Guarde o requestId/consentId retornado para aprovação, consulta ou próximos testes."],
+    ["5", "Executar telas finais e financeiras", "Depois da wallet criada e dos IDs salvos, teste saldo, extrato, Pix, pagamento e marketplace. O mockup deve mostrar comprovante, resumo ou tela final montada, não apenas JSON técnico."],
   ] : [
-    ["1", "Passo 0 — Autenticar M2M", "Execute a autenticação técnica no topo da página antes das telas empresariais. Se já houver token ativo na sessão, avance para a primeira tela da Business dWallet."],
-    ["2", "Criar Business dWallet", "Abra a primeira etapa empresarial, edite razão social, CNPJ, e-mail e telefone diretamente dentro do celular e pressione o botão principal do aplicativo."],
-    ["3", "Validação e acesso empresarial", "Quando a API retornar OK, confira se o telefone avança para a próxima tela real da jornada. Preencha códigos e credenciais diretamente no mockup, não apenas no formulário auxiliar."],
-    ["4", "Abertura e operação da carteira", "Continue pela navegação lateral na ordem apresentada. Execute uma tela por vez e confirme se os dados retornados alimentam as telas seguintes."],
-    ["5", "Saldo, extrato, Pix, cobranças e pagamentos", "Teste as telas financeiras empresariais no fim da jornada. Para extrato e saldo, confira o resumo exibido no app; para Pix, cobranças e pagamentos, confira o comprovante ou mensagem de pendência no celular."],
+    ["1", "Passo 0 — Autenticar M2M", "Execute a autenticação técnica antes das telas empresariais e confirme token ativo. O handle opaco fica registrado em Credenciais."],
+    ["2", "Criar Business dWallet", "Cadastre empresa, colaborador e validações no mockup. Guarde automaticamente o ID da BdW, companyId ou walletId retornado pela API."],
+    ["3", "Abrir e validar a BdW", "Continue na ordem lateral até a carteira empresarial estar aberta. Esses dados serão usados pela Personal dWallet quando ela precisar solicitar informações à BdW."],
+    ["4", "Produtos, schemas e solicitações", "Execute uma tela por vez, salvando IDs de produto, schema, solicitação ou consentimento em Credenciais para chamadas relacionadas."],
+    ["5", "Operações financeiras", "Teste saldo, extrato, Pix, cobranças e pagamentos no fim da jornada. O mockup deve mostrar resumo ou comprovante montado com os dados retornados."],
   ];
   const checklistItems = [
     { id: "m2m", title: "Passo 0 — Autenticar M2M", description: "Pré-requisito técnico da sandbox. Marque como revisado quando o token estiver ativo ou quando o responsável confirmar que já existe token válido.", status: m2mCompleted ? "done" as VisualStatus : "pending" as VisualStatus },
@@ -1233,8 +1349,8 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl"><ClipboardList className="h-5 w-5 text-[#1351B4]" />Guia de teste para leigos</CardTitle>
-        <CardDescription className="max-w-3xl text-base leading-7">Siga esta ordem para testar a {appName} como se fosse uma pessoa usando o aplicativo. A regra principal é simples: edite os dados no telefone, clique no botão do telefone e observe a próxima tela ou o resultado exibido no próprio aplicativo.</CardDescription>
+        <CardTitle className="flex items-center gap-2 text-xl"><ClipboardList className="h-5 w-5 text-[#1351B4]" />Guia de execução das APIs</CardTitle>
+        <CardDescription className="max-w-3xl text-base leading-7">Siga esta ordem para testar a {appName} dentro do mockup. Edite os dados no telefone, execute uma API por vez e confira quais informações foram salvas em Credenciais para alimentar etapas seguintes.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
@@ -1258,7 +1374,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <h3 className="text-lg font-bold text-slate-950">Checklist visual de progresso</h3>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa uma etapa do teste. As etapas ficam concluídas automaticamente quando a API retorna OK, mostram falha quando há erro, indicam API ausente quando não existe endpoint e também podem ser marcadas manualmente como revisadas.</p>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa uma etapa da execução. As etapas ficam concluídas quando a API retorna OK, e os valores gerados ficam disponíveis em Credenciais para serem reutilizados como input em outras APIs.</p>
             </div>
             <Badge className="bg-[#1351B4] text-white">{doneOrReviewed} de {checklistItems.length} revisadas</Badge>
           </div>
@@ -1460,6 +1576,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [reviewedGuideSteps, setReviewedGuideSteps] = useState<Record<string, boolean>>({});
   const [dataprevCredentials, setDataprevCredentials] = useState<DataprevCredentialForm>({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+  const [credentialFolder, setCredentialFolder] = useState<CredentialFolderItem[]>([]);
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
   const activeIndex = screens.findIndex(screen => screen.id === active.id);
   const nextScreen = activeIndex >= 0 ? screens[activeIndex + 1] : undefined;
@@ -1536,6 +1653,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       const result = await authenticateM2M.mutateAsync({ credentials: buildDataprevCredentialsInput(dataprevCredentials) });
       const typed = result as M2MAuthResult;
       setM2mResult(typed);
+      if (typed.ok) {
+        setCredentialFolder(previous => mergeCredentialFolder(previous, createCredentialFolderItems("Passo 0 M2M", { m2mTokenHandle: typed.tokenHandle, m2mExpiresAt: typed.expiresAt, m2mActive: typed.active })));
+      }
       if (!typed.ok) setErrors(previous => ({ ...previous, m2m: typed.message }));
       await metadata.refetch();
     } catch (error) {
@@ -1571,6 +1691,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       const typed = evidence as Evidence;
       setEvidences(previous => ({ ...previous, [active.actionId as string]: typed }));
       setState(previous => compactRunState({ ...previous, ...(typed.stateUpdates || {}) }));
+      setCredentialFolder(previous => mergeCredentialFolder(previous, createCredentialFolderItems(typed.actionTitle || active.title, typed.stateUpdates)));
       if (!typed.ok) setErrors(previous => ({ ...previous, [active.id]: typed.message || typed.missingReason || "A chamada retornou falha operacional." }));
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha inesperada na execução da API.";
@@ -1731,6 +1852,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />
             </TabsContent>
             <TabsContent value="credenciais" className="space-y-6">
+              <CredentialFolderPanel items={credentialFolder} values={mergedState} />
               <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} btgBaseUrl={btgMetadata.data?.baseUrl || undefined} btgConfigured={btgMetadata.data?.credentialsConfigured} credentials={dataprevCredentials} onChange={updateDataprevCredential} onClear={clearDataprevCredentials} />
               <BtgFutureInfoPanel values={mergedState} serverBaseUrl={btgMetadata.data?.baseUrl || undefined} serverConfigured={btgMetadata.data?.credentialsConfigured} onChange={updateBtgFutureInfo} onClear={clearBtgFutureInfo} />
             </TabsContent>

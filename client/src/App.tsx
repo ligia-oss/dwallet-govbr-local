@@ -5,8 +5,6 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import PersonalDWallet from "./pages/PersonalDWallet";
-import BusinessDWallet from "./pages/BusinessDWallet";
 import PersonalGovBRWallet from "./pages/PersonalGovBRWallet";
 import BusinessGovBRWallet from "./pages/BusinessGovBRWallet";
 
@@ -15,8 +13,6 @@ function Router() {
   return (
     <Switch>
       <Route path={"/"} component={Home} />
-      <Route path={"/personal"} component={PersonalDWallet} />
-      <Route path={"/business"} component={BusinessDWallet} />
       <Route path={"/personal-govbr"} component={PersonalGovBRWallet} />
       <Route path={"/business-govbr"} component={BusinessGovBRWallet} />
       <Route path={"/404"} component={NotFound} />
