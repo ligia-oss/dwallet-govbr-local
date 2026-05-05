@@ -114,3 +114,8 @@
 - [x] Verificar por inspeção direta e testes adicionais a renderização das telas Pix, pagamentos, recebimentos, saldo e extrato com campos e respostas sanitizadas nas jornadas finais.
 - [x] Adicionar cobertura automatizada de que o shell móvel gov.br está aplicado às telas de criação de conta, OTP, login e abertura de wallet nas jornadas Personal e Business.
 - [x] Salvar checkpoint do estado atual após integração BTG, redesign gov.br e testes aprovados.
+
+- [x] Corrigir o mockup de telefone para exibir a tela real de entrada do aplicativo antes da execução da API, sem painel técnico misturado ao fluxo do usuário.
+- [x] Fazer o CTA da tela emulada representar o gatilho da API e, quando a resposta for OK, exibir a próxima tela real da jornada no telefone, por exemplo envio de código de validação após criação da PdW.
+- [x] Aplicar o mesmo padrão sequencial às jornadas PdW e BdW, incluindo estados de erro como telas reais de falha/pendência do aplicativo.
+- [x] Atualizar testes automatizados para garantir que respostas OK renderizem a tela seguinte da jornada, e não apenas um cartão genérico de resultado.

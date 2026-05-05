@@ -202,10 +202,18 @@ export const personalScreens: GovScreen[] = [
     actionId: "step2_person_signup",
     apiLabel: "Cadastro de pessoa",
     apiHint: "Equivalente à criação de usuário observada no fluxo público.",
-    primaryCta: "Criar conta gov.br de dados",
-    fields: [{ key: "personEmail", label: "E-mail", placeholder: "cidadao@example.com", type: "email", required: true }],
+    primaryCta: "Seguir",
+    fields: [
+      { key: "personFirstName", label: "Nome", placeholder: "João", required: true },
+      { key: "personLastName", label: "Sobrenome", placeholder: "Santos", required: true },
+      { key: "personEmail", label: "E-mail", placeholder: "cidadao@example.com", type: "email", required: true },
+      { key: "personPhone", label: "Telefone", placeholder: "+55 11 99999-0002", type: "tel", required: true },
+      { key: "personState", label: "UF", placeholder: "SP", required: true },
+      { key: "personPassword", label: "Senha", placeholder: "Crie uma senha", type: "password", required: true },
+    ],
     observedFrom: "br.personal.drumwave.me/enter-name, /enter-info e /password",
     blocks: ["Nome e sobrenome", "E-mail e UF", "Senha e aceite de termos", "Verificação por código de e-mail"],
+    appEmulation: { kind: "input-response", header: "Criar sua Personal dWallet", lead: "Preencha seus dados para abrir a carteira de dados gov.br.", responseEmpty: "Toque em Seguir para enviar o cadastro e avançar para a validação do e-mail.", footerNote: "Esta é a tela de entrada que o cidadão preencheria no app antes do disparo da API de criação da PdW." },
   },
   {
     id: "envio-codigo-email",
@@ -786,17 +794,30 @@ function summarizeStateUpdates(updates?: RunState) {
   return entries.map(([key, value]) => `${key}: ${String(value)}`).join(" · ");
 }
 
-export function AppEmulatedScreen({ screen, values, evidence, status }: { screen: GovScreen; values: RunState; evidence?: Evidence; status: VisualStatus }) {
+function getDisplayedFields(screen: GovScreen): ScreenField[] {
+  return screen.fields.length ? screen.fields : (screen.blocks || []).slice(0, 4).map((block, index) => ({ key: `${screen.id}-${index}`, label: block, placeholder: "" }));
+}
+
+function getShownFieldValue(field: ScreenField, values: RunState) {
+  const raw = values[field.key];
+  return field.type === "password" && raw ? "••••••••" : String(raw || field.placeholder || "Aguardando preenchimento");
+}
+
+export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status }: { screen: GovScreen; nextScreen?: GovScreen; values: RunState; evidence?: Evidence; status: VisualStatus }) {
   const emulation = screen.appEmulation ?? {
     kind: screen.actionId ? "input-response" as const : "input" as const,
     header: screen.title,
     lead: screen.subtitle,
     responseEmpty: screen.actionId ? "Execute a ação da tela para visualizar a resposta que o aplicativo usaria." : "Tela visual sem resposta externa de API.",
   };
-  const displayedFields: ScreenField[] = screen.fields.length ? screen.fields : (screen.blocks || []).slice(0, 4).map((block, index) => ({ key: `${screen.id}-${index}`, label: block, placeholder: "" }));
+  const hasOkResponse = Boolean(evidence?.ok);
+  const hasFailedResponse = Boolean(evidence && !evidence.ok);
+  const shouldAdvanceToNextScreen = hasOkResponse && Boolean(nextScreen) && ["acesso", "onboarding", "wallet"].includes(screen.group);
+  const phoneScreen = shouldAdvanceToNextScreen && nextScreen ? nextScreen : screen;
+  const phoneEmulation = shouldAdvanceToNextScreen && nextScreen ? (nextScreen.appEmulation ?? { kind: nextScreen.actionId ? "input-response" as const : "input" as const, header: nextScreen.title, lead: nextScreen.subtitle, responseEmpty: "Próxima tela liberada pela resposta anterior." }) : emulation;
+  const displayedFields = getDisplayedFields(phoneScreen);
   const responseText = evidence?.message || evidence?.missingReason || emulation.responseEmpty;
   const responseDetails = evidence ? summarizeStateUpdates(evidence.stateUpdates) : "Sem dados retornados nesta sessão.";
-
   const actionTone = status === "done" ? "bg-[#168821] text-white" : status === "failed" ? "bg-[#D04F4F] text-white" : "bg-[#1351B4] text-white";
 
   return (
@@ -810,38 +831,50 @@ export function AppEmulatedScreen({ screen, values, evidence, status }: { screen
         <div className="bg-[#1351B4] px-5 pb-5 pt-4 text-white">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15"><Landmark className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-50">gov.br</p><p className="text-sm font-bold">Carteira de dados</p></div></div>
-            <Badge className="bg-[#FFCD07] text-[#071D41]">{statusLabel[status]}</Badge>
+            <Badge className="bg-[#FFCD07] text-[#071D41]">{shouldAdvanceToNextScreen && nextScreen ? "próxima tela" : statusLabel[status]}</Badge>
           </div>
           <div className="mt-5 space-y-2">
-            <p className="text-2xl font-bold leading-tight">{emulation.header}</p>
-            <p className="text-sm leading-6 text-blue-50">{emulation.lead}</p>
+            <p className="text-2xl font-bold leading-tight">{phoneEmulation.header}</p>
+            <p className="text-sm leading-6 text-blue-50">{shouldAdvanceToNextScreen && nextScreen ? `A API de ${screen.apiLabel} retornou OK. Continue na etapa: ${nextScreen.title}.` : phoneEmulation.lead}</p>
           </div>
         </div>
         <div className="space-y-4 p-5">
-          {(emulation.kind === "input" || emulation.kind === "input-response") ? (
-            <div className="space-y-3 rounded-[1.35rem] bg-white p-4 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-wide text-[#1351B4]">Dados da operação</p>
-              {displayedFields.map(field => {
-                const raw = values[field.key];
-                const shown = field.type === "password" && raw ? "••••••••" : String(raw || field.placeholder || "Aguardando preenchimento");
-                return (
-                  <div key={field.key} className="rounded-2xl border border-[#DFE1E2] bg-[#F8F8F8] px-4 py-3">
-                    <p className="text-[11px] font-semibold text-slate-500">{field.label}</p>
-                    <p className="mt-1 min-h-5 break-words text-sm font-semibold text-[#071D41]">{shown}</p>
-                  </div>
-                );
-              })}
-              <button type="button" className={`w-full rounded-2xl px-4 py-3 text-sm font-bold shadow-sm ${actionTone}`}>{screen.primaryCta}</button>
+          {shouldAdvanceToNextScreen && nextScreen ? (
+            <div className="rounded-[1.35rem] border border-green-200 bg-green-50 p-4">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-700" /><p className="text-xs font-bold uppercase tracking-wide text-green-800">Resposta OK · fluxo avançado</p></div>
+              <p className="mt-2 text-sm font-semibold text-slate-950">{responseText}</p>
             </div>
           ) : null}
-          {(emulation.kind === "response" || emulation.kind === "input-response") ? (
-            <div className={evidence?.ok ? "rounded-[1.35rem] border border-green-200 bg-green-50 p-4" : "rounded-[1.35rem] border border-blue-100 bg-blue-50 p-4"}>
-              <div className="flex items-center gap-2"><CheckCircle2 className={evidence?.ok ? "h-4 w-4 text-green-700" : "h-4 w-4 text-[#1351B4]"} /><p className="text-xs font-bold uppercase tracking-wide text-slate-600">Resultado no app</p></div>
+
+          {hasOkResponse && !shouldAdvanceToNextScreen ? (
+            <div className="rounded-[1.35rem] border border-green-200 bg-green-50 p-4">
+              <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-700" /><p className="text-xs font-bold uppercase tracking-wide text-green-800">Resultado no app</p></div>
               <p className="mt-2 text-sm font-semibold text-slate-950">{responseText}</p>
               <p className="mt-2 text-xs leading-5 text-slate-600">{responseDetails}</p>
             </div>
           ) : null}
-          {emulation.footerNote ? <p className="rounded-2xl bg-white px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">{emulation.footerNote}</p> : null}
+
+          <div className="space-y-3 rounded-[1.35rem] bg-white p-4 shadow-sm">
+            <p className="text-xs font-bold uppercase tracking-wide text-[#1351B4]">{shouldAdvanceToNextScreen && nextScreen ? "Próxima tela do aplicativo" : "Dados da operação"}</p>
+            {displayedFields.map(field => (
+              <div key={field.key} className="rounded-2xl border border-[#DFE1E2] bg-[#F8F8F8] px-4 py-3">
+                <p className="text-[11px] font-semibold text-slate-500">{field.label}</p>
+                <p className="mt-1 min-h-5 break-words text-sm font-semibold text-[#071D41]">{getShownFieldValue(field, values)}</p>
+              </div>
+            ))}
+            <button type="button" className={`w-full rounded-2xl px-4 py-3 text-sm font-bold shadow-sm ${shouldAdvanceToNextScreen && nextScreen ? "bg-[#1351B4] text-white" : actionTone}`}>{shouldAdvanceToNextScreen && nextScreen ? nextScreen.primaryCta : screen.primaryCta}</button>
+          </div>
+
+          {hasFailedResponse ? (
+            <div className="rounded-[1.35rem] border border-amber-200 bg-amber-50 p-4">
+              <div className="flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-amber-700" /><p className="text-xs font-bold uppercase tracking-wide text-amber-800">Não foi possível continuar</p></div>
+              <p className="mt-2 text-sm font-semibold text-slate-950">{responseText}</p>
+              <p className="mt-2 text-xs leading-5 text-slate-600">Revise os dados e tente novamente. {responseDetails}</p>
+            </div>
+          ) : null}
+
+          {!evidence && (emulation.kind === "response" || emulation.kind === "input-response") ? <p className="rounded-2xl bg-white px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm"><strong>Resultado no app:</strong> {emulation.responseEmpty}</p> : null}
+          {phoneEmulation.footerNote ? <p className="rounded-2xl bg-white px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">{phoneEmulation.footerNote}</p> : null}
         </div>
       </div>
     </div>
@@ -1110,6 +1143,8 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const [runningId, setRunningId] = useState<string>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
+  const activeIndex = screens.findIndex(screen => screen.id === active.id);
+  const nextScreen = activeIndex >= 0 ? screens[activeIndex + 1] : undefined;
   const activeEvidence = active.actionId ? evidences[active.actionId] : undefined;
   const activeStatus = getVisualStatus(active, activeEvidence, runningId);
   const mergedState = useMemo(() => ({ ...(metadata.data?.initialState || {}), ...(btgMetadata.data?.initialState || {}), ...state }), [btgMetadata.data?.initialState, metadata.data?.initialState, state]);
@@ -1299,7 +1334,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
 
               <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
                 <div className="space-y-4 rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
-                  <AppEmulatedScreen screen={active} values={mergedState} evidence={activeEvidence} status={activeStatus} />
+                  <AppEmulatedScreen screen={active} nextScreen={nextScreen} values={mergedState} evidence={activeEvidence} status={activeStatus} />
                   <div className="flex items-center gap-3">
                     <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#1351B4] text-white"><active.icon className="h-5 w-5" /></div>
                     <div>

@@ -256,6 +256,125 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("businessId: biz_123");
   });
 
+  it("renders Personal dWallet creation as the real opening form and advances to the send-code screen after API OK", () => {
+    const signupScreen = personalScreens.find(screen => screen.actionId === "step2_person_signup");
+    const sendCodeScreen = personalScreens.find(screen => screen.actionId === "step2_person_send_code");
+    expect(signupScreen).toBeDefined();
+    expect(sendCodeScreen).toBeDefined();
+
+    const inputHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: signupScreen!,
+      nextScreen: sendCodeScreen!,
+      values: {
+        personFirstName: "Ana",
+        personLastName: "Cidadã",
+        personEmail: "ana.cidada@example.com",
+        personPhone: "+55 11 99999-0002",
+        personState: "SP",
+        personPassword: "Senha123!",
+      },
+      status: "pending",
+    }));
+
+    expect(inputHtml).toContain("Criar sua Personal dWallet");
+    expect(inputHtml).toContain("Ana");
+    expect(inputHtml).toContain("Cidadã");
+    expect(inputHtml).toContain("ana.cidada@example.com");
+    expect(inputHtml).toContain("Seguir");
+    expect(inputHtml).toContain("Toque em Seguir para enviar o cadastro");
+
+    const evidence: Evidence = {
+      actionId: "step2_person_signup",
+      actionTitle: "Criar Personal dWallet",
+      status: "executed",
+      ok: true,
+      httpStatus: 201,
+      responseBody: { userId: "usr_person_123", status: "created" },
+      stateUpdates: { personUserId: "usr_person_123" },
+      message: "Cadastro criado. Envie o código de validação para continuar.",
+      executedAt: "2026-05-05T18:00:00.000Z",
+    };
+    const responseHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: signupScreen!,
+      nextScreen: sendCodeScreen!,
+      values: { personEmail: "ana.cidada@example.com" },
+      evidence,
+      status: "done",
+    }));
+
+    expect(responseHtml).toContain("Resposta OK · fluxo avançado");
+    expect(responseHtml).toContain("Envio do código de e-mail");
+    expect(responseHtml).toContain("Próxima tela do aplicativo");
+    expect(responseHtml).toContain("Enviar código");
+    expect(responseHtml).not.toContain("userId: usr_person_123");
+  });
+
+  it("renders Business dWallet employee creation as a sequential app flow after API OK", () => {
+    const employeeSignupScreen = businessScreens.find(screen => screen.actionId === "step1_employee_signup");
+    const employeeSendCodeScreen = businessScreens.find(screen => screen.actionId === "step1_employee_send_code");
+    expect(employeeSignupScreen).toBeDefined();
+    expect(employeeSendCodeScreen).toBeDefined();
+
+    const evidence: Evidence = {
+      actionId: "step1_employee_signup",
+      actionTitle: "Criar conta do empregado",
+      status: "executed",
+      ok: true,
+      httpStatus: 201,
+      responseBody: { userId: "usr_employee_123", status: "created" },
+      stateUpdates: { employeeUserId: "usr_employee_123" },
+      message: "Conta criada. Envie o código para validar o e-mail corporativo.",
+      executedAt: "2026-05-05T18:10:00.000Z",
+    };
+    const html = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: employeeSignupScreen!,
+      nextScreen: employeeSendCodeScreen!,
+      values: { employeeEmail: "colaborador@example.com", employeePassword: "Senha123!" },
+      evidence,
+      status: "done",
+    }));
+
+    expect(html).toContain("Resposta OK · fluxo avançado");
+    expect(html).toContain("Próxima tela do aplicativo");
+    expect(html).toContain(employeeSendCodeScreen!.title);
+    expect(html).toContain(employeeSendCodeScreen!.primaryCta);
+    expect(html).not.toContain("employeeUserId: usr_employee_123");
+  });
+
+  it("renders pending and error states as user-facing app screens instead of technical panels", () => {
+    const signupScreen = personalScreens.find(screen => screen.actionId === "step2_person_signup");
+    expect(signupScreen).toBeDefined();
+
+    const pendingHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: signupScreen!,
+      values: { personFirstName: "Ana", personEmail: "ana@example.com" },
+      status: "pending",
+    }));
+    expect(pendingHtml).toContain("Criar sua Personal dWallet");
+    expect(pendingHtml).toContain("Resultado no app:");
+    expect(pendingHtml).toContain("Toque em Seguir");
+
+    const failedEvidence: Evidence = {
+      actionId: "step2_person_signup",
+      actionTitle: "Criar Personal dWallet",
+      status: "executed",
+      ok: false,
+      httpStatus: 403,
+      message: "Não foi possível abrir a carteira com os dados informados.",
+      responseBody: { reason: "forbidden" },
+      executedAt: "2026-05-05T18:15:00.000Z",
+    };
+    const failedHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: signupScreen!,
+      values: { personFirstName: "Ana", personEmail: "ana@example.com" },
+      evidence: failedEvidence,
+      status: "failed",
+    }));
+    expect(failedHtml).toContain("Não foi possível continuar");
+    expect(failedHtml).toContain("Revise os dados e tente novamente");
+    expect(failedHtml).toContain("Não foi possível abrir a carteira");
+  });
+
   it("renders verification-code screens with dedicated OTP input and mapped Dataprev action ids", () => {
     const personalSendInput = buildExecuteActionInput("step2_person_send_code", { personEmail: "cidadao@example.com" });
     const businessVerifyInput = buildExecuteActionInput("step1_employee_verify_code", { employeeEmail: "colaborador@example.com", employeeVerificationCode: "123456" });
