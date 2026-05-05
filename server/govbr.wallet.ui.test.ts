@@ -173,6 +173,30 @@ describe("GovBR Wallet API response panels", () => {
     expect(input.state.personFirstName).toBe("Maria");
   });
 
+  it("renders verification-code screens with dedicated OTP input and mapped Dataprev action ids", () => {
+    const personalSendInput = buildExecuteActionInput("step2_person_send_code", { personEmail: "cidadao@example.com" });
+    const businessVerifyInput = buildExecuteActionInput("step1_employee_verify_code", { employeeEmail: "colaborador@example.com", employeeVerificationCode: "123456" });
+    const personalHtml = renderToStaticMarkup(React.createElement(DirectScreenVariablesPanel, {
+      variables: [
+        { key: "personEmail", label: "E-mail", section: "Pessoa física", placeholder: "cidadao@example.com", type: "email", description: "Identificador para envio de código." },
+        { key: "personVerificationCode", label: "Código de verificação", section: "Pessoa física", placeholder: "000000", description: "OTP recebido por e-mail." },
+      ],
+      values: { personEmail: "cidadao@example.com", personVerificationCode: "654321" },
+      activeFields: [{ key: "personVerificationCode", label: "Código de verificação", placeholder: "000000", required: true }],
+      screenId: "verificacao-email",
+      screenTitle: "Verificação de e-mail",
+      group: "onboarding",
+      onChange: () => undefined,
+    }));
+
+    expect(personalSendInput.actionId).toBe("step2_person_send_code");
+    expect(businessVerifyInput.actionId).toBe("step1_employee_verify_code");
+    expect(businessVerifyInput.state.employeeVerificationCode).toBe("123456");
+    expect(personalHtml).toContain("Código de verificação");
+    expect(personalHtml).toContain("654321");
+    expect(personalHtml).toContain("direct-verificacao-email-personVerificationCode");
+  });
+
   it("derives visual status from the active action, evidence and API availability", () => {
     const executableScreen = { actionId: "wallet.run" };
     const localScreen = {};

@@ -1,4 +1,4 @@
-import { randomUUID } from "node:crypto";
+import { createHmac, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { publicProcedure, router } from "./_core/trpc";
 
@@ -20,6 +20,7 @@ type JourneyAction = {
   requiresM2M?: boolean;
   requiresUser?: "employee" | "person";
   includeRegion?: boolean;
+  acceptLanguage?: string;
   expectedStatus?: [number, number];
   buildBody?: (state: RunState) => JsonValue;
   buildPath?: (state: RunState) => string;
@@ -180,6 +181,14 @@ function getStoredToken(handle?: string) {
   return tokenStore.get(handle);
 }
 
+function verificationSecretHash(email: unknown) {
+  const value = String(email || "").trim();
+  const { clientId, clientSecret } = env();
+  if (!value) throw new Error("E-mail obrigatório para calcular secretHash de verificação.");
+  if (!clientId || !clientSecret) throw new Error("DATAPREV_CLIENT_ID e DATAPREV_CLIENT_SECRET são obrigatórios para confirmar código de verificação.");
+  return createHmac("sha256", clientSecret).update(`${value}${clientId}`).digest("base64");
+}
+
 function m2mAuthUrl() {
   return `${env().baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`;
 }
@@ -275,13 +284,14 @@ async function authenticateM2MExplicitly(): Promise<M2MAuthResult> {
   }
 }
 
-function headers(options: { m2m?: string; userToken?: string; region?: boolean; content?: boolean }) {
+function headers(options: { m2m?: string; userToken?: string; region?: boolean; content?: boolean; acceptLanguage?: string }) {
   const config = env();
   const out: Record<string, string> = { "x-api-key": config.apiKey };
   if (options.content !== false) out["Content-Type"] = "application/json";
   if (options.m2m) out.Authorization = `Bearer ${options.m2m}`;
   if (options.userToken) out["X-User-Access-Token"] = options.userToken;
   if (options.region) out["x-region"] = "BR";
+  if (options.acceptLanguage) out["Accept-Language"] = options.acceptLanguage;
   return out;
 }
 
@@ -316,7 +326,20 @@ const actions: JourneyAction[] = [
     status: "manual",
     requiresM2M: true,
     description: "Solicita código de verificação por e-mail; a confirmação depende de acesso manual à caixa postal.",
+    acceptLanguage: "pt-br",
     buildBody: state => ({ value: state.employeeEmail, attribute: "email" }),
+  },
+  {
+    id: "step1_employee_verify_code",
+    title: "Confirmar código de verificação do colaborador",
+    app: "Business",
+    group: "Auth",
+    method: "POST",
+    path: "/v1/auth/token/iam/idp/users/verify-code",
+    status: "external",
+    requiresM2M: true,
+    description: "Confirma o OTP recebido no e-mail corporativo antes de liberar o login do colaborador Business.",
+    buildBody: state => ({ attribute: "email", value: state.employeeEmail, code: state.employeeVerificationCode || state.businessOtp || "", refreshToken: "", secretHash: verificationSecretHash(state.employeeEmail), clientId: env().clientId }),
   },
   {
     id: "step1_employee_signin",
@@ -369,7 +392,20 @@ const actions: JourneyAction[] = [
     status: "manual",
     requiresM2M: true,
     description: "Solicita código de verificação por e-mail; a confirmação depende de acesso manual à caixa postal.",
+    acceptLanguage: "pt-br",
     buildBody: state => ({ value: state.personEmail, attribute: "email" }),
+  },
+  {
+    id: "step2_person_verify_code",
+    title: "Confirmar código de verificação da pessoa",
+    app: "Personal",
+    group: "Auth",
+    method: "POST",
+    path: "/v1/auth/token/iam/idp/users/verify-code",
+    status: "external",
+    requiresM2M: true,
+    description: "Confirma o OTP recebido no e-mail da pessoa física antes de liberar o login da Personal dWallet.",
+    buildBody: state => ({ attribute: "email", value: state.personEmail, code: state.personVerificationCode || state.otp || "", refreshToken: "", secretHash: verificationSecretHash(state.personEmail), clientId: env().clientId }),
   },
   {
     id: "step2_person_signin",
@@ -656,6 +692,8 @@ function initialState(): RunState {
 }
 
 function missingPrerequisite(action: JourneyAction, state: RunState) {
+  if (action.id === "step1_employee_verify_code" && !(state.employeeVerificationCode || state.businessOtp)) return "Informe o código recebido por e-mail para confirmar o colaborador Business.";
+  if (action.id === "step2_person_verify_code" && !(state.personVerificationCode || state.otp)) return "Informe o código recebido por e-mail para confirmar a pessoa física.";
   if (action.requiresUser === "employee" && !getStoredToken(String(state.employeeTokenHandle || ""))) return "Execute primeiro o login do colaborador Business para gerar um token de usuário no servidor.";
   if (action.requiresUser === "person" && !getStoredToken(String(state.personTokenHandle || ""))) return "Execute primeiro o login da pessoa física para gerar um token de usuário no servidor.";
   if (action.id === "step1_business_create" && !state.employeeTokenHandle) return "Token do colaborador Business indisponível.";
@@ -732,8 +770,23 @@ async function execute(action: JourneyAction, inputState: RunState): Promise<Evi
       executedAt,
     };
   }
-  const body = action.buildBody?.(state);
-  const requestHeaders = headers({ m2m, userToken, region: action.includeRegion, content: action.method !== "GET" });
+  let body: JsonValue;
+  try {
+    body = action.buildBody?.(state);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Falha ao montar o payload da chamada Dataprev.";
+    return {
+      actionId: action.id,
+      actionTitle: action.title,
+      status: "not_executable",
+      method: action.method,
+      ok: false,
+      responseBody: { payloadNaoMontado: message },
+      message,
+      executedAt,
+    };
+  }
+  const requestHeaders = headers({ m2m, userToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage });
   const url = `${env().baseUrl}${path}`;
   const response = await fetch(url, {
     method: action.method,

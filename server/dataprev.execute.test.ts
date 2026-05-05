@@ -1,3 +1,4 @@
+import { createHmac } from "node:crypto";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { appRouter } from "./routers";
 
@@ -189,6 +190,67 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(result)).not.toContain("api-key-teste");
     expect(JSON.stringify(result)).not.toContain("client-secret-teste");
     expect(result.message).toContain("armazenado no servidor");
+  });
+
+  it("mapeia o envio de código Personal com Accept-Language e payload da coleção Postman", async () => {
+    const caller = appRouter.createCaller(ctx);
+    const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, headers: init?.headers as Record<string, string>, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+      if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "eyJm2m.send.jwt", expires_in: 3600 });
+      return jsonResponse(200, { delivery: "email", status: "sent" });
+    }) as any;
+
+    const evidence = await caller.dataprev.executeAction({
+      actionId: "step2_person_send_code",
+      state: { personEmail: "cidadao@example.com" },
+    });
+
+    expect(evidence.status).toBe("executed");
+    expect(evidence.ok).toBe(true);
+    expect(calls[1].url).toBe("https://sandbox.test.local/v1/auth/token/iam/idp/users/send-code");
+    expect(calls[1].headers["Accept-Language"]).toBe("pt-br");
+    expect(calls[1].body).toEqual({ value: "cidadao@example.com", attribute: "email" });
+    expect(JSON.stringify(evidence)).not.toContain("eyJm2m.send.jwt");
+  });
+
+  it("mapeia a confirmação de código Business com secretHash server-side e evidência sanitizada", async () => {
+    const caller = appRouter.createCaller(ctx);
+    let verifyBody: any;
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "eyJm2m.verify.jwt", expires_in: 3600 });
+      verifyBody = init?.body ? JSON.parse(String(init.body)) : undefined;
+      return jsonResponse(200, { verified: true });
+    }) as any;
+
+    const evidence = await caller.dataprev.executeAction({
+      actionId: "step1_employee_verify_code",
+      state: { employeeEmail: "colaborador@example.com", employeeVerificationCode: "123456" },
+    });
+
+    const expectedHash = createHmac("sha256", "client-secret-teste").update("colaborador@example.comclient-id-teste").digest("base64");
+    expect(evidence.status).toBe("executed");
+    expect(verifyBody).toEqual({ attribute: "email", value: "colaborador@example.com", code: "123456", refreshToken: "", secretHash: expectedHash, clientId: "client-id-teste" });
+    expect(JSON.stringify(evidence.requestBody)).toContain("<REDACTED>");
+    expect(JSON.stringify(evidence.requestBody)).not.toContain(expectedHash);
+    expect(JSON.stringify(evidence)).not.toContain("client-secret-teste");
+  });
+
+  it("bloqueia validação OTP sem código antes de chamar a API externa", async () => {
+    const caller = appRouter.createCaller(ctx);
+    globalThis.fetch = vi.fn(async () => jsonResponse(200, { access_token: "nao-deveria-ser-usado", expires_in: 3600 })) as any;
+
+    const evidence = await caller.dataprev.executeAction({
+      actionId: "step2_person_verify_code",
+      state: { personEmail: "cidadao@example.com" },
+    });
+
+    expect(evidence.status).toBe("not_executable");
+    expect(evidence.ok).toBe(false);
+    expect(evidence.message).toContain("código recebido");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("atualiza o estado com identificadores opacos quando o login retorna token", async () => {
