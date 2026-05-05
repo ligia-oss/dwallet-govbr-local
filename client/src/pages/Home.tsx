@@ -259,6 +259,17 @@ export default function Home() {
           </Card>
         </div>
 
+        <div className="grid gap-4 lg:grid-cols-2">
+          <Card className="overflow-hidden border-[#1351B4]/30 bg-white shadow-sm">
+            <CardHeader className="govbr-hero-personal text-white"><div className="flex items-center gap-3"><Smartphone className="h-6 w-6 text-[#FFCD07]" /><div><CardTitle>Personal dWallet GovBR</CardTitle><CardDescription className="text-blue-50">Novo front-end com identidade visual gov.br e navegação espelhada da homologação.</CardDescription></div></div></CardHeader>
+            <CardContent className="space-y-4 pt-5"><p className="text-sm leading-6 text-slate-700">Reproduz entrada, cadastro, verificação de e-mail, foto, KYC, painel, solicitações, planos DSP, marketplace, carrinho, extrato e configurações, mantendo evidências sanitizadas por tela.</p><Button asChild className="bg-[#1351B4] hover:bg-[#0C326F]"><Link href="/personal-govbr">Abrir Personal GovBR</Link></Button></CardContent>
+          </Card>
+          <Card className="overflow-hidden border-[#168821]/30 bg-white shadow-sm">
+            <CardHeader className="govbr-hero-business text-white"><div className="flex items-center gap-3"><Building2 className="h-6 w-6 text-[#FFCD07]" /><div><CardTitle>Business dWallet GovBR</CardTitle><CardDescription className="text-blue-50">Novo front-end empresarial com telas e navegação compatíveis com a homologação DrumWave.</CardDescription></div></div></CardHeader>
+            <CardContent className="space-y-4 pt-5"><p className="text-sm leading-6 text-slate-700">Reproduz acesso do colaborador, verificação, cadastro empresarial, KYC, dashboard, schemas, produtos, planos, ofertas, checkout, operações e configurações.</p><Button asChild className="bg-[#168821] hover:bg-[#0f6418]"><Link href="/business-govbr">Abrir Business GovBR</Link></Button></CardContent>
+          </Card>
+        </div>
+
         <Tabs defaultValue="jornada" className="space-y-6">
           <TabsList className="grid h-auto w-full grid-cols-2 rounded-2xl bg-white p-1 shadow-sm md:grid-cols-4">
             <TabsTrigger value="jornada" className="gap-2"><DatabaseZap className="h-4 w-4" />Jornada 17 passos</TabsTrigger>

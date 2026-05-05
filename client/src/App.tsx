@@ -7,6 +7,8 @@ import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
 import PersonalDWallet from "./pages/PersonalDWallet";
 import BusinessDWallet from "./pages/BusinessDWallet";
+import PersonalGovBRWallet from "./pages/PersonalGovBRWallet";
+import BusinessGovBRWallet from "./pages/BusinessGovBRWallet";
 
 function Router() {
   // make sure to consider if you need authentication for certain routes
@@ -15,6 +17,8 @@ function Router() {
       <Route path={"/"} component={Home} />
       <Route path={"/personal"} component={PersonalDWallet} />
       <Route path={"/business"} component={BusinessDWallet} />
+      <Route path={"/personal-govbr"} component={PersonalGovBRWallet} />
+      <Route path={"/business-govbr"} component={BusinessGovBRWallet} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

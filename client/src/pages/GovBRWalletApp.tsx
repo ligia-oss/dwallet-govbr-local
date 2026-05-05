@@ -1,0 +1,639 @@
+import { useMemo, useState } from "react";
+import { Link } from "wouter";
+import { trpc } from "@/lib/trpc";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  ArrowLeft,
+  BadgeCheck,
+  Building2,
+  CheckCircle2,
+  ClipboardList,
+  Database,
+  FileCheck2,
+  Landmark,
+  LayoutDashboard,
+  Loader2,
+  LockKeyhole,
+  MailCheck,
+  Menu,
+  PackageCheck,
+  PiggyBank,
+  Play,
+  ReceiptText,
+  Settings,
+  ShieldAlert,
+  ShieldCheck,
+  ShoppingCart,
+  Smartphone,
+  UserRound,
+  WalletCards,
+} from "lucide-react";
+
+type WalletKind = "personal" | "business";
+type ScreenGroup = "acesso" | "onboarding" | "wallet" | "mercado" | "financeiro" | "configuracoes";
+type RunState = Record<string, string | number | boolean | null | undefined>;
+type Evidence = {
+  actionId: string;
+  actionTitle: string;
+  status: "executed" | "not_executable" | "failed";
+  ok: boolean;
+  httpStatus?: number;
+  requestBody?: unknown;
+  responseBody?: unknown;
+  stateUpdates?: RunState;
+  message?: string;
+  missingReason?: string;
+  executedAt: string;
+};
+
+type GovScreen = {
+  id: string;
+  route: string;
+  title: string;
+  subtitle: string;
+  group: ScreenGroup;
+  icon: typeof LayoutDashboard;
+  actionId?: string;
+  apiLabel: string;
+  apiHint: string;
+  primaryCta: string;
+  fields: Array<{ key: string; label: string; placeholder: string; type?: string; required?: boolean }>;
+  observedFrom: string;
+  blocks?: string[];
+};
+
+const groupLabel: Record<ScreenGroup, string> = {
+  acesso: "Acesso e cadastro",
+  onboarding: "Onboarding e verificação",
+  wallet: "Carteira de dados",
+  mercado: "Mercado e planos",
+  financeiro: "Financeiro",
+  configuracoes: "Configurações",
+};
+
+const personalScreens: GovScreen[] = [
+  {
+    id: "entrada",
+    route: "/",
+    title: "Entrada da Personal dWallet",
+    subtitle: "Landing e acesso da pessoa, com chamada para criar conta ou entrar na carteira.",
+    group: "acesso",
+    icon: Smartphone,
+    actionId: "step2_person_signup",
+    apiLabel: "Cadastro de pessoa",
+    apiHint: "Equivalente à criação de usuário observada no fluxo público.",
+    primaryCta: "Criar conta gov.br de dados",
+    fields: [{ key: "personEmail", label: "E-mail", placeholder: "cidadao@example.com", type: "email", required: true }],
+    observedFrom: "br.personal.drumwave.me/enter-name, /enter-info e /password",
+    blocks: ["Nome e sobrenome", "E-mail e UF", "Senha e aceite de termos", "Verificação por código de e-mail"],
+  },
+  {
+    id: "verificacao-email",
+    route: "/email-verification",
+    title: "Verificação de e-mail",
+    subtitle: "Tela com seis campos de OTP, mensagem de confirmação e reenvio de código.",
+    group: "onboarding",
+    icon: MailCheck,
+    apiLabel: "Ação manual",
+    apiHint: "A confirmação de OTP depende da caixa postal do usuário no app homologado.",
+    primaryCta: "Validar código recebido",
+    fields: [{ key: "otp", label: "Código de verificação", placeholder: "000000", required: true }],
+    observedFrom: "br.personal.drumwave.me/email-verification",
+    blocks: ["Código de 6 dígitos", "Botão continuar", "Reenvio de e-mail", "Estado de erro quando o código não confere"],
+  },
+  {
+    id: "foto-perfil",
+    route: "/profile-picture",
+    title: "Foto de perfil opcional",
+    subtitle: "Onboarding opcional de imagem com possibilidade de pular a etapa.",
+    group: "onboarding",
+    icon: UserRound,
+    apiLabel: "Sem API externa",
+    apiHint: "Tela visual local; upload real não foi necessário para mapear a navegação.",
+    primaryCta: "Pular por enquanto",
+    fields: [],
+    observedFrom: "br.personal.drumwave.me/profile-picture",
+    blocks: ["Área de avatar", "Carregar foto", "Ação de pular"],
+  },
+  {
+    id: "kyc",
+    route: "/verify",
+    title: "Confirmação de identidade",
+    subtitle: "Fluxo Persona/KYC observado com seleção de país e documento, bloqueado sem envio de documento real.",
+    group: "onboarding",
+    icon: BadgeCheck,
+    apiLabel: "Provedor KYC",
+    apiHint: "Não foi automatizado por exigir documento pessoal real; reproduzido como estado de verificação pendente.",
+    primaryCta: "Iniciar verificação",
+    fields: [],
+    observedFrom: "br.personal.drumwave.me/pre-verify e /verify",
+    blocks: ["Selecionar país Brasil", "Selecionar tipo de documento", "Upload de documento", "Estado pendente/aprovado"],
+  },
+  {
+    id: "painel",
+    route: "/dashboard",
+    title: "Painel da carteira",
+    subtitle: "Resumo de saldo estimado, dados conectados, solicitações e alertas de privacidade.",
+    group: "wallet",
+    icon: LayoutDashboard,
+    actionId: "step5_person_catalog",
+    apiLabel: "Catálogo e dados",
+    apiHint: "Consulta catálogos e elementos de dados disponíveis para a pessoa.",
+    primaryCta: "Atualizar painel",
+    fields: [],
+    observedFrom: "Bundles públicos e jornada pós-KYC inferida por labels internos",
+    blocks: ["Resumo da carteira", "Solicitações recentes", "Dados disponíveis", "Notificações"],
+  },
+  {
+    id: "solicitacoes",
+    route: "/requests",
+    title: "Solicitações de dados",
+    subtitle: "Lista pedidos de compartilhamento, consentimento e histórico de decisões.",
+    group: "wallet",
+    icon: ClipboardList,
+    actionId: "step6_create_data_request",
+    apiLabel: "Data request",
+    apiHint: "Cria solicitação de dados para uma empresa previamente registrada.",
+    primaryCta: "Criar solicitação",
+    fields: [{ key: "businessId", label: "Identificador da empresa", placeholder: "Gerado pela Business dWallet", required: true }],
+    observedFrom: "Jornada de 17 passos e labels Data Request dos bundles",
+    blocks: ["Solicitações pendentes", "Solicitações aceitas", "Detalhe de consentimento", "Evidência de chamada"],
+  },
+  {
+    id: "planos",
+    route: "/data-savings-plan",
+    title: "Planos de poupança de dados",
+    subtitle: "Adesão a planos DSP que remuneram a pessoa pelo uso autorizado dos dados.",
+    group: "mercado",
+    icon: PiggyBank,
+    actionId: "step10_list_dsps",
+    apiLabel: "Listar DSPs",
+    apiHint: "Consulta planos DSP disponíveis na sandbox.",
+    primaryCta: "Consultar planos",
+    fields: [],
+    observedFrom: "Labels Data Savings Plan, subscription e goals extraídos dos bundles",
+    blocks: ["Cards de plano", "Meta de ganho", "Renovação automática", "Detalhes do plano"],
+  },
+  {
+    id: "ofertas",
+    route: "/marketplace/offers",
+    title: "Ofertas e marketplace",
+    subtitle: "Ofertas disponíveis para monetização de dados e aceite informado pela pessoa.",
+    group: "mercado",
+    icon: PackageCheck,
+    actionId: "step12_person_offers",
+    apiLabel: "Ofertas parciais",
+    apiHint: "A listagem pode retornar oferta; o aceite depende de offerId válido.",
+    primaryCta: "Consultar ofertas",
+    fields: [{ key: "offerId", label: "Identificador da oferta", placeholder: "Preenchido quando houver oferta", required: false }],
+    observedFrom: "Bundles de marketplace, ofertas e carrinho",
+    blocks: ["Lista de ofertas", "Detalhe da oferta", "Aceite", "Adicionar ao carrinho"],
+  },
+  {
+    id: "carrinho",
+    route: "/cart-checkout",
+    title: "Carrinho e checkout",
+    subtitle: "Revisão de ofertas selecionadas, confirmação de termos e finalização da operação.",
+    group: "mercado",
+    icon: ShoppingCart,
+    actionId: "step11_business_offers_gap",
+    apiLabel: "Lacuna registrada",
+    apiHint: "Não há endpoint externo suficiente para criação completa de oferta/carrinho.",
+    primaryCta: "Registrar lacuna",
+    fields: [],
+    observedFrom: "Labels Cart, Checkout e Remove from cart dos bundles",
+    blocks: ["Itens do carrinho", "Resumo financeiro", "Termos", "Confirmação"],
+  },
+  {
+    id: "extrato",
+    route: "/statement",
+    title: "Extrato e resgate",
+    subtitle: "Histórico financeiro, saldo, conta DSP, resgates e informações de PIX/conta bancária.",
+    group: "financeiro",
+    icon: ReceiptText,
+    actionId: "step14_wallet_statement",
+    apiLabel: "Extrato parcial",
+    apiHint: "Consulta extrato quando há conta DSP conhecida; resgate e PIX são lacunas/internos.",
+    primaryCta: "Consultar extrato",
+    fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Conta DSP conhecida", required: true }],
+    observedFrom: "Jornada de 17 passos e telas financeiras inferidas",
+    blocks: ["Saldo disponível", "Transações", "Solicitar resgate", "Chave PIX/conta bancária"],
+  },
+  {
+    id: "configuracoes",
+    route: "/settings",
+    title: "Configurações e privacidade",
+    subtitle: "Preferências de conta, segurança, notificações e consentimentos ativos.",
+    group: "configuracoes",
+    icon: Settings,
+    apiLabel: "Tela local",
+    apiHint: "Configurações foram desenhadas a partir da experiência esperada de carteira e identidade gov.br.",
+    primaryCta: "Salvar preferências",
+    fields: [],
+    observedFrom: "Padrões de navegação de wallet e labels de Settings dos bundles",
+    blocks: ["Dados da conta", "Segurança", "Notificações", "Privacidade e consentimentos"],
+  },
+];
+
+const businessScreens: GovScreen[] = [
+  {
+    id: "entrada",
+    route: "/",
+    title: "Entrada da Business dWallet",
+    subtitle: "Landing e acesso corporativo para colaborador responsável pela carteira empresarial.",
+    group: "acesso",
+    icon: Building2,
+    actionId: "step1_employee_signup",
+    apiLabel: "Cadastro de colaborador",
+    apiHint: "Cria colaborador Business com e-mail corporativo.",
+    primaryCta: "Criar acesso empresarial",
+    fields: [{ key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@example.com", type: "email", required: true }],
+    observedFrom: "br.business.drumwave.me/enter-name, /enter-email e /password",
+    blocks: ["Nome e sobrenome", "E-mail corporativo", "Senha e aceite", "Verificação por e-mail"],
+  },
+  {
+    id: "email",
+    route: "/email-verification",
+    title: "Verificação de e-mail corporativo",
+    subtitle: "Confirmação OTP antes de liberar o onboarding de empresa.",
+    group: "onboarding",
+    icon: MailCheck,
+    apiLabel: "Ação manual",
+    apiHint: "O OTP é entregue por e-mail; reproduzido visualmente no front-end GovBR.",
+    primaryCta: "Confirmar e-mail",
+    fields: [{ key: "businessOtp", label: "Código de verificação", placeholder: "000000", required: true }],
+    observedFrom: "br.business.drumwave.me/email-verification",
+    blocks: ["Seis campos de código", "Mensagem de envio", "Reenvio", "Continuar"],
+  },
+  {
+    id: "empresa",
+    route: "/enter-business-information",
+    title: "Informações da empresa",
+    subtitle: "Formulário interno com dados empresariais, responsável, telefone, website e cargo.",
+    group: "onboarding",
+    icon: FileCheck2,
+    actionId: "step1_business_create",
+    apiLabel: "Criar empresa",
+    apiHint: "Registra a entidade Business que receberá solicitações de dados.",
+    primaryCta: "Salvar empresa",
+    fields: [{ key: "businessCnpj", label: "CNPJ", placeholder: "00000000000100", required: true }],
+    observedFrom: "br.business.drumwave.me/enter-business-information",
+    blocks: ["Nome empresarial", "CNPJ", "Website", "Telefone", "Cargo do usuário"],
+  },
+  {
+    id: "kyc",
+    route: "/verify",
+    title: "Confirmação de identidade do responsável",
+    subtitle: "Fluxo Persona/KYC aplicado ao usuário Business após informações empresariais.",
+    group: "onboarding",
+    icon: BadgeCheck,
+    apiLabel: "Provedor KYC",
+    apiHint: "Bloqueado na homologação sem documento real; reproduz estado pendente e trilha de etapas.",
+    primaryCta: "Iniciar verificação",
+    fields: [],
+    observedFrom: "br.business.drumwave.me/pre-verify e /verify",
+    blocks: ["País Brasil", "Documento", "Upload", "Aprovação pendente"],
+  },
+  {
+    id: "painel",
+    route: "/dashboard",
+    title: "Painel empresarial",
+    subtitle: "Visão de produtos, solicitações recebidas, campanhas ativas e indicadores financeiros.",
+    group: "wallet",
+    icon: LayoutDashboard,
+    actionId: "step7_list_business_requests",
+    apiLabel: "Solicitações recebidas",
+    apiHint: "Lista solicitações de dados associadas à empresa quando o businessId está disponível.",
+    primaryCta: "Atualizar painel",
+    fields: [{ key: "businessId", label: "Identificador da empresa", placeholder: "Gerado no cadastro empresarial", required: true }],
+    observedFrom: "Jornada de 17 passos e labels de dashboard/requests dos bundles",
+    blocks: ["KPIs", "Solicitações recentes", "Campanhas", "Alertas operacionais"],
+  },
+  {
+    id: "schemas",
+    route: "/schemas-datasets",
+    title: "Schemas, datasets e databases",
+    subtitle: "Conexão e seleção de conjuntos de dados para configurar produtos e campanhas.",
+    group: "wallet",
+    icon: Database,
+    actionId: "step3_list_schemas",
+    apiLabel: "Listar schemas",
+    apiHint: "Consulta schemas externos disponíveis.",
+    primaryCta: "Consultar schemas",
+    fields: [],
+    observedFrom: "Labels Connect datasets/databases e schema dos bundles",
+    blocks: ["Schemas disponíveis", "Conectar database", "Mapear campos", "Status de integração"],
+  },
+  {
+    id: "produtos",
+    route: "/products",
+    title: "Produtos de dados",
+    subtitle: "Criação e gerenciamento de produtos que podem originar ofertas e campanhas.",
+    group: "mercado",
+    icon: PackageCheck,
+    actionId: "step4_create_product",
+    apiLabel: "Criar produto",
+    apiHint: "Tenta criar produto de marketplace para a empresa registrada.",
+    primaryCta: "Criar produto",
+    fields: [{ key: "businessId", label: "Identificador da empresa", placeholder: "Gerado no cadastro empresarial", required: true }],
+    observedFrom: "Labels Products, Marketplace e Create product dos bundles",
+    blocks: ["Lista de produtos", "Novo produto", "Schema usado", "Status de publicação"],
+  },
+  {
+    id: "planos",
+    route: "/data-savings-plans",
+    title: "Data Savings Plans",
+    subtitle: "Planos comerciais, contribuições de dados, assinatura e renovação automática.",
+    group: "mercado",
+    icon: PiggyBank,
+    actionId: "step10_list_dsps",
+    apiLabel: "Listar DSPs",
+    apiHint: "Consulta planos DSP aplicáveis às operações Business e Personal.",
+    primaryCta: "Ver planos",
+    fields: [],
+    observedFrom: "Labels Data Savings Plan, subscription, contribution e renewal dos bundles",
+    blocks: ["Criar plano", "Detalhes do plano", "Contribuições", "Renovação automática"],
+  },
+  {
+    id: "ofertas",
+    route: "/offers-campaigns",
+    title: "Ofertas e campanhas",
+    subtitle: "Publicação de ofertas, campanhas de dados e acompanhamento de conversão.",
+    group: "mercado",
+    icon: ClipboardList,
+    actionId: "step11_business_offers_gap",
+    apiLabel: "API faltante",
+    apiHint: "Criação/publicação completa de ofertas não está externalizada na sandbox atual.",
+    primaryCta: "Registrar lacuna",
+    fields: [],
+    observedFrom: "Labels Offers, Campaigns e Transactions dos bundles",
+    blocks: ["Campanhas", "Oferta ativa", "Público-alvo", "Conversões"],
+  },
+  {
+    id: "carrinho-checkout",
+    route: "/cart-checkout",
+    title: "Carrinho, checkout e operações",
+    subtitle: "Acompanhamento de compra/contratação de produtos de dados e transações.",
+    group: "financeiro",
+    icon: ShoppingCart,
+    actionId: "step14_wallet_statement",
+    apiLabel: "Extrato parcial",
+    apiHint: "Usa extrato como evidência financeira enquanto checkout completo depende de endpoints futuros.",
+    primaryCta: "Consultar operação",
+    fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Conta DSP conhecida", required: true }],
+    observedFrom: "Labels Cart, Checkout, Transactions e Finance dos bundles",
+    blocks: ["Itens", "Resumo", "Pagamento", "Histórico de operações"],
+  },
+  {
+    id: "configuracoes",
+    route: "/settings",
+    title: "Configurações empresariais",
+    subtitle: "Equipe, permissões, segurança, notificações e preferências da empresa.",
+    group: "configuracoes",
+    icon: Settings,
+    apiLabel: "Tela local",
+    apiHint: "Componente visual sem endpoint externo identificado no mapeamento.",
+    primaryCta: "Salvar configurações",
+    fields: [],
+    observedFrom: "Padrões de Settings e gestão de conta dos bundles",
+    blocks: ["Perfil da empresa", "Usuários", "Permissões", "Notificações"],
+  },
+];
+
+function validateField(key: string, label: string, value: unknown, required?: boolean, type?: string) {
+  const text = String(value ?? "").trim();
+  if (required && !text) return `${label} é obrigatório para esta ação.`;
+  if (text && type === "email" && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) return "Informe um e-mail válido.";
+  if (text && key.toLowerCase().includes("cnpj") && !/^\d{14}$/.test(text.replace(/\D/g, ""))) return "Informe um CNPJ com 14 dígitos.";
+  if (required && key.toLowerCase().endsWith("id") && /gerado|conhecida|conhecido/i.test(text)) return `${label} ainda precisa ser gerado por uma etapa anterior.`;
+  return undefined;
+}
+
+function EvidenceBox({ evidence }: { evidence?: Evidence }) {
+  if (!evidence) {
+    return <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-600">Nenhuma chamada executada nesta tela. Use o botão principal para gerar evidência sanitizada.</div>;
+  }
+
+  return (
+    <div className="space-y-3 rounded-2xl bg-slate-950 p-4 text-slate-50">
+      <div className="flex flex-wrap items-center gap-2">
+        <Badge className={evidence.ok ? "bg-green-700" : "bg-red-700"}>{evidence.ok ? "OK" : "Atenção"}</Badge>
+        <Badge variant="secondary">{evidence.httpStatus ? `HTTP ${evidence.httpStatus}` : evidence.status}</Badge>
+        <span className="text-xs text-slate-300">{new Date(evidence.executedAt).toLocaleString("pt-BR")}</span>
+      </div>
+      <p className="text-sm text-slate-200">{evidence.message || evidence.missingReason || "Evidência registrada."}</p>
+      <Textarea readOnly value={JSON.stringify({ requisicao: evidence.requestBody, resposta: evidence.responseBody, estado: evidence.stateUpdates }, null, 2)} className="min-h-44 border-slate-700 bg-slate-900 font-mono text-xs text-slate-100" />
+    </div>
+  );
+}
+
+export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
+  const screens = kind === "personal" ? personalScreens : businessScreens;
+  const isPersonal = kind === "personal";
+  const metadata = trpc.dataprev.metadata.useQuery();
+  const executeAction = trpc.dataprev.executeAction.useMutation();
+  const [activeId, setActiveId] = useState(screens[0]?.id ?? "entrada");
+  const [state, setState] = useState<RunState>({});
+  const [evidences, setEvidences] = useState<Record<string, Evidence>>({});
+  const [runningId, setRunningId] = useState<string>();
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const active = screens.find(screen => screen.id === activeId) ?? screens[0];
+  const mergedState = useMemo(() => ({ ...(metadata.data?.initialState || {}), ...state }), [metadata.data?.initialState, state]);
+  const completed = screens.filter(screen => screen.actionId && evidences[screen.actionId]?.ok).length;
+  const callable = screens.filter(screen => screen.actionId).length;
+
+  const grouped = useMemo(() => {
+    return screens.reduce<Record<ScreenGroup, GovScreen[]>>((acc, screen) => {
+      acc[screen.group] = [...(acc[screen.group] || []), screen];
+      return acc;
+    }, { acesso: [], onboarding: [], wallet: [], mercado: [], financeiro: [], configuracoes: [] });
+  }, [screens]);
+
+  const updateField = (key: string, value: string) => {
+    setState(previous => ({ ...previous, [key]: value }));
+    setErrors(previous => {
+      const next = { ...previous };
+      delete next[key];
+      delete next[active.id];
+      return next;
+    });
+  };
+
+  const run = async () => {
+    if (!active.actionId) {
+      setErrors(previous => ({ ...previous, [active.id]: "Esta tela foi mapeada como experiência visual; não há API externa associada." }));
+      return;
+    }
+    const fieldErrors: Record<string, string> = {};
+    active.fields.forEach(field => {
+      const error = validateField(field.key, field.label, mergedState[field.key], field.required, field.type);
+      if (error) fieldErrors[field.key] = error;
+    });
+    if (Object.keys(fieldErrors).length) {
+      setErrors(previous => ({ ...previous, ...fieldErrors, [active.id]: "Revise os campos destacados antes de executar." }));
+      return;
+    }
+    setRunningId(active.actionId);
+    setErrors(previous => {
+      const next = { ...previous };
+      delete next[active.id];
+      return next;
+    });
+    try {
+      const evidence = await executeAction.mutateAsync({ actionId: active.actionId, state: mergedState as Record<string, string | number | boolean | null> });
+      const typed = evidence as Evidence;
+      setEvidences(previous => ({ ...previous, [active.actionId as string]: typed }));
+      setState(previous => ({ ...previous, ...(typed.stateUpdates || {}) }));
+      if (!typed.ok) setErrors(previous => ({ ...previous, [active.id]: typed.message || typed.missingReason || "A chamada retornou falha operacional." }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Falha inesperada na execução da API.";
+      setErrors(previous => ({ ...previous, [active.id]: message }));
+    } finally {
+      setRunningId(undefined);
+    }
+  };
+
+  return (
+    <main className="min-h-screen bg-[#F8F8F8] text-slate-950">
+      <header className="border-b border-[#DFE1E2] bg-white">
+        <div className="container flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="flex items-center gap-4">
+            <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#1351B4] text-white"><Landmark className="h-6 w-6" /></div>
+            <div>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#1351B4]">gov.br · carteira digital de dados</p>
+              <h1 className="text-xl font-bold">{isPersonal ? "Personal dWallet GovBR" : "Business dWallet GovBR"}</h1>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" />Jornada integrada</Button></Link>
+            <Link href={isPersonal ? "/business-govbr" : "/personal-govbr"}><Button className="bg-[#1351B4] hover:bg-[#0C326F]">Abrir {isPersonal ? "Business" : "Personal"}</Button></Link>
+          </div>
+        </div>
+      </header>
+
+      <section className={isPersonal ? "govbr-hero-personal" : "govbr-hero-business"}>
+        <div className="container grid gap-8 py-10 text-white lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+          <div className="space-y-4">
+            <Badge className="bg-[#FFCD07] text-[#071D41]">Protótipo espelhado da homologação</Badge>
+            <h2 className="max-w-4xl text-4xl font-bold tracking-tight md:text-5xl">{isPersonal ? "Carteira cidadã para controlar, autorizar e monetizar dados." : "Carteira empresarial para produtos, campanhas e operações de dados."}</h2>
+            <p className="max-w-3xl text-base leading-7 text-blue-50">Este front-end reproduz a navegação pública, onboarding e telas internas mapeadas nos ambientes DrumWave, redesenhadas com hierarquia visual, cores, foco acessível e linguagem institucional brasileira.</p>
+          </div>
+          <Card className="border-white/20 bg-white/10 text-white backdrop-blur">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" />APIs e evidências</CardTitle>
+              <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local.</CardDescription>
+            </CardHeader>
+            <CardContent className="grid gap-3 text-sm text-blue-50">
+              <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base sandbox</span><span className="font-mono text-xs">{metadata.data?.baseUrl || "carregando"}</span></div>
+              <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Credenciais</span><span>somente servidor</span></div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
+      <div className="container grid gap-6 py-8 lg:grid-cols-[320px_1fr]">
+        <aside className="space-y-4 lg:sticky lg:top-4 lg:self-start">
+          <Card className="border-slate-200 bg-white shadow-sm">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-base"><Menu className="h-5 w-5 text-[#1351B4]" />Navegação da wallet</CardTitle>
+              <CardDescription>Telas reproduzidas a partir da homologação e dos bundles públicos.</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {(Object.keys(grouped) as ScreenGroup[]).map(group => grouped[group].length ? (
+                <div key={group} className="space-y-2">
+                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{groupLabel[group]}</p>
+                  {grouped[group].map(screen => {
+                    const Icon = screen.icon;
+                    const selected = screen.id === active.id;
+                    const evidence = screen.actionId ? evidences[screen.actionId] : undefined;
+                    return (
+                      <button key={screen.id} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between rounded-xl px-3 py-2 text-left text-sm transition ${selected ? "bg-[#1351B4] text-white" : "text-slate-700 hover:bg-slate-100"}`}>
+                        <span className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{screen.title}</span></span>
+                        {evidence?.ok ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : screen.actionId ? <Play className="h-3 w-3 opacity-70" /> : <LockKeyhole className="h-3 w-3 opacity-60" />}
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : null)}
+            </CardContent>
+          </Card>
+          <Alert className="border-[#1351B4]/20 bg-white">
+            <ShieldAlert className="h-4 w-4" />
+            <AlertTitle>Limite observado</AlertTitle>
+            <AlertDescription>O mapeamento visual autenticado chegou até KYC Persona nas duas wallets; telas posteriores foram complementadas por análise de bundles e pela jornada de APIs.</AlertDescription>
+          </Alert>
+        </aside>
+
+        <section className="space-y-5">
+          <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
+            <div className="border-b border-slate-200 bg-slate-50 px-6 py-3">
+              <p className="text-xs font-semibold uppercase tracking-wide text-[#1351B4]">Rota espelhada: {active.route}</p>
+            </div>
+            <CardHeader>
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <Badge variant="outline" className="border-[#1351B4] text-[#1351B4]">{groupLabel[active.group]}</Badge>
+                  <CardTitle className="text-2xl">{active.title}</CardTitle>
+                  <CardDescription className="max-w-3xl text-base leading-7">{active.subtitle}</CardDescription>
+                </div>
+                <Badge className={active.actionId ? "bg-[#168821]" : "bg-slate-600"}>{active.apiLabel}</Badge>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {errors[active.id] ? <Alert className="border-amber-200 bg-amber-50 text-amber-950"><ShieldAlert className="h-4 w-4" /><AlertTitle>Atenção nesta tela</AlertTitle><AlertDescription>{errors[active.id]}</AlertDescription></Alert> : null}
+
+              <div className="grid gap-4 lg:grid-cols-[1fr_0.85fr]">
+                <div className="space-y-4 rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
+                  <div className="flex items-center gap-3">
+                    <div className="grid h-11 w-11 place-items-center rounded-2xl bg-[#1351B4] text-white"><active.icon className="h-5 w-5" /></div>
+                    <div>
+                      <p className="text-sm font-semibold text-slate-950">Composição da tela</p>
+                      <p className="text-xs text-slate-500">Base observada em {active.observedFrom}</p>
+                    </div>
+                  </div>
+                  <Separator />
+                  <div className="grid gap-3 md:grid-cols-2">
+                    {(active.blocks || []).map(block => <div key={block} className="rounded-2xl border border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 shadow-sm">{block}</div>)}
+                  </div>
+                  {active.fields.length ? <div className="grid gap-4 md:grid-cols-2">{active.fields.map(field => {
+                    const error = errors[field.key];
+                    return (
+                      <div key={field.key} className="space-y-2">
+                        <Label htmlFor={`${active.id}-${field.key}`}>{field.label}</Label>
+                        <Input id={`${active.id}-${field.key}`} type={field.type || "text"} value={String(mergedState[field.key] || "")} placeholder={field.placeholder} aria-invalid={Boolean(error)} onChange={event => updateField(field.key, event.target.value)} className={error ? "border-red-500 focus-visible:ring-red-500" : undefined} />
+                        {error ? <p className="text-sm font-medium text-red-700">{error}</p> : null}
+                      </div>
+                    );
+                  })}</div> : null}
+                  <Button onClick={run} disabled={Boolean(runningId)} className="bg-[#1351B4] hover:bg-[#0C326F]">
+                    {runningId === active.actionId ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Play className="mr-2 h-4 w-4" />}
+                    {active.primaryCta}
+                  </Button>
+                  <p className="text-sm leading-6 text-slate-600"><strong>Integração:</strong> {active.apiHint}</p>
+                </div>
+                <div className="space-y-4">
+                  <Card className="border-slate-200 bg-white shadow-sm">
+                    <CardHeader><CardTitle className="flex items-center gap-2 text-base"><WalletCards className="h-5 w-5 text-[#168821]" />Resumo operacional</CardTitle></CardHeader>
+                    <CardContent className="space-y-3 text-sm">
+                      <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Aplicação</span><strong>{isPersonal ? "Personal" : "Business"}</strong></div>
+                      <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Grupo</span><strong>{groupLabel[active.group]}</strong></div>
+                      <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>API</span><strong>{active.actionId || "visual"}</strong></div>
+                    </CardContent>
+                  </Card>
+                  <EvidenceBox evidence={active.actionId ? evidences[active.actionId] : undefined} />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </section>
+      </div>
+    </main>
+  );
+}

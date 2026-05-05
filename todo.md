@@ -20,3 +20,26 @@
 - [x] Adicionar tela/fluxo de planos na Business dWallet e conectá-lo aos endpoints de DSP/planos aplicáveis.
 - [x] Adicionar validação de formulários e estados de erro visíveis na UI para falhas de mutation ou rede.
 - [x] Criar testes Vitest para execução de ações Dataprev cobrindo sucesso/lacuna, falha e atualização/sanitização do estado.
+- [x] Mapear telas, navegação e experiências autenticadas dos ambientes Personal e Business DrumWave informados pelo usuário.
+- [x] Criar contas de teste nos ambientes Personal e Business somente após confirmação do usuário para submissão dos formulários externos.
+- [x] Registrar achados de navegação, telas, menus, formulários e fluxos em arquivo de evidência antes de implementar.
+- [x] Criar dois novos front-ends separados: Personal dWallet GovBR e Business dWallet GovBR, inspirados nas telas homologadas e com identidade visual governamental brasileira.
+- [x] Implementar navegação própria de carteira digital para Personal dWallet GovBR com dashboard, dados, solicitações, ofertas, carteira, extrato e configurações conforme mapeamento.
+- [x] Implementar navegação própria de carteira digital para Business dWallet GovBR com dashboard, empresa, produtos, solicitações, ofertas, operações, financeiro e configurações conforme mapeamento.
+- [x] Conectar ações das novas telas aos procedimentos Dataprev existentes quando houver API executável e registrar lacunas onde não houver API.
+- [x] Validar responsividade, acessibilidade visual, TypeScript, testes Vitest e salvar novo checkpoint da entrega.
+- [x] Mapear campos de cadastro e login das duas aplicações antes de submeter dados de teste em homologação.
+- [x] Criar conta de homologação Personal dWallet com dados sintéticos aprovados pelo usuário e registrar credenciais usadas apenas para navegação de teste.
+- [x] Criar conta de homologação Business dWallet com dados sintéticos aprovados pelo usuário e registrar credenciais usadas apenas para navegação de teste.
+- [x] Navegar pelas áreas internas autenticadas das duas aplicações e documentar menus, dashboards, formulários, telas vazias, telas de dados, telas financeiras e jornadas de operação.
+- [x] Reproduzir nos novos front-ends GovBR as telas internas mapeadas, além das telas públicas já observadas.
+- [x] Executar e registrar validação verificável de responsividade e acessibilidade das rotas GovBR em breakpoints principais, navegação por teclado, foco e contraste visual básico.
+- [x] Registrar explicitamente que as áreas internas pós-KYC foram inferidas por análise de bundles públicos e pela jornada de APIs, não navegadas autenticamente além do bloqueio Persona.
+- [x] Salvar novo checkpoint final da versão GovBR após validação concluída.
+- [x] Executar e registrar validação verificável de navegação por teclado nas rotas GovBR, incluindo ordem de tabulação, ativação por Enter/Espaço e foco visível.
+- [x] Executar e registrar checagem básica de contraste visual e foco das áreas principais das rotas GovBR.
+- [x] Executar e registrar teste verificável de teclado real nas rotas `/personal-govbr` e `/business-govbr`, cobrindo Tab/Shift+Tab, ordem real de foco e ativação por Enter/Espaço dos controles principais.
+- [x] Executar e registrar teste real com Shift+Tab nas rotas `/personal-govbr` e `/business-govbr`, documentando a ordem real de foco reversa.
+- [x] Executar e registrar ativação real por Enter e por Espaço nos controles principais de ambas as rotas GovBR.
+- [x] Salvar checkpoint efetivo da versão GovBR com evidência de sucesso.
+- [x] Executar e registrar ativação real por Enter em controle principal da rota `/business-govbr`, com evidência verificável do efeito resultante.
