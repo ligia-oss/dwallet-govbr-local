@@ -62,6 +62,39 @@ describe("execução Dataprev", () => {
     expect(evidence.responseBody).toEqual({ error: "sandbox indisponível" });
   });
 
+  it("explica Forbidden em cadastro como provável divergência de DATAPREV_API_KEY", async () => {
+    const caller = appRouter.createCaller(ctx);
+    globalThis.fetch = vi.fn(async () => jsonResponse(403, { message: "Forbidden" })) as any;
+
+    const evidence = await caller.dataprev.executeAction({
+      actionId: "step2_person_signup",
+      state: { runId: "126", personEmail: "forbidden@example.com" },
+    });
+
+    expect(evidence.status).toBe("failed");
+    expect(evidence.ok).toBe(false);
+    expect(evidence.httpStatus).toBe(403);
+    expect(evidence.message).toContain("DATAPREV_API_KEY");
+    expect(evidence.message).toContain("publicado");
+  });
+
+  it("retorna evidência sanitizada quando o passo zero M2M é recusado", async () => {
+    const caller = appRouter.createCaller(ctx);
+    globalThis.fetch = vi.fn(async () => jsonResponse(403, { message: "Forbidden" })) as any;
+
+    const evidence = await caller.dataprev.executeAction({
+      actionId: "step10_commercial_dsps",
+      state: { runId: "127" },
+    });
+
+    expect(evidence.status).toBe("failed");
+    expect(evidence.ok).toBe(false);
+    expect(evidence.httpStatus).toBe(403);
+    expect(evidence.message).toContain("passo zero");
+    expect(evidence.responseBody).toEqual(expect.objectContaining({ etapa: "passo_zero_m2m" }));
+    expect(JSON.stringify(evidence)).not.toContain("api-key-teste");
+  });
+
   it("atualiza o estado com identificadores opacos quando o login retorna token", async () => {
     const caller = appRouter.createCaller(ctx);
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {

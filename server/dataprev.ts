@@ -202,6 +202,14 @@ function headers(options: { m2m?: string; userToken?: string; region?: boolean; 
   return out;
 }
 
+function authFailureMessage(status: number, context: "m2m" | "api") {
+  if (status !== 401 && status !== 403) return "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.";
+  if (context === "m2m") {
+    return "A sandbox recusou o passo zero de autenticação M2M. Verifique no ambiente publicado DATAPREV_API_KEY, DATAPREV_CLIENT_ID e DATAPREV_CLIENT_SECRET; quando local funciona e publicado retorna 403, a causa provável é credencial publicada divergente, ausente ou sem permissão.";
+  }
+  return "A sandbox recusou a chamada com Forbidden/Unauthorized. Para cadastro Personal/Business, isso normalmente indica DATAPREV_API_KEY inválida, divergente entre local e publicado, expirada ou sem permissão para a base configurada.";
+}
+
 const actions: JourneyAction[] = [
   {
     id: "step1_employee_signup",
@@ -587,7 +595,28 @@ async function execute(action: JourneyAction, inputState: RunState): Promise<Evi
     };
   }
 
-  const m2m = action.requiresM2M ? await getM2MToken() : undefined;
+  let m2m: string | undefined;
+  try {
+    m2m = action.requiresM2M ? await getM2MToken() : undefined;
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Falha desconhecida ao obter token M2M.";
+    const statusMatch = message.match(/HTTP\s+(\d+)/i);
+    const status = statusMatch ? Number(statusMatch[1]) : undefined;
+    return {
+      actionId: action.id,
+      actionTitle: action.title,
+      status: "failed",
+      method: action.method,
+      url: `${env().baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`,
+      httpStatus: status,
+      ok: false,
+      requestHeaders: sanitizeDataprevEvidence(headers({ content: true })) as Record<string, string>,
+      responseBody: { etapa: "passo_zero_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor." },
+      stateUpdates: {},
+      message: status ? authFailureMessage(status, "m2m") : message,
+      executedAt,
+    };
+  }
   const userToken = action.requiresUser === "employee" ? getStoredToken(String(state.employeeTokenHandle || "")) : action.requiresUser === "person" ? getStoredToken(String(state.personTokenHandle || "")) : undefined;
   const path = action.buildPath ? action.buildPath(state) : action.path;
   if (!path || path.includes("undefined") || path.includes("null")) {
@@ -627,7 +656,7 @@ async function execute(action: JourneyAction, inputState: RunState): Promise<Evi
     requestBody: sanitizeDataprevEvidence(body) as JsonValue,
     responseBody: sanitizeDataprevEvidence(responseBody),
     stateUpdates: sanitizeDataprevEvidence(stateUpdates) as RunState,
-    message: ok ? "Chamada executada dentro da faixa esperada." : "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.",
+    message: ok ? "Chamada executada dentro da faixa esperada." : authFailureMessage(response.status, "api"),
     executedAt,
   };
 }
