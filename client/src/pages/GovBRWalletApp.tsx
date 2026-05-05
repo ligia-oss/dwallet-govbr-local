@@ -5,8 +5,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
@@ -1097,7 +1099,7 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
   );
 }
 
-export function BeginnerTestGuide({ walletKind }: { walletKind: WalletKind }) {
+export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, runningId, m2mCompleted = false, reviewedSteps = {}, onToggleReviewed, onOpenStep }: { walletKind: WalletKind; screens?: GovScreen[]; evidences?: Record<string, Evidence>; runningId?: string; m2mCompleted?: boolean; reviewedSteps?: Record<string, boolean>; onToggleReviewed?: (stepId: string, checked: boolean) => void; onOpenStep?: (screenId: string) => void }) {
   const appName = walletKind === "personal" ? "Personal dWallet" : "Business dWallet";
   const orderedSteps = walletKind === "personal" ? [
     ["1", "Passo 0 — Autenticar M2M", "Clique no botão de autenticação no topo da página. Espere aparecer token ativo no servidor. Este passo é técnico e prepara as APIs; ele não representa uma tela do usuário final."],
@@ -1112,6 +1114,24 @@ export function BeginnerTestGuide({ walletKind }: { walletKind: WalletKind }) {
     ["4", "Abertura e operação da carteira", "Continue pela navegação lateral na ordem apresentada. Execute uma tela por vez e confirme se os dados retornados alimentam as telas seguintes."],
     ["5", "Saldo, extrato, Pix, cobranças e pagamentos", "Teste as telas financeiras empresariais no fim da jornada. Para extrato e saldo, confira o resumo exibido no app; para Pix, cobranças e pagamentos, confira o comprovante ou mensagem de pendência no celular."],
   ];
+  const checklistItems = [
+    { id: "m2m", title: "Passo 0 — Autenticar M2M", description: "Pré-requisito técnico da sandbox. Marque como revisado quando o token estiver ativo ou quando o responsável confirmar que já existe token válido.", status: m2mCompleted ? "done" as VisualStatus : "pending" as VisualStatus },
+    ...screens.map(screen => ({
+      id: screen.id,
+      title: screen.title,
+      description: screen.actionId ? screen.apiHint : "Tela visual sem endpoint externo obrigatório; use para conferir a continuidade da experiência.",
+      status: getVisualStatus(screen, screen.actionId ? evidences[screen.actionId] : undefined, runningId),
+    })),
+  ];
+  const doneOrReviewed = checklistItems.filter(item => item.status === "done" || reviewedSteps[item.id]).length;
+  const progressValue = checklistItems.length ? Math.round((doneOrReviewed / checklistItems.length) * 100) : 0;
+  const statusClasses: Record<VisualStatus, string> = {
+    pending: "border-slate-200 bg-slate-50 text-slate-700",
+    running: "border-blue-200 bg-blue-50 text-blue-950",
+    done: "border-green-200 bg-green-50 text-green-950",
+    failed: "border-amber-200 bg-amber-50 text-amber-950",
+    missing: "border-slate-300 bg-white text-slate-700",
+  };
 
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
@@ -1137,6 +1157,42 @@ export function BeginnerTestGuide({ walletKind }: { walletKind: WalletKind }) {
             </div>
           ))}
         </div>
+        <section className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5" aria-label="Checklist visual de progresso da jornada">
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h3 className="text-lg font-bold text-slate-950">Checklist visual de progresso</h3>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa uma etapa do teste. As etapas ficam concluídas automaticamente quando a API retorna OK, mostram falha quando há erro, indicam API ausente quando não existe endpoint e também podem ser marcadas manualmente como revisadas.</p>
+            </div>
+            <Badge className="bg-[#1351B4] text-white">{doneOrReviewed} de {checklistItems.length} revisadas</Badge>
+          </div>
+          <div className="mt-4 space-y-2">
+            <Progress value={progressValue} className="h-3 bg-white" />
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{progressValue}% do roteiro acompanhado nesta sessão</p>
+          </div>
+          <div className="mt-5 space-y-3">
+            {checklistItems.map((item, index) => {
+              const checked = item.status === "done" || Boolean(reviewedSteps[item.id]);
+              const running = item.status === "running";
+              return (
+                <div key={item.id} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[auto_1fr_auto] md:items-center">
+                  <div className="flex items-center gap-3">
+                    <Checkbox id={`guide-check-${walletKind}-${item.id}`} checked={checked} onCheckedChange={value => onToggleReviewed?.(item.id, value === true)} aria-label={`Marcar etapa ${index + 1} como revisada`} />
+                    <span className="grid h-8 w-8 place-items-center rounded-full bg-[#E7F0FF] font-mono text-sm font-bold text-[#1351B4]">{index + 1}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-slate-950">{item.title}</p>
+                      <Badge variant="outline" className={statusClasses[item.status]}>{running ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : item.status === "done" ? <CheckCircle2 className="mr-1 h-3 w-3" /> : null}{statusLabel[item.status]}</Badge>
+                      {reviewedSteps[item.id] && item.status !== "done" ? <Badge variant="outline" className="border-[#FFCD07] bg-[#FFF7CC] text-[#071D41]">revisada manualmente</Badge> : null}
+                    </div>
+                    <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
+                  </div>
+                  {item.id !== "m2m" ? <Button type="button" variant="outline" onClick={() => onOpenStep?.(item.id)} className="justify-center">Abrir etapa</Button> : <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Pré-requisito</span>}
+                </div>
+              );
+            })}
+          </div>
+        </section>
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm leading-6 text-green-950"><strong>Resultado esperado OK:</strong> a tela do telefone avança para a etapa seguinte ou mostra um comprovante/resumo real da operação.</div>
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>Resultado esperado com pendência:</strong> o telefone mostra uma mensagem de falha ou pendência em linguagem de aplicativo, e o painel técnico abaixo fica apenas como evidência sanitizada.</div>
@@ -1213,6 +1269,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const [m2mResult, setM2mResult] = useState<M2MAuthResult>();
   const [runningId, setRunningId] = useState<string>();
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [reviewedGuideSteps, setReviewedGuideSteps] = useState<Record<string, boolean>>({});
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
   const activeIndex = screens.findIndex(screen => screen.id === active.id);
   const nextScreen = activeIndex >= 0 ? screens[activeIndex + 1] : undefined;
@@ -1247,6 +1304,10 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
     setErrors({});
+  };
+
+  const toggleGuideStepReview = (stepId: string, checked: boolean) => {
+    setReviewedGuideSteps(previous => ({ ...previous, [stepId]: checked }));
   };
 
   const runM2MAuthentication = async () => {
@@ -1446,7 +1507,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
           </Card>
             </TabsContent>
             <TabsContent value="guia">
-              <BeginnerTestGuide walletKind={kind} />
+              <BeginnerTestGuide walletKind={kind} screens={screens} evidences={evidences} runningId={runningId} m2mCompleted={Boolean(m2mResult?.ok || metadata.data?.m2mToken?.active)} reviewedSteps={reviewedGuideSteps} onToggleReviewed={toggleGuideStepReview} onOpenStep={setActiveId} />
             </TabsContent>
             <TabsContent value="variaveis">
               <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />

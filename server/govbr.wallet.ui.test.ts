@@ -140,6 +140,42 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).not.toContain("Criar Personal dWallet");
   });
 
+  it("renders an interactive visual checklist with automatic and manual progress markers", () => {
+    const signupScreen = personalScreens.find(screen => screen.actionId === "step2_person_signup");
+    const sendCodeScreen = personalScreens.find(screen => screen.actionId === "step2_person_send_code");
+    expect(signupScreen).toBeDefined();
+    expect(sendCodeScreen).toBeDefined();
+    const evidence: Evidence = {
+      actionId: "step2_person_signup",
+      actionTitle: "Criar Personal dWallet",
+      status: "executed",
+      ok: true,
+      httpStatus: 201,
+      message: "Cadastro criado.",
+      executedAt: "2026-05-05T20:00:00.000Z",
+    };
+
+    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, {
+      walletKind: "personal",
+      screens: [signupScreen!, sendCodeScreen!],
+      evidences: { step2_person_signup: evidence },
+      m2mCompleted: true,
+      reviewedSteps: { [sendCodeScreen!.id]: true },
+      onToggleReviewed: () => undefined,
+      onOpenStep: () => undefined,
+    }));
+
+    expect(html).toContain("Checklist visual de progresso");
+    expect(html).toContain("Cada linha representa uma etapa do teste");
+    expect(html).toContain("3 de 3 revisadas");
+    expect(html).toContain("100% do roteiro acompanhado nesta sessão");
+    expect(html).toContain("guide-check-personal-m2m");
+    expect(html).toContain(`guide-check-personal-${signupScreen!.id}`);
+    expect(html).toContain(`guide-check-personal-${sendCodeScreen!.id}`);
+    expect(html).toContain("revisada manualmente");
+    expect(html).toContain("Abrir etapa");
+  });
+
   it("renders editable variables directly inside the emulated Dataprev app screen", () => {
     const html = renderToStaticMarkup(React.createElement(DirectScreenVariablesPanel, {
       variables: [

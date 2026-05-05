@@ -125,3 +125,9 @@
 - [x] Criar um guia leigo dentro da aplicação explicando como testar a jornada, em que ordem executar os passos e como interpretar sucesso, erro e API ausente.
 - [x] Atualizar testes automatizados para cobrir edição direta no mockup de telefone, sincronização dos valores e presença do passo a passo de testes.
 - [x] Validar a implementação, revisar o checklist e salvar checkpoint da versão com edição direta no telefone e guia de testes.
+
+- [x] Adicionar checklist visual interativo ao Guia de teste nas jornadas Personal e Business GovBR, com uma linha por etapa executável.
+- [x] Sincronizar automaticamente o status do checklist visual com as execuções realizadas, diferenciando pendente, concluído, falhou e API ausente.
+- [x] Permitir interação manual segura no checklist visual para o usuário marcar ou revisar etapas durante o teste leigo.
+- [x] Atualizar testes automatizados para cobrir renderização, interação e atualização de progresso do checklist visual do guia.
+- [x] Validar a implementação, revisar o checklist e salvar checkpoint da versão com acompanhamento visual de progresso.
