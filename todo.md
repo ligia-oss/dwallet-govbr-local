@@ -98,3 +98,19 @@
 - [x] Criar telas de resposta emuladas do aplicativo para exibir, quando aplicável, as respostas sanitizadas recebidas pelas APIs.
 - [x] Atualizar testes Vitest para cobrir a ordem da jornada BdWallet, a presença da criação da conta do empregado e a renderização das telas emuladas.
 - [x] Salvar checkpoint da reorganização da jornada BdWallet após testes, build e revisão do checklist.
+
+- [x] Extrair da coleção `BTGPactualEmpresarUSER.postman_collection.json` os contratos de APIs BTG para recebimento, envio de pagamentos, Pix e visualização de extrato.
+- [x] Mapear as APIs BTG extraídas aos passos da jornada dWallet que atualmente não possuem API e são aplicáveis, incluindo tela de extrato, cadastramento de Pix, recebimento e envio de pagamento.
+- [x] Criar documentação interna de mapeamento entre passos da jornada, endpoints BTG, payloads esperados, headers e respostas sanitizadas.
+- [x] Implementar no backend procedimentos para executar ou emular chamadas BTG aplicáveis com entrada controlada, evidências sanitizadas e tratamento de configuração ausente.
+- [x] Atualizar as telas emuladas do aplicativo para Pix, pagamentos, recebimentos e extrato, exibindo campos de entrada e telas de resposta da API quando aplicável.
+- [x] Atualizar testes Vitest para cobrir o mapeamento BTG, os novos procedimentos backend e a renderização das telas emuladas com APIs aplicáveis.
+- [x] Executar validações técnicas, revisar checklist e salvar checkpoint da integração das APIs BTG.
+- [x] Auditar todas as telas emuladas atuais da Personal dWallet e da Business dWallet para identificar elementos que parecem painel técnico em vez de aplicativo de usuário final.
+- [x] Redesenhar o padrão visual das telas emuladas para formato de aplicativo móvel real, com cabeçalho, conteúdo, formulários, confirmação, estados de erro e navegação compatíveis com identidade visual governamental brasileira.
+- [x] Separar visualmente a experiência do usuário final dos detalhes técnicos de API, mantendo payloads e respostas sanitizadas em áreas de confirmação/resultado sem expor tokens brutos.
+- [x] Aplicar o novo padrão de tela real às jornadas Personal dWallet e Business dWallet, incluindo criação de conta, OTP, login, abertura de wallet, Pix, pagamentos, recebimentos, saldo e extrato quando aplicável.
+- [x] Atualizar testes de UI para validar textos, ordem de jornada e presença do novo padrão de aplicativo emulado nas telas PdW e BdW.
+- [x] Verificar por inspeção direta e testes adicionais a renderização das telas Pix, pagamentos, recebimentos, saldo e extrato com campos e respostas sanitizadas nas jornadas finais.
+- [x] Adicionar cobertura automatizada de que o shell móvel gov.br está aplicado às telas de criação de conta, OTP, login e abertura de wallet nas jornadas Personal e Business.
+- [x] Salvar checkpoint do estado atual após integração BTG, redesign gov.br e testes aprovados.

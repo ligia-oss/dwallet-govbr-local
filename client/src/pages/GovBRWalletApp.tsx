@@ -48,16 +48,22 @@ export function updateRunStateValue(previous: RunState, key: string, value: stri
 }
 
 export type Evidence = {
+  provider?: string;
   actionId: string;
   actionTitle: string;
   status: "executed" | "not_executable" | "failed";
+  configured?: boolean;
   ok: boolean;
+  method?: string;
+  url?: string;
   httpStatus?: number;
+  requestHeaders?: Record<string, string>;
   requestBody?: unknown;
   responseBody?: unknown;
   stateUpdates?: RunState;
   message?: string;
   missingReason?: string;
+  durationMs?: number;
   executedAt: string;
 };
 
@@ -147,6 +153,14 @@ const personalTestVariables: TestVariable[] = [
   { key: "commercialDspId", label: "DSP comercial", section: "Identificadores da jornada", placeholder: "Gerado pela consulta de DSPs", description: "Usado para criar conta DSP quando retornado pela API." },
   { key: "offerId", label: "Offer ID", section: "Identificadores da jornada", placeholder: "Gerado pela listagem de ofertas", description: "Usado no aceite de oferta quando disponível." },
   { key: "dspAccountId", label: "Conta DSP", section: "Identificadores da jornada", placeholder: "Conta DSP conhecida", description: "Apoia telas financeiras e extrato parcial." },
+  { key: "btgCompanyId", label: "Company ID BTG", section: "APIs financeiras BTG", placeholder: "company-id BTG", description: "Identificador da empresa usado nas APIs BTG quando não vier de Secret server-side." },
+  { key: "btgAccountId", label: "Conta BTG", section: "APIs financeiras BTG", placeholder: "account-id da conta BTG", description: "Identificador da conta para saldo, extrato e débito de pagamentos." },
+  { key: "btgStartDate", label: "Início do extrato", section: "APIs financeiras BTG", placeholder: "2026-04-05", type: "date", description: "Data inicial para consulta de extrato BTG." },
+  { key: "btgEndDate", label: "Fim do extrato", section: "APIs financeiras BTG", placeholder: "2026-05-05", type: "date", description: "Data final para consulta de extrato BTG." },
+  { key: "btgPixKey", label: "Chave Pix", section: "APIs financeiras BTG", placeholder: "chave-pix@empresa.gov.br", description: "Chave Pix usada para cobrança Pix BTG." },
+  { key: "btgAmount", label: "Valor", section: "APIs financeiras BTG", placeholder: "1.10", type: "number", description: "Valor de pagamento, cobrança ou Pix." },
+  { key: "btgBarcode", label: "Linha digitável", section: "APIs financeiras BTG", placeholder: "800800...", description: "Linha digitável para conferência e pagamento BTG." },
+  { key: "btgPaymentId", label: "Pagamento BTG", section: "APIs financeiras BTG", placeholder: "payment-id", description: "Identificador usado para consulta de comprovante BTG." },
 ];
 
 const businessTestVariables: TestVariable[] = [
@@ -167,6 +181,14 @@ const businessTestVariables: TestVariable[] = [
   { key: "businessId", label: "Business ID", section: "Identificadores da jornada", placeholder: "Gerado no cadastro empresarial", description: "Usado para listar solicitações e outros passos empresariais." },
   { key: "dataRequestId", label: "Data Request ID", section: "Identificadores da jornada", placeholder: "Gerado/listado pela API", description: "Usado para aceite de solicitação de dados." },
   { key: "dspAccountId", label: "Conta DSP", section: "Identificadores da jornada", placeholder: "Conta DSP conhecida", description: "Apoia telas financeiras e extrato parcial." },
+  { key: "btgCompanyId", label: "Company ID BTG", section: "APIs financeiras BTG", placeholder: "company-id BTG", description: "Identificador da empresa usado nas APIs BTG quando não vier de Secret server-side." },
+  { key: "btgAccountId", label: "Conta BTG", section: "APIs financeiras BTG", placeholder: "account-id da conta BTG", description: "Identificador da conta para saldo, extrato e débito de pagamentos." },
+  { key: "btgStartDate", label: "Início do extrato", section: "APIs financeiras BTG", placeholder: "2026-04-05", type: "date", description: "Data inicial para consulta de extrato BTG." },
+  { key: "btgEndDate", label: "Fim do extrato", section: "APIs financeiras BTG", placeholder: "2026-05-05", type: "date", description: "Data final para consulta de extrato BTG." },
+  { key: "btgPixKey", label: "Chave Pix", section: "APIs financeiras BTG", placeholder: "chave-pix@empresa.gov.br", description: "Chave Pix usada para cobrança Pix BTG." },
+  { key: "btgAmount", label: "Valor", section: "APIs financeiras BTG", placeholder: "1.10", type: "number", description: "Valor de pagamento, cobrança ou Pix." },
+  { key: "btgBarcode", label: "Linha digitável", section: "APIs financeiras BTG", placeholder: "800800...", description: "Linha digitável para conferência e pagamento BTG." },
+  { key: "btgPaymentId", label: "Pagamento BTG", section: "APIs financeiras BTG", placeholder: "payment-id", description: "Identificador usado para consulta de comprovante BTG." },
 ];
 
 export const personalScreens: GovScreen[] = [
@@ -319,19 +341,96 @@ export const personalScreens: GovScreen[] = [
     blocks: ["Itens do carrinho", "Resumo financeiro", "Termos", "Confirmação"],
   },
   {
+    id: "saldo-btg",
+    route: "/wallet/balance",
+    title: "Saldo da carteira",
+    subtitle: "Tela de saldo que o cidadão visualiza antes de consultar movimentações ou iniciar pagamentos.",
+    group: "financeiro",
+    icon: WalletCards,
+    actionId: "btg_get_balance",
+    apiLabel: "BTG saldo",
+    apiHint: "Usa a coleção BTG para consultar saldo da conta vinculada à experiência financeira dWallet.",
+    primaryCta: "Atualizar saldo",
+    fields: [{ key: "btgAccountId", label: "Conta vinculada", placeholder: "account-id da conta BTG", required: true }],
+    observedFrom: "Telas financeiras dWallet mapeadas e coleção BTG Pactual",
+    blocks: ["Saldo disponível", "Saldo bloqueado", "Conta vinculada", "Atualização em tempo real"],
+    appEmulation: { kind: "input-response", header: "Saldo da carteira", lead: "Consulte o saldo disponível na conta vinculada à dWallet.", responseEmpty: "Toque em Atualizar saldo para consultar o provedor financeiro.", footerNote: "O usuário vê somente saldos e mensagens; headers e tokens ficam fora do app." },
+  },
+  {
     id: "extrato",
     route: "/statement",
-    title: "Extrato e resgate",
-    subtitle: "Histórico financeiro, saldo, conta DSP, resgates e informações de PIX/conta bancária.",
+    title: "Extrato da carteira",
+    subtitle: "Histórico financeiro com período editável, saldos e lançamentos sanitizados vindos da API BTG.",
     group: "financeiro",
     icon: ReceiptText,
-    actionId: "step14_wallet_statement",
-    apiLabel: "Extrato parcial",
-    apiHint: "Consulta extrato quando há conta DSP conhecida; resgate e PIX são lacunas/internos.",
-    primaryCta: "Consultar extrato",
-    fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Conta DSP conhecida", required: true }],
-    observedFrom: "Jornada de 17 passos e telas financeiras inferidas",
-    blocks: ["Saldo disponível", "Transações", "Solicitar resgate", "Chave PIX/conta bancária"],
+    actionId: "btg_get_statement",
+    apiLabel: "BTG extrato",
+    apiHint: "Consulta extrato BTG por conta e período, substituindo a lacuna financeira parcial da jornada original.",
+    primaryCta: "Ver extrato",
+    fields: [
+      { key: "btgAccountId", label: "Conta vinculada", placeholder: "account-id da conta BTG", required: true },
+      { key: "btgStartDate", label: "De", placeholder: "2026-04-05", type: "date", required: true },
+      { key: "btgEndDate", label: "Até", placeholder: "2026-05-05", type: "date", required: true },
+    ],
+    observedFrom: "Jornada de 17 passos, telas financeiras e coleção BTG Pactual",
+    blocks: ["Filtro de período", "Lista de lançamentos", "Comprovante", "Exportar extrato"],
+    appEmulation: { kind: "input-response", header: "Extrato", lead: "Escolha o período e acompanhe as movimentações da sua carteira.", responseEmpty: "A resposta aparecerá como lista de movimentações e comprovantes disponíveis.", footerNote: "A evidência técnica completa permanece no painel lateral, separada da visão do usuário." },
+  },
+  {
+    id: "pix-cadastro",
+    route: "/pix/keys",
+    title: "Cadastrar chave Pix",
+    subtitle: "Tela real de cadastro de chave Pix, exibida como lacuna porque a coleção BTG não contém endpoint de gestão de chaves.",
+    group: "financeiro",
+    icon: KeyRound,
+    actionId: "btg_register_pix_key_gap",
+    apiLabel: "BTG lacuna Pix",
+    apiHint: "A coleção BTG possui Pix cash-in e cobranças, mas não expõe cadastro/gestão de chave Pix.",
+    primaryCta: "Validar disponibilidade",
+    fields: [{ key: "btgPixKey", label: "Chave Pix", placeholder: "cpf, e-mail, telefone ou chave aleatória", required: true }],
+    observedFrom: "Tela esperada de Pix e lacuna explicitada no mapeamento BTG",
+    blocks: ["Tipo de chave", "Confirmação de posse", "Termos Pix", "Status pendente de API"],
+    appEmulation: { kind: "input-response", header: "Cadastrar chave Pix", lead: "Informe a chave que deseja vincular à carteira.", responseEmpty: "A tela informará que o contrato de cadastro de chave ainda não está disponível.", footerNote: "Este passo mantém a experiência do usuário, mas sinaliza a dependência técnica real." },
+  },
+  {
+    id: "receber-pix",
+    route: "/pix/receive",
+    title: "Receber por Pix",
+    subtitle: "Geração de cobrança Pix com valor e descrição como o usuário veria no aplicativo.",
+    group: "financeiro",
+    icon: PiggyBank,
+    actionId: "btg_create_pix_instant_collection",
+    apiLabel: "BTG Pix cash-in",
+    apiHint: "Cria cobrança Pix instantânea via coleção BTG, usando chave, valor e descrição informados na tela.",
+    primaryCta: "Gerar cobrança Pix",
+    fields: [
+      { key: "btgPixKey", label: "Chave Pix recebedora", placeholder: "chave-pix@empresa.gov.br", required: true },
+      { key: "btgAmount", label: "Valor", placeholder: "1.10", type: "number", required: true },
+      { key: "btgDescription", label: "Descrição", placeholder: "Recebimento dWallet gov.br" },
+    ],
+    observedFrom: "Coleção BTG Pactual Pix Cash-In",
+    blocks: ["Valor", "Descrição", "QR Code", "Copia e cola Pix"],
+    appEmulation: { kind: "input-response", header: "Receber Pix", lead: "Gere uma cobrança Pix para receber valores na carteira.", responseEmpty: "Após a chamada, o app exibirá QR Code, status e identificadores de cobrança quando retornados.", footerNote: "Dados sensíveis do provedor não são exibidos no celular emulado." },
+  },
+  {
+    id: "pagar-conta",
+    route: "/payments/barcode",
+    title: "Pagar conta",
+    subtitle: "Tela de pagamento com linha digitável, valor, data e conta de débito, usando endpoints BTG aplicáveis.",
+    group: "financeiro",
+    icon: ShoppingCart,
+    actionId: "btg_create_payment",
+    apiLabel: "BTG pagamentos",
+    apiHint: "Envia pagamento de boleto/conta usando o payload de payments da coleção BTG.",
+    primaryCta: "Confirmar pagamento",
+    fields: [
+      { key: "btgBarcode", label: "Linha digitável", placeholder: "800800...", required: true },
+      { key: "btgAmount", label: "Valor", placeholder: "1.10", type: "number", required: true },
+      { key: "btgPaymentDate", label: "Data de pagamento", placeholder: "2026-05-05", type: "date", required: true },
+    ],
+    observedFrom: "Coleção BTG Pactual Banking Payments",
+    blocks: ["Linha digitável", "Valor", "Data", "Comprovante"],
+    appEmulation: { kind: "input-response", header: "Pagar conta", lead: "Confira os dados antes de confirmar o pagamento.", responseEmpty: "O app exibirá status do envio, protocolo e recibo quando disponível.", footerNote: "Use ambiente de homologação e valores de teste." },
   },
   {
     id: "configuracoes",
@@ -519,6 +618,98 @@ export const businessScreens: GovScreen[] = [
     blocks: ["Criar plano", "Detalhes do plano", "Contribuições", "Renovação automática"],
   },
   {
+    id: "saldo-btg",
+    route: "/finance/balance",
+    title: "Saldo empresarial",
+    subtitle: "Tela de saldo operacional da BdWallet para acompanhar conta vinculada, disponibilidade e bloqueios.",
+    group: "financeiro",
+    icon: WalletCards,
+    actionId: "btg_get_balance",
+    apiLabel: "BTG saldo",
+    apiHint: "Consulta o saldo BTG da conta empresarial configurada para testes financeiros.",
+    primaryCta: "Atualizar saldo",
+    fields: [{ key: "btgAccountId", label: "Conta BTG", placeholder: "account-id da conta BTG", required: true }],
+    observedFrom: "Bundles Business, telas financeiras e coleção BTG Pactual",
+    blocks: ["Saldo disponível", "Limites", "Bloqueios", "Atualização"],
+    appEmulation: { kind: "input-response", header: "Saldo empresarial", lead: "Acompanhe os valores disponíveis para operações da empresa.", responseEmpty: "A resposta de saldo aparecerá como cards de valores no app.", footerNote: "Tokens e headers permanecem server-side." },
+  },
+  {
+    id: "extrato-btg",
+    route: "/finance/statement",
+    title: "Extrato empresarial",
+    subtitle: "Movimentações financeiras da empresa por período, consultadas via coleção BTG.",
+    group: "financeiro",
+    icon: ReceiptText,
+    actionId: "btg_get_statement",
+    apiLabel: "BTG extrato",
+    apiHint: "Consulta extrato de conta BTG por accountId e intervalo de datas.",
+    primaryCta: "Consultar extrato",
+    fields: [
+      { key: "btgAccountId", label: "Conta BTG", placeholder: "account-id da conta BTG", required: true },
+      { key: "btgStartDate", label: "De", placeholder: "2026-04-05", type: "date", required: true },
+      { key: "btgEndDate", label: "Até", placeholder: "2026-05-05", type: "date", required: true },
+    ],
+    observedFrom: "Jornada Business, labels Transactions/Finance e coleção BTG Pactual",
+    blocks: ["Período", "Entradas", "Saídas", "Comprovantes"],
+    appEmulation: { kind: "input-response", header: "Extrato", lead: "Filtre o período para visualizar as movimentações da empresa.", responseEmpty: "Após consultar, a tela exibirá lançamentos sanitizados e status da consulta.", footerNote: "A resposta técnica completa fica apenas na evidência lateral." },
+  },
+  {
+    id: "pix-chave-btg",
+    route: "/finance/pix/keys",
+    title: "Gerenciar chave Pix",
+    subtitle: "Tela de cadastro de chave Pix preservada na experiência do app, com lacuna explícita no contrato BTG fornecido.",
+    group: "financeiro",
+    icon: KeyRound,
+    actionId: "btg_register_pix_key_gap",
+    apiLabel: "BTG lacuna Pix",
+    apiHint: "A coleção recebida não expõe endpoint de cadastro/gestão de chave Pix; cash-in e cobranças estão mapeados.",
+    primaryCta: "Verificar contrato Pix",
+    fields: [{ key: "btgPixKey", label: "Chave Pix empresarial", placeholder: "financeiro@empresa.gov.br", required: true }],
+    observedFrom: "Tela esperada de Pix Business e lacuna mapeada em btg_journey_mapping.md",
+    blocks: ["Tipo de chave", "Titularidade", "Validação", "Status"],
+    appEmulation: { kind: "input-response", header: "Chaves Pix", lead: "Cadastre ou gerencie chaves Pix da empresa.", responseEmpty: "O app mostrará a indisponibilidade do endpoint e orientará configuração futura.", footerNote: "A ausência da API é intencionalmente visível para homologação." },
+  },
+  {
+    id: "cobranca-pix-btg",
+    route: "/finance/pix/charge",
+    title: "Receber por Pix",
+    subtitle: "Criação de cobrança Pix para recebimento empresarial, usando endpoints BTG de cash-in/cobrança.",
+    group: "financeiro",
+    icon: PiggyBank,
+    actionId: "btg_create_pix_instant_collection",
+    apiLabel: "BTG Pix cash-in",
+    apiHint: "Cria cobrança Pix instantânea com valor, chave e descrição informados pelo usuário.",
+    primaryCta: "Gerar cobrança",
+    fields: [
+      { key: "btgPixKey", label: "Chave Pix recebedora", placeholder: "financeiro@empresa.gov.br", required: true },
+      { key: "btgAmount", label: "Valor", placeholder: "1.10", type: "number", required: true },
+      { key: "btgDescription", label: "Descrição", placeholder: "Cobrança BdWallet gov.br" },
+    ],
+    observedFrom: "Coleção BTG Pactual Pix Cash-In",
+    blocks: ["Valor", "Descrição", "QR Code", "Status de liquidação"],
+    appEmulation: { kind: "input-response", header: "Receber Pix", lead: "Gere uma cobrança Pix para clientes ou parceiros.", responseEmpty: "Quando a API responder, a tela mostrará QR Code, identificador e status sanitizados.", footerNote: "Valores devem ser de homologação." },
+  },
+  {
+    id: "pagamento-btg",
+    route: "/finance/payments",
+    title: "Enviar pagamento",
+    subtitle: "Pagamento empresarial com linha digitável e valor como o operador veria no app real.",
+    group: "financeiro",
+    icon: ShoppingCart,
+    actionId: "btg_create_payment",
+    apiLabel: "BTG pagamento",
+    apiHint: "Envia pagamento via endpoint Banking Payments da coleção BTG.",
+    primaryCta: "Confirmar pagamento",
+    fields: [
+      { key: "btgBarcode", label: "Linha digitável", placeholder: "800800...", required: true },
+      { key: "btgAmount", label: "Valor", placeholder: "1.10", type: "number", required: true },
+      { key: "btgPaymentDate", label: "Data", placeholder: "2026-05-05", type: "date", required: true },
+    ],
+    observedFrom: "Coleção BTG Pactual Banking Payments",
+    blocks: ["Conferência", "Débito", "Autorização", "Comprovante"],
+    appEmulation: { kind: "input-response", header: "Enviar pagamento", lead: "Confira os dados do boleto antes de autorizar.", responseEmpty: "O app exibirá protocolo, status e eventual comprovante de pagamento.", footerNote: "A chamada usa credenciais BTG server-side e resposta sanitizada." },
+  },
+  {
     id: "ofertas",
     route: "/offers-campaigns",
     title: "Ofertas e campanhas",
@@ -540,11 +731,15 @@ export const businessScreens: GovScreen[] = [
     subtitle: "Acompanhamento de compra/contratação de produtos de dados e transações.",
     group: "financeiro",
     icon: ShoppingCart,
-    actionId: "step14_wallet_statement",
-    apiLabel: "Extrato parcial",
-    apiHint: "Usa extrato como evidência financeira enquanto checkout completo depende de endpoints futuros.",
+    actionId: "btg_get_statement",
+    apiLabel: "BTG extrato",
+    apiHint: "Usa extrato BTG como evidência financeira da operação enquanto o checkout completo de marketplace permanece dependente de endpoints futuros.",
     primaryCta: "Consultar operação",
-    fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Conta DSP conhecida", required: true }],
+    fields: [
+      { key: "btgAccountId", label: "Conta BTG", placeholder: "account-id da conta BTG", required: true },
+      { key: "btgStartDate", label: "De", placeholder: "2026-04-05", type: "date", required: true },
+      { key: "btgEndDate", label: "Até", placeholder: "2026-05-05", type: "date", required: true },
+    ],
     observedFrom: "Labels Cart, Checkout, Transactions e Finance dos bundles",
     blocks: ["Itens", "Resumo", "Pagamento", "Histórico de operações"],
   },
@@ -602,35 +797,51 @@ export function AppEmulatedScreen({ screen, values, evidence, status }: { screen
   const responseText = evidence?.message || evidence?.missingReason || emulation.responseEmpty;
   const responseDetails = evidence ? summarizeStateUpdates(evidence.stateUpdates) : "Sem dados retornados nesta sessão.";
 
+  const actionTone = status === "done" ? "bg-[#168821] text-white" : status === "failed" ? "bg-[#D04F4F] text-white" : "bg-[#1351B4] text-white";
+
   return (
-    <div className="rounded-[2rem] border border-slate-300 bg-slate-950 p-3 shadow-2xl">
-      <div className="overflow-hidden rounded-[1.55rem] bg-[#F7F8FA] text-slate-950">
-        <div className="flex items-center justify-between bg-[#1351B4] px-4 py-3 text-white">
-          <div className="flex items-center gap-2"><Smartphone className="h-4 w-4" /><span className="text-xs font-bold uppercase tracking-wide">App dWallet</span></div>
-          <span className="text-[10px] font-semibold">{statusLabel[status]}</span>
+    <div className="mx-auto max-w-[390px] rounded-[2.25rem] border border-slate-300 bg-slate-950 p-3 shadow-2xl">
+      <div className="overflow-hidden rounded-[1.75rem] bg-[#F7F8FA] text-slate-950">
+        <div className="flex items-center justify-between bg-[#071D41] px-5 py-2 text-white">
+          <span className="text-[11px] font-semibold">9:41</span>
+          <div className="h-1.5 w-20 rounded-full bg-white/80" aria-hidden="true" />
+          <span className="text-[11px] font-semibold">5G</span>
         </div>
-        <div className="space-y-4 p-4">
-          <div className="space-y-1">
-            <p className="text-lg font-bold text-[#071D41]">{emulation.header}</p>
-            <p className="text-sm leading-6 text-slate-600">{emulation.lead}</p>
+        <div className="bg-[#1351B4] px-5 pb-5 pt-4 text-white">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15"><Landmark className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-50">gov.br</p><p className="text-sm font-bold">Carteira de dados</p></div></div>
+            <Badge className="bg-[#FFCD07] text-[#071D41]">{statusLabel[status]}</Badge>
           </div>
+          <div className="mt-5 space-y-2">
+            <p className="text-2xl font-bold leading-tight">{emulation.header}</p>
+            <p className="text-sm leading-6 text-blue-50">{emulation.lead}</p>
+          </div>
+        </div>
+        <div className="space-y-4 p-5">
           {(emulation.kind === "input" || emulation.kind === "input-response") ? (
-            <div className="space-y-3">
+            <div className="space-y-3 rounded-[1.35rem] bg-white p-4 shadow-sm">
+              <p className="text-xs font-bold uppercase tracking-wide text-[#1351B4]">Dados da operação</p>
               {displayedFields.map(field => {
                 const raw = values[field.key];
                 const shown = field.type === "password" && raw ? "••••••••" : String(raw || field.placeholder || "Aguardando preenchimento");
-                return <div key={field.key} className="rounded-2xl border border-slate-200 bg-white px-3 py-2 shadow-sm"><p className="text-[11px] font-bold uppercase tracking-wide text-slate-500">{field.label}</p><p className="mt-1 break-words text-sm font-semibold text-slate-800">{shown}</p></div>;
+                return (
+                  <div key={field.key} className="rounded-2xl border border-[#DFE1E2] bg-[#F8F8F8] px-4 py-3">
+                    <p className="text-[11px] font-semibold text-slate-500">{field.label}</p>
+                    <p className="mt-1 min-h-5 break-words text-sm font-semibold text-[#071D41]">{shown}</p>
+                  </div>
+                );
               })}
+              <button type="button" className={`w-full rounded-2xl px-4 py-3 text-sm font-bold shadow-sm ${actionTone}`}>{screen.primaryCta}</button>
             </div>
           ) : null}
           {(emulation.kind === "response" || emulation.kind === "input-response") ? (
-            <div className={evidence?.ok ? "rounded-2xl border border-green-200 bg-green-50 p-3" : "rounded-2xl border border-blue-100 bg-blue-50 p-3"}>
-              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Tela de resposta do app</p>
-              <p className="mt-2 text-sm font-semibold text-slate-900">{responseText}</p>
-              <p className="mt-1 text-xs leading-5 text-slate-600">{responseDetails}</p>
+            <div className={evidence?.ok ? "rounded-[1.35rem] border border-green-200 bg-green-50 p-4" : "rounded-[1.35rem] border border-blue-100 bg-blue-50 p-4"}>
+              <div className="flex items-center gap-2"><CheckCircle2 className={evidence?.ok ? "h-4 w-4 text-green-700" : "h-4 w-4 text-[#1351B4]"} /><p className="text-xs font-bold uppercase tracking-wide text-slate-600">Resultado no app</p></div>
+              <p className="mt-2 text-sm font-semibold text-slate-950">{responseText}</p>
+              <p className="mt-2 text-xs leading-5 text-slate-600">{responseDetails}</p>
             </div>
           ) : null}
-          {emulation.footerNote ? <p className="rounded-xl bg-white px-3 py-2 text-xs leading-5 text-slate-500">{emulation.footerNote}</p> : null}
+          {emulation.footerNote ? <p className="rounded-2xl bg-white px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">{emulation.footerNote}</p> : null}
         </div>
       </div>
     </div>
@@ -832,12 +1043,15 @@ export function M2MTokenPanel({ result, cachedToken, isRunning, onAuthenticate, 
   );
 }
 
-export function CredentialsPanel({ baseUrl, configured }: { baseUrl?: string; configured?: boolean }) {
+export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigured }: { baseUrl?: string; configured?: boolean; btgBaseUrl?: string; btgConfigured?: boolean }) {
   const secretRows = [
     { key: "DATAPREV_BASE_URL", purpose: "Base da sandbox/API DrumWave-Dataprev usada pelo servidor." },
     { key: "DATAPREV_API_KEY", purpose: "Chave x-api-key enviada em todas as chamadas server-side." },
     { key: "DATAPREV_CLIENT_ID", purpose: "Client ID usado no passo zero OAuth client_credentials." },
     { key: "DATAPREV_CLIENT_SECRET", purpose: "Client secret usado no passo zero OAuth client_credentials." },
+    { key: "BTG_BASE_URL", purpose: "Base da API BTG usada nas telas financeiras de saldo, extrato, Pix, cobranças e pagamentos." },
+    { key: "BTG_COMPANY_ID", purpose: "Company ID BTG utilizado para montar rotas e escopos empresariais." },
+    { key: "BTG_ACCESS_TOKEN", purpose: "Token bearer BTG server-side; nunca é exposto no app emulado." },
   ];
 
   return (
@@ -850,12 +1064,14 @@ export function CredentialsPanel({ baseUrl, configured }: { baseUrl?: string; co
         <Alert className={configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
           <AlertTitle>{configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
-          <AlertDescription>{configured ? "A aplicação reconhece as variáveis necessárias no runtime server-side. Se ocorrer 401/403, atualize os valores publicados no painel seguro de Secrets e publique novo checkpoint." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets antes de executar chamadas reais."}</AlertDescription>
+          <AlertDescription>{configured ? "A aplicação reconhece as variáveis Dataprev necessárias no runtime server-side. Se ocorrer 401/403, atualize os valores publicados no painel seguro de Secrets e publique novo checkpoint." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets antes de executar chamadas reais."}</AlertDescription>
         </Alert>
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
           <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Resumo atual</p>
           <div className="mt-3 grid gap-3 md:grid-cols-2">
-            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base configurada</span><strong className="break-all text-slate-900">{baseUrl || "não informada"}</strong></div>
+            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base Dataprev</span><strong className="break-all text-slate-900">{baseUrl || "não informada"}</strong></div>
+            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base BTG</span><strong className="break-all text-slate-900">{btgBaseUrl || "não informada"}</strong></div>
+            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Credenciais BTG</span><strong className={btgConfigured ? "text-green-700" : "text-amber-700"}>{btgConfigured ? "detectadas no servidor" : "pendentes no servidor"}</strong></div>
             <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Chaves sensíveis</span><strong className="text-slate-900">mascaradas no cliente</strong></div>
           </div>
         </div>
@@ -867,8 +1083,7 @@ export function CredentialsPanel({ baseUrl, configured }: { baseUrl?: string; co
             </div>
           ))}
         </div>
-        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">
-          <strong>Como alterar com segurança:</strong> abra o painel de gerenciamento do projeto, entre em <strong>Settings → Secrets</strong>, atualize as variáveis acima, salve, gere/publice um novo checkpoint e execute novamente o teste de token M2M. A aplicação nunca deve receber client_secret ou API key em campos comuns de formulário.
+        <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-sm leading-6 text-blue-950">          <strong>Como alterar com segurança:</strong> abra o painel de gerenciamento do projeto, entre em <strong>Settings → Secrets</strong>, atualize as variáveis acima, salve, gere/publique um novo checkpoint e execute novamente os testes de Dataprev e BTG. A aplicação nunca deve receber client_secret, access token ou API key em campos comuns de formulário.
         </div>
       </CardContent>
     </Card>
@@ -884,7 +1099,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const isPersonal = kind === "personal";
   const testVariables = isPersonal ? personalTestVariables : businessTestVariables;
   const metadata = trpc.dataprev.metadata.useQuery();
+  const btgMetadata = trpc.btg.metadata.useQuery();
   const executeAction = trpc.dataprev.executeAction.useMutation();
+  const executeBtgAction = trpc.btg.executeAction.useMutation();
   const authenticateM2M = trpc.dataprev.authenticateM2M.useMutation();
   const [activeId, setActiveId] = useState(screens[0]?.id ?? "entrada");
   const [state, setState] = useState<RunState>({});
@@ -895,7 +1112,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
   const activeEvidence = active.actionId ? evidences[active.actionId] : undefined;
   const activeStatus = getVisualStatus(active, activeEvidence, runningId);
-  const mergedState = useMemo(() => ({ ...(metadata.data?.initialState || {}), ...state }), [metadata.data?.initialState, state]);
+  const mergedState = useMemo(() => ({ ...(metadata.data?.initialState || {}), ...(btgMetadata.data?.initialState || {}), ...state }), [btgMetadata.data?.initialState, metadata.data?.initialState, state]);
   const completed = screens.filter(screen => screen.actionId && evidences[screen.actionId]?.ok).length;
   const callable = screens.filter(screen => screen.actionId).length;
 
@@ -965,7 +1182,8 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
     try {
-      const evidence = await executeAction.mutateAsync(buildExecuteActionInput(active.actionId, mergedState));
+      const executor = active.actionId.startsWith("btg_") ? executeBtgAction : executeAction;
+      const evidence = await executor.mutateAsync(buildExecuteActionInput(active.actionId, mergedState));
       const typed = evidence as Evidence;
       setEvidences(previous => ({ ...previous, [active.actionId as string]: typed }));
       setState(previous => ({ ...previous, ...(typed.stateUpdates || {}) }));
@@ -1009,8 +1227,8 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local. O Passo 0 M2M é pré-requisito técnico de sandbox e não entra na experiência emulada do usuário.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-blue-50">
-              <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base sandbox</span><span className="font-mono text-xs">{metadata.data?.baseUrl || "carregando"}</span></div>
-              <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Credenciais</span><span>somente servidor</span></div>
+              <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base Dataprev</span><span className="font-mono text-xs">{metadata.data?.baseUrl || "carregando"}</span></div>
+              <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base BTG</span><span className="font-mono text-xs">{btgMetadata.data?.baseUrl || "pendente"}</span></div>
             </CardContent>
           </Card>
         </div>
@@ -1124,7 +1342,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />
             </TabsContent>
             <TabsContent value="credenciais">
-              <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} />
+              <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} btgBaseUrl={btgMetadata.data?.baseUrl || undefined} btgConfigured={btgMetadata.data?.credentialsConfigured} />
             </TabsContent>
           </Tabs>
         </section>

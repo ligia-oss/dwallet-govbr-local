@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, buildExecuteActionInput, businessScreens, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, buildExecuteActionInput, businessScreens, CredentialsPanel, DirectScreenVariablesPanel, EvidenceBox, getVisualStatus, M2MTokenPanel, personalScreens, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -109,6 +109,7 @@ describe("GovBR Wallet API response panels", () => {
     expect(variablesHtml).toContain("redigido");
     expect(credentialsHtml).toContain("Credenciais e chaves");
     expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
+    expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Settings → Secrets");
   });
 
@@ -247,10 +248,11 @@ describe("GovBR Wallet API response panels", () => {
     }));
 
     expect(loginInput.actionId).toBe("step1_employee_signin");
-    expect(html).toContain("App dWallet");
+    expect(html).toContain("Carteira de dados");
+    expect(html).toContain("gov.br");
     expect(html).toContain("Abrir Business dWallet");
     expect(html).toContain("Empresa Direta Validada");
-    expect(html).toContain("Tela de resposta do app");
+    expect(html).toContain("Resultado no app");
     expect(html).toContain("businessId: biz_123");
   });
 
@@ -276,6 +278,139 @@ describe("GovBR Wallet API response panels", () => {
     expect(personalHtml).toContain("Código de verificação");
     expect(personalHtml).toContain("654321");
     expect(personalHtml).toContain("direct-verificacao-email-personVerificationCode");
+  });
+
+  it("maps Business financial app screens to BTG APIs and keeps Pix key registration gap explicit", () => {
+    const orderedActionIds = businessScreens.map(screen => screen.actionId).filter(Boolean);
+    expect(orderedActionIds).toContain("btg_get_balance");
+    expect(orderedActionIds).toContain("btg_get_statement");
+    expect(orderedActionIds).toContain("btg_create_pix_instant_collection");
+    expect(orderedActionIds).toContain("btg_create_payment");
+    expect(orderedActionIds).toContain("btg_register_pix_key_gap");
+
+    const pixKeyScreen = businessScreens.find(screen => screen.actionId === "btg_register_pix_key_gap");
+    expect(pixKeyScreen?.title).toContain("Gerenciar chave Pix");
+    expect(pixKeyScreen?.apiHint).toContain("não expõe endpoint");
+
+    const paymentInput = buildExecuteActionInput("btg_create_payment", { btgBarcode: "800800", btgAmount: "1.10", btgPaymentDate: "2026-05-05" });
+    expect(paymentInput.actionId).toBe("btg_create_payment");
+    expect(paymentInput.state.btgBarcode).toBe("800800");
+  });
+
+  it("renders BTG financial response in the same user-facing mobile app shell", () => {
+    const screen = businessScreens.find(item => item.actionId === "btg_get_statement");
+    expect(screen).toBeDefined();
+    const evidence: Evidence = {
+      actionId: "btg_get_statement",
+      actionTitle: "Extrato empresarial",
+      status: "executed",
+      ok: true,
+      httpStatus: 200,
+      requestBody: { accountId: "acc_123", startDate: "2026-04-05", endDate: "2026-05-05" },
+      responseBody: { items: [{ description: "PIX RECEBIDO", amount: 1.1 }], nextPage: null },
+      stateUpdates: { btgLastStatementStatus: "consultado" },
+      message: "Extrato BTG consultado com retorno sanitizado.",
+      executedAt: "2026-05-05T16:30:00.000Z",
+    };
+    const html = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: screen!,
+      values: { btgAccountId: "acc_123", btgStartDate: "2026-04-05", btgEndDate: "2026-05-05" },
+      evidence,
+      status: "done",
+    }));
+
+    expect(html).toContain("Carteira de dados");
+    expect(html).toContain("Extrato");
+    expect(html).toContain("acc_123");
+    expect(html).toContain("Extrato BTG consultado");
+    expect(html).toContain("btgLastStatementStatus: consultado");
+  });
+
+  it("renders Personal financial screens for balance, statement, Pix receiving, Pix key gap and payment inside the mobile shell", () => {
+    const required = [
+      { actionId: "btg_get_balance", label: "Saldo da carteira", valueKey: "btgAccountId", value: "acc_person_123" },
+      { actionId: "btg_get_statement", label: "Extrato", valueKey: "btgStartDate", value: "2026-04-05" },
+      { actionId: "btg_register_pix_key_gap", label: "Cadastrar chave Pix", valueKey: "btgPixKey", value: "cidadao@example.com" },
+      { actionId: "btg_create_pix_instant_collection", label: "Receber Pix", valueKey: "btgAmount", value: "1.10" },
+      { actionId: "btg_create_payment", label: "Pagar conta", valueKey: "btgBarcode", value: "800800" },
+    ];
+
+    for (const item of required) {
+      const screen = personalScreens.find(screen => screen.actionId === item.actionId && screen.appEmulation);
+      expect(screen, `Personal screen for ${item.actionId}`).toBeDefined();
+      const html = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+        screen: screen!,
+        values: { btgAccountId: "acc_person_123", btgStartDate: "2026-04-05", btgEndDate: "2026-05-05", btgPixKey: "cidadao@example.com", btgAmount: "1.10", btgBarcode: "800800", btgPaymentDate: "2026-05-05" },
+        status: "pending",
+      }));
+
+      expect(html).toContain("gov.br");
+      expect(html).toContain("Carteira de dados");
+      expect(html).toContain(item.label);
+      expect(html).toContain(String(item.value));
+      expect(html).toContain("Resultado no app");
+    }
+  });
+
+  it("renders Business financial screens for balance, statement, Pix receiving, Pix key gap and payment inside the mobile shell", () => {
+    const required = [
+      { actionId: "btg_get_balance", label: "Saldo empresarial", value: "acc_biz_123" },
+      { actionId: "btg_get_statement", label: "Extrato", value: "2026-05-05" },
+      { actionId: "btg_register_pix_key_gap", label: "Chaves Pix", value: "financeiro@empresa.gov.br" },
+      { actionId: "btg_create_pix_instant_collection", label: "Receber Pix", value: "1.10" },
+      { actionId: "btg_create_payment", label: "Enviar pagamento", value: "800800" },
+    ];
+
+    for (const item of required) {
+      const screen = businessScreens.find(screen => screen.actionId === item.actionId && screen.appEmulation);
+      expect(screen, `Business screen for ${item.actionId}`).toBeDefined();
+      const html = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+        screen: screen!,
+        values: { btgAccountId: "acc_biz_123", btgStartDate: "2026-04-05", btgEndDate: "2026-05-05", btgPixKey: "financeiro@empresa.gov.br", btgAmount: "1.10", btgBarcode: "800800", btgPaymentDate: "2026-05-05" },
+        status: "pending",
+      }));
+
+      expect(html).toContain("gov.br");
+      expect(html).toContain("Carteira de dados");
+      expect(html).toContain(item.label);
+      expect(html).toContain(String(item.value));
+      expect(html).toContain("Resultado no app");
+    }
+  });
+
+  it("keeps the mobile gov.br shell on account creation, OTP, login and wallet-opening screens across Personal and Business", () => {
+    const personalRequired = ["step2_person_signup", "step2_person_send_code", "step2_person_verify_code"];
+    const businessRequired = ["step1_employee_signup", "step1_employee_send_code", "step1_employee_verify_code", "step1_employee_signin", "step1_business_create"];
+
+    for (const actionId of personalRequired) {
+      const screen = personalScreens.find(screen => screen.actionId === actionId);
+      expect(screen, `Personal shell screen for ${actionId}`).toBeDefined();
+      const html = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+        screen: screen!,
+        values: { personEmail: "cidadao@example.com", personVerificationCode: "123456" },
+        status: "pending",
+      }));
+
+      expect(html).toContain("gov.br");
+      expect(html).toContain("Carteira de dados");
+      expect(html).toContain(screen!.primaryCta);
+      expect(html).toContain("Resultado no app");
+    }
+
+    for (const actionId of businessRequired) {
+      const screen = businessScreens.find(screen => screen.actionId === actionId);
+      expect(screen, `Business shell screen for ${actionId}`).toBeDefined();
+      const html = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+        screen: screen!,
+        values: { employeeEmail: "colaborador@example.com", employeePassword: "Senha123!", employeeVerificationCode: "123456", businessName: "Empresa GovBR", businessCnpj: "00000000000100" },
+        status: "pending",
+      }));
+
+      expect(html).toContain("gov.br");
+      expect(html).toContain("Carteira de dados");
+      expect(html).toContain(screen!.primaryCta);
+      expect(html).toContain("Resultado no app");
+    }
   });
 
   it("derives visual status from the active action, evidence and API availability", () => {
