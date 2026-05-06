@@ -223,3 +223,7 @@
 
 - [x] Substituir a frase do item 3 da ordem recomendada para: "Use o ID da BdW gerado para informar no processo de solicitação de dados da PdWallet".
 - [x] Validar a alteração textual, atualizar testes se necessário e salvar checkpoint.
+
+- [x] Reordenar a página inicial para exibir a caixa/card da Business dWallet antes da Personal dWallet.
+- [x] Adicionar o botão "Adicionar credenciais" na página inicial antes da apresentação das wallets, direcionando para a área de credenciais.
+- [x] Validar a nova ordem, o link do botão de credenciais, os testes e o build antes do checkpoint.

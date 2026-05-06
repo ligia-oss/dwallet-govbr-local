@@ -155,6 +155,22 @@ describe("GovBR Wallet API response panels", () => {
     expect(source.indexOf("<strong>1.</strong> Preencha na aba Credenciais")).toBeLessThan(source.indexOf("<strong>2.</strong> Abra a Business dWallet"));
   });
 
+  it("apresenta Business dWallet antes da Personal e oferece atalho para adicionar credenciais", () => {
+    const source = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/Home.tsx", "utf8");
+
+    expect(source).toContain("Primeiro passo de homologação");
+    expect(source).toContain("Adicionar credenciais");
+    expect(source).toContain("/business-govbr?tab=credenciais");
+    expect(source.indexOf("Business dWallet GovBR")).toBeLessThan(source.indexOf("Personal dWallet GovBR"));
+  });
+
+  it("permite abrir diretamente a aba Credenciais por parâmetro de URL", () => {
+    const source = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/GovBRWalletApp.tsx", "utf8");
+
+    expect(source).toContain('new URLSearchParams(window.location.search).get("tab") === "credenciais"');
+    expect(source).toContain("<Tabs defaultValue={initialTab}");
+  });
+
   it("identifica credenciais obrigatórias faltantes antes de executar qualquer API", () => {
     expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" })).toEqual([
       "API URL",

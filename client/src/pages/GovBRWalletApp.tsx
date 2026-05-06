@@ -1699,6 +1699,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const executeAction = trpc.dataprev.executeAction.useMutation();
   const executeBtgAction = trpc.btg.executeAction.useMutation();
   const authenticateM2M = trpc.dataprev.authenticateM2M.useMutation();
+  const initialTab = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "credenciais" ? "credenciais" : "tela";
   const [activeId, setActiveId] = useState(screens[0]?.id ?? "entrada");
   const [state, setState] = useState<RunState>({});
   const [evidences, setEvidences] = useState<Record<string, Evidence>>({});
@@ -1942,7 +1943,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         </aside>
 
         <section className="space-y-5">
-          <Tabs defaultValue="tela" className="space-y-5">
+          <Tabs defaultValue={initialTab} className="space-y-5">
             <TabsList className="grid w-full grid-cols-4 bg-white">
               <TabsTrigger value="tela">Tela atual</TabsTrigger>
               <TabsTrigger value="guia">Guia de teste</TabsTrigger>

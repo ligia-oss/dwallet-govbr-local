@@ -52,23 +52,17 @@ export default function Home() {
           <AlertDescription>Sempre que uma API retornar identificadores, tokens opacos, IDs de wallet, IDs de solicitação ou outros valores reutilizáveis, a experiência GovBR guarda esses dados na aba Credenciais para que possam ser usados como input em etapas posteriores.</AlertDescription>
         </Alert>
 
-        <div className="grid gap-5 lg:grid-cols-2">
-          <Card className="overflow-hidden border-[#1351B4]/30 bg-white shadow-sm">
-            <CardHeader className="govbr-hero-personal text-white">
-              <div className="flex items-center gap-3">
-                <Smartphone className="h-6 w-6 text-[#FFCD07]" />
-                <div>
-                  <CardTitle>Personal dWallet GovBR</CardTitle>
-                  <CardDescription className="text-blue-50">Experiência da pessoa física com mockup de celular, telas montadas e evidências sanitizadas.</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-4 pt-5">
-              <p className="text-sm leading-6 text-slate-700">Use esta experiência depois de abrir a BdW quando a etapa exigir dados empresariais, para obter o ID da Business dWallet. A autenticação técnica é aplicada automaticamente nas chamadas que exigem token M2M. O mockup mostra exemplos de avatar, carteira, solicitações e telas finais montadas.</p>
-              <Button asChild className="bg-[#1351B4] hover:bg-[#0C326F]"><Link href="/personal-govbr">Abrir Personal GovBR <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
-            </CardContent>
-          </Card>
+        <div className="flex flex-col gap-3 rounded-3xl border border-[#1351B4]/20 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Primeiro passo de homologação</p>
+            <p className="mt-1 text-sm leading-6 text-slate-600">Antes de navegar pelas wallets, adicione Base URL/API URL, x-api-key/API ID, Client ID e Client Secret na área de credenciais.</p>
+          </div>
+          <Button asChild className="w-full bg-[#1351B4] hover:bg-[#0C326F] sm:w-auto">
+            <Link href="/business-govbr?tab=credenciais"><FolderKey className="mr-2 h-4 w-4" />Adicionar credenciais</Link>
+          </Button>
+        </div>
 
+        <div className="grid gap-5 lg:grid-cols-2">
           <Card className="overflow-hidden border-[#168821]/30 bg-white shadow-sm">
             <CardHeader className="govbr-hero-business text-white">
               <div className="flex items-center gap-3">
@@ -82,6 +76,22 @@ export default function Home() {
             <CardContent className="space-y-4 pt-5">
               <p className="text-sm leading-6 text-slate-700">Abra esta experiência antes da Personal quando for necessário criar a BdW e salvar o ID retornado. Esse ID fica disponível na aba Credenciais para ser reutilizado em solicitações da PdW e em chamadas relacionadas.</p>
               <Button asChild className="bg-[#168821] hover:bg-[#0f6418]"><Link href="/business-govbr">Abrir Business GovBR <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
+            </CardContent>
+          </Card>
+
+          <Card className="overflow-hidden border-[#1351B4]/30 bg-white shadow-sm">
+            <CardHeader className="govbr-hero-personal text-white">
+              <div className="flex items-center gap-3">
+                <Smartphone className="h-6 w-6 text-[#FFCD07]" />
+                <div>
+                  <CardTitle>Personal dWallet GovBR</CardTitle>
+                  <CardDescription className="text-blue-50">Experiência da pessoa física com mockup de celular, telas montadas e evidências sanitizadas.</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4 pt-5">
+              <p className="text-sm leading-6 text-slate-700">Use esta experiência depois de abrir a BdW quando a etapa exigir dados empresariais, para obter o ID da Business dWallet. A autenticação técnica é aplicada automaticamente nas chamadas que exigem token M2M. O mockup mostra exemplos de avatar, carteira, solicitações e telas finais montadas.</p>
+              <Button asChild className="bg-[#1351B4] hover:bg-[#0C326F]"><Link href="/personal-govbr">Abrir Personal GovBR <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
             </CardContent>
           </Card>
         </div>
