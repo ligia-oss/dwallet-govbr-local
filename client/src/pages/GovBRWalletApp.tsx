@@ -536,11 +536,11 @@ export const businessScreens: GovScreen[] = [
     id: "entrada",
     route: "/",
     title: "Criar conta do funcionário",
-    subtitle: "Tela inicial da jornada BdWallet em que o empregado responsável cria a própria conta antes de abrir a carteira empresarial.",
+    subtitle: "Tela inicial da jornada BdWallet® em que o empregado responsável cria a própria conta antes de abrir a carteira de dados da empresa.",
     group: "acesso",
     icon: Building2,
     actionId: "step1_employee_signup",
-    apiLabel: "Cadastro de empregado",
+    apiLabel: "Cadastro de funcionário",
     apiHint: "Cria a conta do empregado Business com e-mail corporativo; este passo precisa vir antes das telas de abertura da BdWallet para disponibilizar e-mail, senha e token de usuário nas chamadas seguintes.",
     primaryCta: "Criar conta do funcionário",
     fields: [
@@ -754,7 +754,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "extrato-btg",
     route: "/finance/statement",
-    title: "Extrato empresarial",
+    title: "Extrato BdW",
     subtitle: "Movimentações financeiras da empresa por período, consultadas via coleção BTG.",
     group: "financeiro",
     icon: ReceiptText,
@@ -864,7 +864,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "configuracoes",
     route: "/settings",
-    title: "Configurações empresariais",
+    title: "Configurações BdW",
     subtitle: "Equipe, permissões, segurança, notificações e preferências da empresa.",
     group: "configuracoes",
     icon: Settings,
@@ -963,7 +963,7 @@ export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, stat
             {hasExternalAction ? <Badge variant="outline" className="border-green-200 bg-green-50 text-green-800">API: {screen.actionId}</Badge> : <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600">sem API externa</Badge>}
           </div>
           <p className="text-base font-bold text-slate-950">Como testar esta tela antes de usar o mockup</p>
-          <p className="text-sm leading-6 text-slate-600">Use o telefone logo abaixo como área principal de teste. O formulário auxiliar permanece disponível apenas para ajuste fino dos mesmos valores.</p>
+          <p className="text-sm leading-6 text-slate-600">Use o mockup de celular abaixo como área principal de teste. O formulário auxiliar permanece disponível apenas para ajuste fino dos mesmos valores.</p>
         </div>
         {evidence?.httpStatus ? <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">Último HTTP {evidence.httpStatus}</span> : null}
       </div>

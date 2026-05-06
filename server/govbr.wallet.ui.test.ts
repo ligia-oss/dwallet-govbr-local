@@ -164,12 +164,21 @@ describe("GovBR Wallet API response panels", () => {
     expect(appSource).toContain("Selecionar Value schema, Listar produtos, selecionar produtos e cadastrar produto");
     expect(appSource).toContain("Listar DSP padrão, listar DS comercial, ver detalhe do DSP, selecionar DSP");
     expect(appSource).toContain("Saldo BdW");
+    expect(appSource).toContain("Extrato BdW");
+    expect(appSource).toContain("Configurações BdW");
+    expect(appSource).toContain("Cadastro de funcionário");
+    expect(appSource).toContain("Tela inicial da jornada BdWallet® em que o empregado responsável cria a própria conta antes de abrir a carteira de dados da empresa.");
+    expect(appSource).toContain("Use o mockup de celular abaixo como área principal de teste");
     expect(appSource).toContain("whitespace-normal break-words leading-5");
     expect(appSource).not.toContain("DrumWave dWallets®");
     expect(appSource).not.toContain("Painel empresarial");
     expect(appSource).not.toContain("Schemas, datasets e databases");
     expect(appSource).not.toContain("Certificados de dados empresariais");
     expect(appSource).not.toContain("Saldo empresarial");
+    expect(appSource).not.toContain("Extrato empresarial");
+    expect(appSource).not.toContain("Configurações empresariais");
+    expect(appSource).not.toContain("Cadastro de empregado");
+    expect(appSource).not.toContain("Use o telefone logo abaixo como área principal de teste");
     expect(source).toContain("mockup operacional para teste de API");
     expect(source).toContain("Preencha na aba Variáveis a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API");
     expect(source).toContain("Clique em <strong>Gerar M2M token</strong>");
@@ -854,7 +863,7 @@ describe("GovBR Wallet API response panels", () => {
     expect(screen).toBeDefined();
     const evidence: Evidence = {
       actionId: "btg_get_statement",
-      actionTitle: "Extrato empresarial",
+      actionTitle: "Extrato BdW",
       status: "executed",
       ok: true,
       httpStatus: 200,
