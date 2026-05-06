@@ -316,3 +316,10 @@
 - [x] Classificar APIs da jornada Dataprev com subnumeração passo.letra no backend e no mockup, preservando os 17 passos canônicos.
 - [x] Atualizar testes automatizados para validar a exibição das classificações passo.letra e a metadata canônica.
 - [x] Executar pnpm test, pnpm build, verificar preview e salvar checkpoint da classificação de APIs.
+
+- [x] Reauditar o mapeamento canônico dos 17 passos e comparar com a navegação atual das wallets Personal e Business.
+- [x] Corrigir a guia de testes e o menu de navegação de Personal dWallet para listar os 17 passos canônicos com subnumeração de APIs por passo.
+- [x] Corrigir a guia de testes e o menu de navegação de Business dWallet para listar os 17 passos canônicos com subnumeração de APIs por passo.
+- [x] Sinalizar explicitamente no menu de navegação quais etapas dos 17 passos ainda não possuem APIs implementadas.
+- [x] Atualizar testes automatizados para impedir regressão no respeito aos 17 passos canônicos, subletras e sinalização de APIs ausentes.
+- [x] Executar validações técnicas e visuais, revisar checklist e salvar checkpoint da correção do mapeamento de 17 passos.

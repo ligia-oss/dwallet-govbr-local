@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, canonicalJourneySteps, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 import { clearPersistedDataprevCredentials, clearPersistedM2MTokenStatus, DATAPREV_CREDENTIALS_STORAGE_KEY, DATAPREV_M2M_TOKEN_STORAGE_KEY, isM2MAuthResultActive, normalizeDataprevCredentials, persistDataprevCredentials, persistM2MTokenStatus, readPersistedDataprevCredentials, readPersistedM2MTokenStatus } from "../client/src/lib/dataprevCredentials";
 
 describe("GovBR Wallet API response panels", () => {
@@ -172,7 +172,8 @@ describe("GovBR Wallet API response panels", () => {
     expect(appSource).toContain("Cadastro de funcionário");
     expect(appSource).toContain("Tela inicial da jornada BdWallet® em que o empregado responsável cria a própria conta antes de abrir a carteira de dados da empresa.");
     expect(appSource).toContain("Use o mockup de celular abaixo como área principal de teste");
-    expect(appSource).toContain("whitespace-normal break-words leading-5");
+    expect(appSource).toContain("canonicalJourneySteps");
+    expect(appSource).toContain("sem API ainda");
     expect(appSource).not.toContain("DrumWave dWallets®");
     expect(appSource).not.toContain("Painel empresarial");
     expect(appSource).not.toContain("Schemas, datasets e databases");
@@ -361,22 +362,23 @@ describe("GovBR Wallet API response panels", () => {
     expect(input.state).not.toHaveProperty("optionalUnset");
   });
 
-  it("renders the Personal API execution guide with five ordered steps and expected result cards", () => {
-    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, { walletKind: "personal" }));
+  it("renderiza o guia de execução com os 17 passos canônicos, subnumeração e lacunas sem API", () => {
+    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, { walletKind: "personal", screens: personalScreens }));
 
     expect(html).toContain("Guia de execução das APIs");
-    expect(html).toContain("Antes de começar");
-    expect(html).toContain("minmax(180px,1fr)");
-    expect(html).toContain("Gerar M2M token");
-    expect(html).toContain("Authorization Bearer");
-    expect(html).toContain("Criar e validar Personal dWallet");
-    expect(html).toContain("Abrir a BdW antes de solicitar dados");
-    expect(html).toContain("Solicitar informações na PdW");
-    expect(html).toContain("abra a Business dWallet");
-    expect(html).toContain("Executar telas finais e financeiras");
-    expect(html).toContain("Resultado esperado OK");
-    expect(html).toContain("Resultado esperado com pendência");
-    expect(html).toContain("Quando usar Variáveis de teste");
+    expect(html).toContain("Siga os 17 passos canônicos");
+    expect(html).toContain("Passo 1");
+    expect(html).toContain("Passo 17");
+    expect(html).toContain("10.a");
+    expect(html).toContain("10.b");
+    expect(html).toContain("10.c");
+    expect(html).toContain("10.d");
+    expect(html).toContain("16.a");
+    expect(html).toContain("17.a");
+    expect(html).toContain("sem API ainda");
+    expect(html).toContain("Etapa sem API/tela executável nesta wallet no momento");
+    expect(canonicalJourneySteps).toHaveLength(17);
+    expect(canonicalJourneySteps.map(step => step.id)).toEqual(Array.from({ length: 17 }, (_, index) => index + 1));
     expect(personalScreens.some(screen => screen.actionId === "step2_person_signin")).toBe(true);
   });
 
@@ -389,7 +391,8 @@ describe("GovBR Wallet API response panels", () => {
     expect(classifications).toContainEqual(["step10_standard_dsps", "10.b"]);
     expect(classifications).toContainEqual(["step10_dsp_details", "10.c"]);
     expect(classifications).toContainEqual(["step10_create_dsp_account", "10.d"]);
-    expect(classifications).toContainEqual(["step7_accept_data_request", "7.b/7.c"]);
+    expect(classifications).toContainEqual(["step7_accept_data_request", "7.b"]);
+    expect(canonicalJourneySteps.find(step => step.id === 7)?.entries.map(entry => entry.classification)).toEqual(["7.a", "7.b", "7.c"]);
 
     const screen = businessScreens.find(item => item.actionId === "step10_create_dsp_account");
     expect(screen).toBeDefined();
@@ -454,15 +457,19 @@ describe("GovBR Wallet API response panels", () => {
     expect(cleaned).toEqual({ personEmail: "manual@example.com", btgCompanyId: "btg_manual" });
   });
 
-  it("renders the Business beginner guide with business-specific ordered steps", () => {
-    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, { walletKind: "business" }));
+  it("renderiza o guia Business com os 17 passos canônicos e respostas empresariais subnumeradas", () => {
+    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, { walletKind: "business", screens: businessScreens }));
 
     expect(html).toContain("Business dWallet");
-    expect(html).toContain("Criar Business dWallet");
-    expect(html).toContain("ID da BdW");
-    expect(html).toContain("Abrir e validar a BdW");
-    expect(html).toContain("Produtos, schemas e solicitações");
-    expect(html).toContain("Operações financeiras");
+    expect(html).toContain("Siga os 17 passos canônicos");
+    expect(html).toContain("Passo 1");
+    expect(html).toContain("Passo 17");
+    expect(html).toContain("7.a");
+    expect(html).toContain("7.b");
+    expect(html).toContain("7.c");
+    expect(html).toContain("10.a");
+    expect(html).toContain("10.d");
+    expect(html).toContain("sem API ainda");
     expect(html).not.toContain("Criar Personal dWallet");
   });
 
@@ -483,23 +490,22 @@ describe("GovBR Wallet API response panels", () => {
 
     const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, {
       walletKind: "personal",
-      screens: [signupScreen!, sendCodeScreen!],
+      screens: [signupScreen!, businessScreens.find(screen => screen.actionId === "step3_list_schemas")!],
       evidences: { step2_person_signup: evidence },
       m2mCompleted: true,
-      reviewedSteps: { [sendCodeScreen!.id]: true },
+      reviewedSteps: { 3: true },
       onToggleReviewed: () => undefined,
       onOpenStep: () => undefined,
     }));
 
     expect(html).toContain("Checklist visual de progresso");
-    expect(html).toContain("Cada linha representa uma etapa da execução");
-    expect(html).toContain("2 de 2 revisadas");
-    expect(html).toContain("100% do roteiro acompanhado nesta sessão");
+    expect(html).toContain("Siga os 17 passos canônicos");
+    expect(html).toContain("1 de 17 passos revisados");
+    expect(html).toContain("6");
+    expect(html).toContain("do roteiro canônico acompanhado nesta sessão");
     expect(html).not.toContain("guide-check-personal-m2m");
-    expect(html).toContain(`guide-check-personal-${signupScreen!.id}`);
-    expect(html).toContain(`guide-check-personal-${sendCodeScreen!.id}`);
-    expect(html).toContain("revisada manualmente");
-    expect(html).toContain("Abrir etapa");
+    expect(html).toContain("guide-check-personal-step-2");
+    expect(html).toContain("guide-check-personal-step-3");
   });
 
   it("renders editable variables directly inside the emulated Dataprev app screen", () => {

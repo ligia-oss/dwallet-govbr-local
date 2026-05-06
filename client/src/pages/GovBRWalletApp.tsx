@@ -140,6 +140,7 @@ type GovScreen = {
   group: ScreenGroup;
   icon: typeof LayoutDashboard;
   actionId?: string;
+  relatedActionIds?: string[];
   apiClassification?: string;
   apiLabel: string;
   apiHint: string;
@@ -177,8 +178,13 @@ const apiClassificationByActionId: Record<string, string> = {
   step12_person_offers: "12.a",
   step13_offer_accept: "13.a",
   step14_wallet_statement: "14.a",
+  btg_get_balance: "14.b",
+  btg_get_statement: "14.c",
   step15_withdrawal_internal: "15.a",
-  step16_accounts_gap: "16.a",
+  btg_create_payment: "15.b",
+  btg_register_pix_key_gap: "16.a",
+  btg_create_pix_instant_collection: "16.b",
+  step16_accounts_gap: "16.c",
   step17_history_gap: "17.a",
 };
 
@@ -193,6 +199,142 @@ function applyScreenApiClassifications<T extends GovScreen[]>(screens: T): T {
     ...screen,
     apiClassification: screen.apiClassification ?? (screen.actionId ? apiClassificationByActionId[screen.actionId] : undefined),
   })) as T;
+}
+
+
+type JourneyApp = "Personal" | "Business" | "Ambos";
+type ApiAvailability = "available" | "partial" | "internal" | "gap" | "screen-only";
+
+type CanonicalApiEntry = {
+  classification: string;
+  actionId?: string;
+  label: string;
+  availability: ApiAvailability;
+  note: string;
+};
+
+type CanonicalJourneyStep = {
+  id: number;
+  app: JourneyApp;
+  title: string;
+  objective: string;
+  availability: ApiAvailability;
+  entries: CanonicalApiEntry[];
+};
+
+const availabilityLabel: Record<ApiAvailability, string> = {
+  available: "API disponível",
+  partial: "API parcial",
+  internal: "API interna",
+  gap: "sem API ainda",
+  "screen-only": "tela sem API",
+};
+
+const availabilityClasses: Record<ApiAvailability, string> = {
+  available: "border-green-200 bg-green-50 text-green-950",
+  partial: "border-blue-200 bg-blue-50 text-blue-950",
+  internal: "border-amber-200 bg-amber-50 text-amber-950",
+  gap: "border-slate-300 bg-white text-slate-700",
+  "screen-only": "border-slate-200 bg-slate-50 text-slate-700",
+};
+
+export const canonicalJourneySteps: CanonicalJourneyStep[] = [
+  { id: 1, app: "Business", title: "Empresa cria conta", objective: "Empresa cria sua conta na plataforma DrumWave, incluindo responsável e entidade empresarial.", availability: "partial", entries: [
+    { classification: "1.a", actionId: "step1_employee_signup", label: "Criar conta de colaborador Business", availability: "partial", note: "Cadastro inicial do responsável empresarial." },
+    { classification: "1.b", actionId: "step1_employee_send_code", label: "Enviar código OTP do colaborador", availability: "partial", note: "Envio de código depende do ambiente." },
+    { classification: "1.c", actionId: "step1_employee_verify_code", label: "Validar código OTP do colaborador", availability: "partial", note: "Validação depende do código recebido." },
+    { classification: "1.d", actionId: "step1_employee_signin", label: "Entrar na conta do colaborador", availability: "available", note: "Login do responsável para abrir a carteira empresarial." },
+    { classification: "1.e", actionId: "step1_business_create", label: "Criar entidade Business", availability: "partial", note: "Criação da BdWallet empresarial." },
+  ] },
+  { id: 2, app: "Personal", title: "Pessoa cria carteira", objective: "Pessoa física cria sua carteira de dados pessoal.", availability: "partial", entries: [
+    { classification: "2.a", actionId: "step2_person_signup", label: "Criar conta de pessoa", availability: "partial", note: "Cadastro Personal inicial." },
+    { classification: "2.b", actionId: "step2_person_send_code", label: "Enviar código OTP da pessoa", availability: "partial", note: "Envio de código depende do ambiente." },
+    { classification: "2.c", actionId: "step2_person_verify_code", label: "Validar código OTP da pessoa", availability: "partial", note: "Validação depende do código recebido." },
+    { classification: "2.d", actionId: "step2_person_signin", label: "Entrar na conta Personal", availability: "available", note: "Login da pessoa para operar a PdWallet." },
+  ] },
+  { id: 3, app: "Business", title: "Consultar Standard Value Schemas", objective: "Empresa consulta schemas padrão disponíveis.", availability: "available", entries: [
+    { classification: "3.a", actionId: "step3_list_schemas", label: "Listar schemas padrão", availability: "available", note: "Consulta de catálogo de schemas." },
+  ] },
+  { id: 4, app: "Business", title: "Cadastrar e consultar produtos", objective: "Empresa consulta catálogo e produtos próprios.", availability: "partial", entries: [
+    { classification: "4.a", actionId: "step4_list_products", label: "Listar produtos", availability: "partial", note: "Criação/atualização continuam parciais ou internas." },
+  ] },
+  { id: 5, app: "Personal", title: "Pessoa consulta produtos", objective: "Pessoa consulta produtos, schemas e empresas.", availability: "available", entries: [
+    { classification: "5.a", actionId: "step5_person_catalog", label: "Consultar catálogo Personal", availability: "available", note: "Produtos, schemas e empresas para solicitação de dados." },
+  ] },
+  { id: 6, app: "Personal", title: "Pessoa solicita dados", objective: "Pessoa solicita dados de uma empresa.", availability: "available", entries: [
+    { classification: "6.a", actionId: "step6_create_data_request", label: "Criar solicitação de dados", availability: "available", note: "POST /v1/data-request." },
+  ] },
+  { id: 7, app: "Business", title: "Empresa responde solicitação", objective: "Empresa consulta e responde solicitações de dados.", availability: "available", entries: [
+    { classification: "7.a", actionId: "step7_list_business_requests", label: "Listar solicitações recebidas", availability: "available", note: "GET /v1/data-request." },
+    { classification: "7.b", actionId: "step7_accept_data_request", label: "Aceitar solicitação", availability: "available", note: "PATCH de aceite quando houver requestId funcional." },
+    { classification: "7.c", actionId: "step7_reject_data_request", label: "Rejeitar solicitação", availability: "available", note: "PATCH de rejeição quando houver requestId funcional." },
+  ] },
+  { id: 8, app: "Personal", title: "Pessoa consulta certificados", objective: "Pessoa consulta certificados associados à carteira.", availability: "internal", entries: [
+    { classification: "8.a", actionId: "step8_person_certificates", label: "Listar certificados Personal", availability: "internal", note: "Endpoint marcado como interno ou não externalizado." },
+  ] },
+  { id: 9, app: "Business", title: "Empresa consulta certificados", objective: "Empresa consulta certificados associados.", availability: "internal", entries: [
+    { classification: "9.a", actionId: "step9_business_certificates", label: "Listar certificados Business", availability: "internal", note: "Endpoint marcado como interno ou não externalizado." },
+  ] },
+  { id: 10, app: "Personal", title: "Pessoa consulta e adere a plano DSP", objective: "Pessoa consulta e seleciona Data Savings Plan.", availability: "partial", entries: [
+    { classification: "10.a", actionId: "step10_commercial_dsps", label: "Listar DSPs comerciais", availability: "available", note: "Primeira API do passo 10." },
+    { classification: "10.b", actionId: "step10_standard_dsps", label: "Listar DSPs standard", availability: "available", note: "Segunda API do passo 10." },
+    { classification: "10.c", actionId: "step10_dsp_details", label: "Consultar detalhe/template do DSP", availability: "available", note: "Terceira API do passo 10." },
+    { classification: "10.d", actionId: "step10_create_dsp_account", label: "Criar/aderir conta DSP", availability: "partial", note: "Quarta API do passo 10, depende de plano válido." },
+  ] },
+  { id: 11, app: "Business", title: "Empresa cria ofertas", objective: "Empresa cria ofertas para marketplace de dados.", availability: "gap", entries: [
+    { classification: "11.a", actionId: "step11_business_offers_gap", label: "Criação/publicação de oferta", availability: "gap", note: "Sem endpoint externo detalhado no roteiro." },
+  ] },
+  { id: 12, app: "Personal", title: "Pessoa visualiza ofertas", objective: "Pessoa visualiza ofertas disponíveis.", availability: "partial", entries: [
+    { classification: "12.a", actionId: "step12_person_offers", label: "Listar ofertas disponíveis", availability: "partial", note: "Listagem sujeita a dados e feature flags." },
+  ] },
+  { id: 13, app: "Personal", title: "Pessoa aceita ou rejeita oferta", objective: "Pessoa aceita ou rejeita oferta disponível.", availability: "gap", entries: [
+    { classification: "13.a", actionId: "step13_offer_accept", label: "Aceitar/rejeitar oferta", availability: "gap", note: "Sem endpoint completo confirmado; representado por tela de checkout/aceite." },
+  ] },
+  { id: 14, app: "Ambos", title: "Visualizar extrato financeiro", objective: "Pessoa e empresa visualizam saldo e extrato financeiro.", availability: "partial", entries: [
+    { classification: "14.a", actionId: "step14_wallet_statement", label: "Extrato original da wallet", availability: "partial", note: "Contrato Dataprev/DrumWave parcial." },
+    { classification: "14.b", actionId: "btg_get_balance", label: "BTG consultar saldo", availability: "partial", note: "API financeira complementar para saldo." },
+    { classification: "14.c", actionId: "btg_get_statement", label: "BTG consultar extrato", availability: "partial", note: "API financeira complementar para extrato." },
+  ] },
+  { id: 15, app: "Ambos", title: "Solicitar resgate", objective: "Pessoa ou empresa solicita resgate ou pagamento relacionado.", availability: "internal", entries: [
+    { classification: "15.a", actionId: "step15_withdrawal_internal", label: "Resgate original da wallet", availability: "internal", note: "Withdrawal/payment settled/payment failed marcado como interno." },
+    { classification: "15.b", actionId: "btg_create_payment", label: "BTG enviar pagamento", availability: "partial", note: "API complementar de pagamento, não substitui integralmente resgate." },
+  ] },
+  { id: 16, app: "Ambos", title: "Cadastrar PIX/conta", objective: "Pessoa ou empresa cadastra Pix ou conta financeira.", availability: "gap", entries: [
+    { classification: "16.a", actionId: "btg_register_pix_key_gap", label: "Cadastrar/gerenciar chave Pix", availability: "gap", note: "Contrato recebido não expõe cadastro de chave Pix." },
+    { classification: "16.b", actionId: "btg_create_pix_instant_collection", label: "BTG gerar cobrança Pix", availability: "partial", note: "Cobrança Pix disponível como API complementar." },
+    { classification: "16.c", actionId: "step16_accounts_gap", label: "Onboarding de conta original", availability: "gap", note: "Accounts onboarding ainda não externalizado." },
+  ] },
+  { id: 17, app: "Ambos", title: "Consultar histórico de resgates", objective: "Pessoa ou empresa consulta histórico de resgates e eventos.", availability: "gap", entries: [
+    { classification: "17.a", actionId: "step17_history_gap", label: "Histórico de resgates/eventos", availability: "gap", note: "Wallet events/payments por transaction ID ainda não externalizados." },
+  ] },
+];
+
+function canonicalStepsForWallet(_walletKind: WalletKind) {
+  return canonicalJourneySteps;
+}
+
+function getScreenActionIds(screen: GovScreen) {
+  return [screen.actionId, ...(screen.relatedActionIds ?? [])].filter(Boolean) as string[];
+}
+
+function getStepScreens(step: CanonicalJourneyStep, screens: GovScreen[]) {
+  const actionIds = new Set(step.entries.map(entry => entry.actionId).filter(Boolean));
+  return screens.filter(screen => getScreenActionIds(screen).some(actionId => actionIds.has(actionId)));
+}
+
+function getEntryScreens(entry: CanonicalApiEntry, screens: GovScreen[]) {
+  return entry.actionId ? screens.filter(screen => getScreenActionIds(screen).includes(entry.actionId!)) : [];
+}
+
+function getCanonicalStepVisualStatus(step: CanonicalJourneyStep, screens: GovScreen[], evidences: Record<string, Evidence>, runningId?: string): VisualStatus {
+  const stepScreens = getStepScreens(step, screens);
+  if (!stepScreens.length) return step.availability === "gap" || step.availability === "internal" ? "missing" : "pending";
+  const statuses = stepScreens.map(screen => getVisualStatus(screen, screen.actionId ? evidences[screen.actionId] : undefined, runningId));
+  if (statuses.includes("running")) return "running";
+  if (statuses.some(status => status === "failed")) return "failed";
+  if (statuses.length && statuses.every(status => status === "done")) return "done";
+  if (statuses.every(status => status === "missing")) return "missing";
+  return "pending";
 }
 
 const statusLabel: Record<VisualStatus, string> = {
@@ -465,10 +607,10 @@ export const personalScreens: GovScreen[] = applyScreenApiClassifications([
     subtitle: "Revisão de ofertas selecionadas, confirmação de termos e finalização da operação.",
     group: "mercado",
     icon: ShoppingCart,
-    actionId: "step11_business_offers_gap",
-    apiLabel: "Lacuna registrada",
-    apiHint: "Não há endpoint externo suficiente para criação completa de oferta/carrinho.",
-    primaryCta: "Registrar lacuna",
+    actionId: "step13_offer_accept",
+    apiLabel: "Aceite de oferta pendente",
+    apiHint: "Não há endpoint externo completo para aceite/rejeição de oferta; a tela mantém a etapa 13 visível na jornada.",
+    primaryCta: "Registrar aceite/rejeição",
     fields: [],
     observedFrom: "Labels Cart, Checkout e Remove from cart dos bundles",
     blocks: ["Itens do carrinho", "Resumo financeiro", "Termos", "Confirmação"],
@@ -713,7 +855,8 @@ export const businessScreens: GovScreen[] = applyScreenApiClassifications([
     group: "wallet",
     icon: ClipboardList,
     actionId: "step7_accept_data_request",
-    apiClassification: "7.b/7.c",
+    relatedActionIds: ["step7_reject_data_request"],
+    apiClassification: "7.b",
     apiLabel: "Decidir solicitação",
     apiHint: "Usa PATCH /v1/dwallet/data-request/{dataRequestId}. Se a decisão for accepted, executa aceite; se for rejected, executa rejeição com o mesmo ID de solicitação.",
     primaryCta: "Enviar decisão",
@@ -1674,29 +1817,23 @@ export function CredentialFolderPanel({ items, values, onClear }: { items: Crede
 
 export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, runningId, m2mCompleted = false, reviewedSteps = {}, onToggleReviewed, onOpenStep }: { walletKind: WalletKind; screens?: GovScreen[]; evidences?: Record<string, Evidence>; runningId?: string; m2mCompleted?: boolean; reviewedSteps?: Record<string, boolean>; onToggleReviewed?: (stepId: string, checked: boolean) => void; onOpenStep?: (screenId: string) => void }) {
   const appName = walletKind === "personal" ? "Personal dWallet" : "Business dWallet";
-  const orderedSteps = walletKind === "personal" ? [
-    ["1", "Preencher credenciais do 1Password", "Abra a aba Variáveis e confirme API URL/Base URL, API ID / x-api-key, Client ID e Client Secret no primeiro bloco Variáveis e chaves."],
-    ["2", "Gerar M2M token", "Ainda na aba Variáveis, clique no botão Gerar M2M token. O token fica salvo até expirar e será usado como Authorization Bearer nas demais APIs Dataprev quando necessário."],
-    ["3", "Criar e validar Personal dWallet", "Execute criação, envio de código e validação na ordem da navegação lateral. IDs da PdW, usuário ou sessão retornados pela API são salvos automaticamente em Variáveis."],
-    ["4", "Abrir a BdW antes de solicitar dados", "Quando uma tela Personal exigir Business ID, abra a Business dWallet, crie/abra a BdW e copie da aba Variáveis o ID da BdW gerado pela API empresarial."],
-    ["5", "Solicitar informações na PdW", "Volte para a Personal dWallet, confirme que o Business ID está preenchido e execute a solicitação de dados. Guarde o requestId/consentId retornado para aprovação, consulta ou próximos testes."],
-    ["6", "Executar telas finais e financeiras", "Depois da wallet criada e dos IDs salvos, teste saldo, extrato, Pix, pagamento e marketplace. O mockup deve mostrar comprovante, resumo ou tela final montada, não apenas JSON técnico."],
-  ] : [
-    ["1", "Preencher credenciais do 1Password", "Abra a aba Variáveis e confirme API URL/Base URL, API ID / x-api-key, Client ID e Client Secret no primeiro bloco Variáveis e chaves."],
-    ["2", "Gerar M2M token", "Ainda na aba Variáveis, clique no botão Gerar M2M token. O token fica salvo até expirar e será usado como Authorization Bearer nas demais APIs Dataprev quando necessário."],
-    ["3", "Criar Business dWallet", "Cadastre empresa, colaborador e validações no mockup. Guarde automaticamente o ID da BdW, companyId ou walletId retornado pela API."],
-    ["4", "Abrir e validar a BdW", "Continue na ordem lateral até a carteira empresarial estar aberta. Esses dados serão usados pela Personal dWallet quando ela precisar solicitar informações à BdW."],
-    ["5", "Produtos, schemas e solicitações", "Execute uma tela por vez, salvando IDs de produto, schema, solicitação ou consentimento em Variáveis para chamadas relacionadas."],
-    ["6", "Operações financeiras", "Teste saldo, extrato, Pix, cobranças e pagamentos no fim da jornada. O mockup deve mostrar resumo ou comprovante montado com os dados retornados."],
-  ];
-  const checklistItems = [
-    ...screens.map(screen => ({
-      id: screen.id,
-      title: screen.title,
-      description: screen.actionId ? screen.apiHint : "Tela visual sem endpoint externo obrigatório; use para conferir a continuidade da experiência.",
-      status: getVisualStatus(screen, screen.actionId ? evidences[screen.actionId] : undefined, runningId),
-    })),
-  ];
+  const orderedSteps = canonicalStepsForWallet(walletKind);
+  const checklistItems = orderedSteps.map(step => {
+    const stepScreens = getStepScreens(step, screens);
+    const status = getCanonicalStepVisualStatus(step, screens, evidences, runningId);
+    const screenToOpen = stepScreens[0]?.id;
+    const hasExecutableScreen = Boolean(screenToOpen);
+    const missingEntries = step.entries.filter(entry => !getEntryScreens(entry, screens).length || entry.availability === "gap" || entry.availability === "internal");
+    return {
+      id: `step-${step.id}`,
+      step,
+      title: `Passo ${step.id}: ${step.title}`,
+      description: step.objective + " " + (missingEntries.length ? "Pendências/lacunas sinalizadas: " + missingEntries.map(entry => `${entry.classification} ${entry.label}`).join(", ") + "." : "Todas as APIs mapeadas para esta wallet possuem tela de teste."),
+      status,
+      screenToOpen,
+      hasExecutableScreen,
+    };
+  });
   const doneOrReviewed = checklistItems.filter(item => item.status === "done" || reviewedSteps[item.id]).length;
   const progressValue = checklistItems.length ? Math.round((doneOrReviewed / checklistItems.length) * 100) : 0;
   const statusClasses: Record<VisualStatus, string> = {
@@ -1711,39 +1848,53 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
     <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl"><ClipboardList className="h-5 w-5 text-[#1351B4]" />Guia de execução das APIs</CardTitle>
-        <CardDescription className="max-w-3xl text-base leading-7">Siga esta ordem para testar a {appName} dentro do mockup. Edite os dados no telefone, execute uma API por vez e confira quais informações foram salvas em Variáveis para alimentar etapas seguintes.</CardDescription>
+        <CardDescription className="max-w-3xl text-base leading-7">Siga os 17 passos canônicos para testar a {appName}. Cada API é classificada como número.letra, por exemplo Passo 10.a, 10.b, 10.c e 10.d, e as etapas sem API externa aparecem explicitamente como lacuna.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Antes de começar</AlertTitle>
-          <AlertDescription>Primeiro confirme na aba Variáveis se os quatro valores recebidos via 1Password foram colados como conjunto completo. Depois use a navegação lateral de cima para baixo. As próximas etapas ficam sinalizadas como dependentes quando ainda faltam IDs, confirmações ou respostas OK anteriores. Se aparecer erro, corrija o campo destacado no telefone e tente novamente.</AlertDescription>
+          <AlertDescription>Primeiro confirme na aba Variáveis se os quatro valores recebidos via 1Password foram colados como conjunto completo. Depois use a navegação lateral por passos canônicos. As próximas etapas ficam sinalizadas quando ainda faltam IDs, confirmações ou respostas OK anteriores.</AlertDescription>
         </Alert>
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
-          <div className="hidden bg-[#1351B4] px-4 py-3 text-sm font-bold text-white md:grid md:grid-cols-[72px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4">
-            <span>Ordem</span><span>O que testar</span><span>Como executar</span>
+          <div className="hidden bg-[#1351B4] px-4 py-3 text-sm font-bold text-white md:grid md:grid-cols-[90px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4">
+            <span>Passo</span><span>Objetivo canônico</span><span>APIs classificadas e lacunas</span>
           </div>
           <div className="divide-y divide-slate-200">
-            {orderedSteps.map(([order, title, instruction]) => (
-              <div key={order} className="grid gap-3 px-4 py-4 text-sm leading-6 md:grid-cols-[72px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4 md:items-start">
-                <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-blue-50 font-mono font-bold text-[#1351B4] md:h-auto md:w-auto md:justify-start md:rounded-none md:bg-transparent">{order}</span>
-                <span className="font-semibold text-slate-950">{title}</span>
-                <span className="text-slate-600">{instruction}</span>
-              </div>
-            ))}
+            {orderedSteps.map(step => {
+              const stepScreens = getStepScreens(step, screens);
+              return (
+                <div key={step.id} className="grid gap-3 px-4 py-4 text-sm leading-6 md:grid-cols-[90px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4 md:items-start">
+                  <span className="inline-flex h-8 w-20 items-center justify-center rounded-full bg-blue-50 font-mono font-bold text-[#1351B4] md:h-auto md:justify-start md:rounded-none md:bg-transparent">Passo {step.id}</span>
+                  <span><strong className="text-slate-950">{step.title}</strong><br /><span className="text-xs text-slate-500">{step.app} · {step.objective}</span></span>
+                  <span className="space-y-2 text-slate-600">
+                    {step.entries.map(entry => {
+                      const entryScreens = getEntryScreens(entry, screens);
+                      return (
+                        <span key={entry.classification} className="block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                          <span className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="border-blue-200 bg-white font-mono text-blue-900">{entry.classification}</Badge><span className="font-semibold text-slate-800">{entry.label}</span><Badge variant="outline" className={availabilityClasses[entry.availability]}>{entryScreens.length ? "tela no menu" : availabilityLabel[entry.availability]}</Badge></span>
+                          <span className="mt-1 block text-xs leading-5 text-slate-500">{entry.note}{!entryScreens.length ? " Etapa sem API/tela executável nesta wallet no momento." : ""}</span>
+                        </span>
+                      );
+                    })}
+                    {!stepScreens.length ? <span className="block rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600">Etapa sem API executável nesta wallet; mantida para preservar os 17 passos.</span> : null}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
-        <section className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5" aria-label="Checklist visual de progresso da jornada">
+        <section className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5" aria-label="Checklist visual de progresso da jornada canônica de 17 passos">
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
-              <h3 className="text-lg font-bold text-slate-950">Checklist visual de progresso</h3>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa uma etapa da execução. As etapas ficam concluídas quando a API retorna OK, e os valores gerados ficam disponíveis em Variáveis para serem reutilizados como input em outras APIs.</p>
+              <h3 className="text-lg font-bold text-slate-950">Checklist visual dos 17 passos</h3>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa um dos 17 passos canônicos. Quando houver múltiplas APIs no mesmo passo, elas aparecem como passo.a, passo.b, passo.c e assim sucessivamente. Etapas sem API externa são marcadas como API ausente ou interna.</p>
             </div>
-            <Badge className="bg-[#1351B4] text-white">{doneOrReviewed} de {checklistItems.length} revisadas</Badge>
+            <Badge className="bg-[#1351B4] text-white">{doneOrReviewed} de {checklistItems.length} passos revisados</Badge>
           </div>
           <div className="mt-4 space-y-2">
             <Progress value={progressValue} className="h-3 bg-white" />
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{progressValue}% do roteiro acompanhado nesta sessão</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{progressValue}% do roteiro canônico acompanhado nesta sessão</p>
           </div>
           <div className="mt-5 space-y-3">
             {checklistItems.map((item, index) => {
@@ -1755,19 +1906,20 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
                   "grid gap-3 rounded-2xl border p-4 md:grid-cols-[auto_1fr_auto] md:items-center " + (previousPending ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white")
                 }>
                   <div className="flex items-center gap-3">
-                    <Checkbox id={`guide-check-${walletKind}-${item.id}`} checked={checked} onCheckedChange={value => onToggleReviewed?.(item.id, value === true)} aria-label={`Marcar etapa ${index + 1} como revisada`} />
-                    <span className="grid h-8 w-8 place-items-center rounded-full bg-[#E7F0FF] font-mono text-sm font-bold text-[#1351B4]">{index + 1}</span>
+                    <Checkbox id={`guide-check-${walletKind}-${item.id}`} checked={checked} onCheckedChange={value => onToggleReviewed?.(item.id, value === true)} aria-label={`Marcar passo ${item.step.id} como revisado`} />
+                    <span className="grid h-8 w-12 place-items-center rounded-full bg-[#E7F0FF] font-mono text-sm font-bold text-[#1351B4]">{item.step.id}</span>
                   </div>
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <p className="font-semibold text-slate-950">{item.title}</p>
                       <Badge variant="outline" className={statusClasses[item.status]}>{running ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : item.status === "done" ? <CheckCircle2 className="mr-1 h-3 w-3" /> : null}{statusLabel[item.status]}</Badge>
+                      <Badge variant="outline" className={availabilityClasses[item.step.availability]}>{availabilityLabel[item.step.availability]}</Badge>
                       {reviewedSteps[item.id] && item.status !== "done" ? <Badge variant="outline" className="border-[#FFCD07] bg-[#FFF7CC] text-[#071D41]">revisada manualmente</Badge> : null}
                       {previousPending ? <Badge variant="outline" className="border-amber-300 bg-white text-amber-900">aguardando pré-requisito</Badge> : null}
                     </div>
                     <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
                   </div>
-                  <Button type="button" variant="outline" disabled={previousPending} onClick={() => onOpenStep?.(item.id)} className="justify-center bg-white">{previousPending ? "Concluir anteriores" : "Abrir etapa"}</Button>
+                  <Button type="button" variant="outline" disabled={!item.hasExecutableScreen || previousPending} onClick={() => item.screenToOpen ? onOpenStep?.(item.screenToOpen) : undefined} className="justify-center bg-white">{!item.hasExecutableScreen ? "Sem tela/API" : previousPending ? "Concluir anteriores" : "Abrir passo"}</Button>
                 </div>
               );
             })}
@@ -1776,7 +1928,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
         <div className="grid gap-4 md:grid-cols-3">
           <div className="rounded-2xl border border-green-200 bg-green-50 p-4 text-sm leading-6 text-green-950"><strong>Resultado esperado OK:</strong> a tela do telefone avança para a etapa seguinte ou mostra um comprovante/resumo real da operação.</div>
           <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm leading-6 text-amber-950"><strong>Resultado esperado com pendência:</strong> o telefone mostra uma mensagem de falha ou pendência em linguagem de aplicativo, e o painel técnico abaixo fica apenas como evidência sanitizada.</div>
-          <div className="rounded-2xl border border-slate-200 bg-[#F8F8F8] p-4 text-sm leading-6 text-slate-700"><strong>Quando usar Variáveis de teste:</strong> use a aba apenas para ajustes avançados. O teste comum deve acontecer diretamente dentro do mockup de celular.</div>
+          <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm leading-6 text-blue-950"><strong>Onde conferir variáveis:</strong> use a aba Variáveis para revisar IDs salvos, token M2M ativo, credenciais mascaradas e valores reutilizados entre passos.</div>
         </div>
       </CardContent>
     </Card>
@@ -2381,25 +2533,62 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
               <CardDescription>Telas reproduzidas a partir da homologação e dos bundles públicos.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              {(Object.keys(grouped) as ScreenGroup[]).map(group => grouped[group].length ? (
-                <div key={group} className="space-y-2">
-                  <p className="text-xs font-bold uppercase tracking-wide text-slate-500">{groupLabel[group]}</p>
-                  {grouped[group].map(screen => {
-                    const Icon = screen.icon;
-                    const selected = screen.id === active.id;
-                    const evidence = screen.actionId ? evidences[screen.actionId] : undefined;
-                    const visualStatus = getVisualStatus(screen, evidence, runningId);
-                    const screenOrderIndex = screens.findIndex(item => item.id === screen.id);
-                    const blockedByPrevious = screenOrderIndex > 0 && screens.slice(0, screenOrderIndex).some(previous => previous.actionId && !evidences[previous.actionId]?.ok && !reviewedGuideSteps[previous.id]);
-                    return (
-                      <button key={screen.id} disabled={blockedByPrevious} title={blockedByPrevious ? "Conclua ou revise manualmente as etapas anteriores no Guia de teste" : undefined} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "bg-[#1351B4] text-white" : blockedByPrevious ? "bg-amber-50 text-amber-900" : "text-slate-700 hover:bg-slate-100"}`}>
-                        <span className="flex min-w-0 items-start gap-2"><Icon className="mt-0.5 h-4 w-4 shrink-0" /><span className="whitespace-normal break-words leading-5">{screen.title}</span></span>
-                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase opacity-80">{blockedByPrevious ? "pré-req." : statusLabel[visualStatus]}{evidence?.ok ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : blockedByPrevious ? <LockKeyhole className="h-3 w-3 opacity-70" /> : screen.actionId ? <Play className="h-3 w-3 opacity-70" /> : <LockKeyhole className="h-3 w-3 opacity-60" />}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : null)}
+              <div className="space-y-3" aria-label="Mapa canônico de 17 passos">
+                {canonicalStepsForWallet(kind).map(step => {
+                  const stepScreens = getStepScreens(step, screens);
+                  const stepStatus = getCanonicalStepVisualStatus(step, screens, evidences, runningId);
+                  const hasAnyScreen = stepScreens.length > 0;
+                  const activeInStep = stepScreens.some(screen => screen.id === active.id);
+                  return (
+                    <div key={step.id} className={`rounded-2xl border p-3 ${activeInStep ? "border-[#1351B4] bg-blue-50" : "border-slate-200 bg-white"}`}>
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Passo {step.id} · {step.app}</p>
+                          <p className="mt-0.5 text-sm font-bold leading-5 text-slate-950">{step.title}</p>
+                        </div>
+                        <Badge variant="outline" className={availabilityClasses[step.availability]}>{availabilityLabel[step.availability]}</Badge>
+                      </div>
+                      <p className="mt-2 text-xs leading-5 text-slate-600">{step.objective}</p>
+                      <div className="mt-3 space-y-2">
+                        {step.entries.map(entry => {
+                          const entryScreens = getEntryScreens(entry, screens);
+                          const entryEvidence = entry.actionId ? evidences[entry.actionId] : undefined;
+                          const entryRunning = entry.actionId === runningId;
+                          return (
+                            <div key={entry.classification} className="rounded-xl border border-slate-200 bg-slate-50 p-2">
+                              <div className="flex flex-wrap items-center gap-2">
+                                <Badge variant="outline" className="border-blue-200 bg-white font-mono text-blue-900">{entry.classification}</Badge>
+                                <span className="min-w-0 flex-1 text-xs font-semibold leading-5 text-slate-800">{entry.label}</span>
+                                <Badge variant="outline" className={availabilityClasses[entry.availability]}>{entryScreens.length ? statusLabel[entryRunning ? "running" : entryEvidence?.ok ? "done" : entryEvidence?.status === "failed" ? "failed" : "pending"] : availabilityLabel[entry.availability]}</Badge>
+                              </div>
+                              <p className="mt-1 text-[11px] leading-4 text-slate-500">{entry.note}</p>
+                              {entryScreens.length ? (
+                                <div className="mt-2 space-y-1">
+                                  {entryScreens.map(screen => {
+                                    const Icon = screen.icon;
+                                    const selected = screen.id === active.id;
+                                    const screenOrderIndex = screens.findIndex(item => item.id === screen.id);
+                                    const blockedByPrevious = screenOrderIndex > 0 && screens.slice(0, screenOrderIndex).some(previous => previous.actionId && !evidences[previous.actionId]?.ok && !reviewedGuideSteps[previous.id]);
+                                    return (
+                                      <button key={screen.id} disabled={blockedByPrevious} title={blockedByPrevious ? "Conclua ou revise manualmente as etapas anteriores no Guia de teste" : undefined} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "bg-[#1351B4] text-white" : blockedByPrevious ? "bg-amber-50 text-amber-900" : "bg-white text-slate-700 hover:bg-slate-100"}`}>
+                                        <span className="flex min-w-0 items-start gap-2"><Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="whitespace-normal break-words leading-4">{screen.title}</span></span>
+                                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase opacity-80">{blockedByPrevious ? "pré-req." : entryEvidence?.ok ? "OK" : "abrir"}{entryEvidence?.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-green-300" /> : blockedByPrevious ? <LockKeyhole className="h-3 w-3 opacity-70" /> : <Play className="h-3 w-3 opacity-70" />}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              ) : (
+                                <div className="mt-2 rounded-lg border border-dashed border-slate-300 bg-white px-2 py-2 text-[11px] font-semibold leading-4 text-slate-600">Etapa sem API/tela executável nesta wallet no momento.</div>
+                              )}
+                            </div>
+                          );
+                        })}
+                        {!hasAnyScreen ? <p className="rounded-xl border border-dashed border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600">Este passo canônico não possui tela executável nesta wallet; mantenha como lacuna explícita no teste.</p> : null}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             </CardContent>
           </Card>
           <Alert className="border-[#1351B4]/20 bg-white">
