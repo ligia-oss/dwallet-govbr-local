@@ -227,3 +227,7 @@
 - [x] Reordenar a página inicial para exibir a caixa/card da Business dWallet antes da Personal dWallet.
 - [x] Adicionar o botão "Adicionar credenciais" na página inicial antes da apresentação das wallets, direcionando para a área de credenciais.
 - [x] Validar a nova ordem, o link do botão de credenciais, os testes e o build antes do checkpoint.
+
+- [x] Investigar e corrigir os erros de HMR/reload do Vite em `/src/pages/Home.tsx` e `/src/index.css` reportados na página inicial.
+- [x] Validar que a página inicial continua com Business dWallet antes da Personal dWallet e botão Adicionar credenciais após a correção.
+- [x] Executar testes, build, status do projeto e salvar checkpoint da correção de HMR.
