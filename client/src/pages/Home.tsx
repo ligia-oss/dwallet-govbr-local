@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "wouter";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -35,9 +36,10 @@ export default function Home() {
               <CardDescription className="text-blue-50">Algumas respostas de API alimentam chamadas seguintes.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3 text-sm leading-6 text-blue-50">
-              <p><strong>1.</strong> Abra a Business dWallet primeiro quando precisar gerar o ID da BdW.</p>
-              <p><strong>2.</strong> Use o ID da BdW salvo em Credenciais para solicitar informações na Personal dWallet.</p>
-              <p><strong>3.</strong> Execute as APIs na ordem da jornada; a autenticação técnica é aplicada automaticamente quando necessária.</p>
+              <p><strong>1.</strong> Preencha na aba Credenciais a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API.</p>
+              <p><strong>2.</strong> Abra a Business dWallet primeiro quando precisar gerar o ID da BdW.</p>
+              <p><strong>3.</strong> Use o ID da BdW salvo em Credenciais para solicitar informações na Personal dWallet.</p>
+              <p><strong>4.</strong> Execute as APIs na ordem da jornada; a autenticação técnica é aplicada automaticamente quando necessária.</p>
             </CardContent>
           </Card>
         </div>

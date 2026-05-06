@@ -214,3 +214,9 @@
 - [x] Atualizar textos, microcópias e estados vazios/erro para reduzir dúvidas de homologação e evitar exposição de segredos.
 - [x] Atualizar testes automatizados para cobrir a nova experiência de credenciais, ordem de execução e elementos visuais Gov.BR dos mockups.
 - [x] Executar validações finais com pnpm test, pnpm build, status do projeto e revisão do checklist antes do checkpoint.
+
+- [x] Atualizar o box de ordem recomendada para colocar como item 1 o preenchimento de Base URL/API URL, x-api-key/API ID, Client ID e Client Secret.
+- [x] Reposicionar na aba Credenciais o bloco de credenciais da API para aparecer no topo, antes dos demais blocos informativos ou auxiliares.
+- [x] Bloquear preventivamente a execução de qualquer API quando uma das quatro credenciais essenciais estiver vazia, exibindo mensagem clara para preenchimento.
+- [x] Atualizar testes automatizados para cobrir a nova ordem recomendada, a posição prioritária do bloco de credenciais e o bloqueio global antes de APIs.
+- [x] Executar Vitest, build, status do projeto, revisar checklist e salvar checkpoint dos ajustes de credenciais obrigatórias.

@@ -1,8 +1,9 @@
+import fs from "node:fs";
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -123,6 +124,7 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Credenciais temporárias Dataprev");
     expect(credentialsHtml).toContain("Checklist do item recebido via 1Password");
+    expect(credentialsHtml.indexOf("Credenciais temporárias Dataprev")).toBeLessThan(credentialsHtml.indexOf("Checklist do item recebido via 1Password"));
     expect(credentialsHtml).toContain("0 de 4 preenchidas");
     expect(credentialsHtml).toContain("No 1Password: Base URL ou API URL");
     expect(credentialsHtml).toContain("Para homologar exatamente com o item recebido via 1Password");
@@ -145,7 +147,15 @@ describe("GovBR Wallet API response panels", () => {
     expect(partialChecklist.filter(item => item.filled).map(item => item.key)).toEqual(["baseUrl", "apiKey"]);
   });
 
-  it("identifica credenciais obrigatórias faltantes antes de executar APIs Dataprev com credenciais temporárias", () => {
+  it("mostra o preenchimento das quatro credenciais como primeiro passo da ordem recomendada", () => {
+    const source = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/Home.tsx", "utf8");
+
+    expect(source).toContain("Ordem recomendada");
+    expect(source).toContain("Preencha na aba Credenciais a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API");
+    expect(source.indexOf("<strong>1.</strong> Preencha na aba Credenciais")).toBeLessThan(source.indexOf("<strong>2.</strong> Abra a Business dWallet"));
+  });
+
+  it("identifica credenciais obrigatórias faltantes antes de executar qualquer API", () => {
     expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" })).toEqual([
       "API URL",
       "API ID / x-api-key",
@@ -156,6 +166,9 @@ describe("GovBR Wallet API response panels", () => {
     expect(getMissingM2MCredentialLabels({ baseUrl: "https://endpoint/token", apiKey: "api-id", clientId: "", clientSecret: "secret-id" })).toEqual(["Client ID"]);
     expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: " api-id ", clientId: " client-id ", clientSecret: " secret-id " })).toEqual(["API URL"]);
     expect(getMissingM2MCredentialLabels({ baseUrl: " https://endpoint/token ", apiKey: " api-id ", clientId: " client-id ", clientSecret: " secret-id " })).toEqual([]);
+
+    expect(buildRequiredApiCredentialsMessage(["API URL", "Client ID"])).toContain("Antes de executar qualquer API");
+    expect(buildRequiredApiCredentialsMessage(["API URL", "Client ID"])).toContain("API URL, Client ID");
   });
 
   it("renders generated API outputs in the credential folder for reuse between steps", () => {
