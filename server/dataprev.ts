@@ -617,6 +617,20 @@ const actions: JourneyAction[] = [
     buildBody: () => ({ status: "accepted" }),
   },
   {
+    id: "step7_reject_data_request",
+    title: "Empresa rejeita solicitação de dados",
+    app: "Business",
+    group: "dWallet Data Request",
+    method: "PATCH",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    includeRegion: true,
+    description: "Atualiza a solicitação como rejeitada usando o ID funcional retornado pela criação ou listagem.",
+    buildPath: state => `/v1/dwallet/data-request/${state.dataRequestId}`,
+    buildBody: () => ({ status: "rejected" }),
+  },
+  {
     id: "step8_person_certificates",
     title: "Pessoa consulta certificados",
     app: "Personal",
@@ -820,7 +834,7 @@ function missingPrerequisite(action: JourneyAction, state: RunState) {
   if (action.id === "step1_business_create" && !state.employeeTokenHandle) return "Token do colaborador Business indisponível.";
   if (action.id === "step6_create_data_request" && !state.businessId) return "Crie a entidade empresarial antes de solicitar dados.";
   if (action.id === "step7_list_business_requests" && !state.businessId) return "Crie a entidade empresarial antes de listar solicitações.";
-  if (action.id === "step7_accept_data_request" && !state.dataRequestId) return "Crie ou liste uma solicitação de dados antes de aceitá-la.";
+  if ((action.id === "step7_accept_data_request" || action.id === "step7_reject_data_request") && !state.dataRequestId) return "Crie ou liste uma solicitação de dados antes de aceitar ou rejeitar.";
   if (action.id === "step10_create_dsp_account" && !state.commercialDspId) return "Liste DSPs comerciais antes de criar a conta DSP.";
   if (action.id === "step13_offer_accept" && !state.offerId) return "O passo 12 não retornou offerId utilizável para aceite.";
   return undefined;

@@ -741,6 +741,83 @@ describe("GovBR Wallet API response panels", () => {
     expect(personalHtml).toContain("direct-verificacao-email-personVerificationCode");
   });
 
+  it("renders schema selection, data-request decision and certificate views inside the GovBR mobile shell", () => {
+    const schemaScreen = businessScreens.find(screen => screen.id === "schemas");
+    const decisionScreen = businessScreens.find(screen => screen.id === "decisao-solicitacao");
+    const businessCertificatesScreen = businessScreens.find(screen => screen.id === "certificados-business");
+    const personalCertificatesScreen = personalScreens.find(screen => screen.id === "certificados-personal");
+
+    expect(schemaScreen?.actionId).toBe("step3_list_schemas");
+    expect(decisionScreen?.actionId).toBe("step7_accept_data_request");
+    expect(businessCertificatesScreen?.actionId).toBe("step9_business_certificates");
+    expect(personalCertificatesScreen?.actionId).toBe("step8_person_certificates");
+
+    const schemaHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: schemaScreen!,
+      values: { valueSchemaSid: "schema-income-001" },
+      evidence: {
+        actionId: "step3_list_schemas",
+        actionTitle: "Consultar Standard Value Schemas",
+        status: "executed",
+        ok: true,
+        httpStatus: 200,
+        responseBody: { items: [{ sid: "schema-income-001", name: "Comprovante de renda" }, { sid: "schema-address-001", name: "Endereço" }] },
+        stateUpdates: { valueSchemaSid: "schema-income-001" },
+        executedAt: "2026-05-06T12:00:00.000Z",
+      },
+      status: "done",
+      onChange: () => undefined,
+      onRun: () => undefined,
+    }));
+    expect(schemaHtml).toContain("Escolha de value schema");
+    expect(schemaHtml).toContain("Comprovante de renda");
+    expect(schemaHtml).toContain("schema-income-001");
+
+    const decisionHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: decisionScreen!,
+      values: { dataRequestId: "dr_123", dataRequestDecision: "rejected" },
+      status: "pending",
+      onChange: () => undefined,
+      onRun: () => undefined,
+    }));
+    expect(decisionHtml).toContain("Decisão da solicitação");
+    expect(decisionHtml).toContain("Aceitar");
+    expect(decisionHtml).toContain("Rejeitar");
+    expect(decisionHtml).toContain("dr_123");
+    expect(decisionHtml).toContain("status rejected");
+
+    const certificatesEvidence: Evidence = {
+      actionId: "step9_business_certificates",
+      actionTitle: "Empresa consulta certificados",
+      status: "executed",
+      ok: true,
+      httpStatus: 200,
+      responseBody: { certificates: [{ id: "cert_001", holder: "Empresa GovBR", schema: "Receita declarada", status: "issued" }] },
+      executedAt: "2026-05-06T12:00:00.000Z",
+    };
+    const businessCertificatesHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: businessCertificatesScreen!,
+      values: {},
+      evidence: certificatesEvidence,
+      status: "done",
+      onChange: () => undefined,
+      onRun: () => undefined,
+    }));
+    const personalCertificatesHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: personalCertificatesScreen!,
+      values: {},
+      evidence: { ...certificatesEvidence, actionId: "step8_person_certificates", actionTitle: "Pessoa consulta certificados" },
+      status: "done",
+      onChange: () => undefined,
+      onRun: () => undefined,
+    }));
+
+    expect(businessCertificatesHtml).toContain("Certificados retornados");
+    expect(businessCertificatesHtml).toContain("Empresa GovBR");
+    expect(businessCertificatesHtml).toContain("cert_001");
+    expect(personalCertificatesHtml).toContain("certificados de dados já em posse da pessoa");
+  });
+
   it("maps Business financial app screens to BTG APIs and keeps Pix key registration gap explicit", () => {
     const orderedActionIds = businessScreens.map(screen => screen.actionId).filter(Boolean);
     expect(orderedActionIds).toContain("btg_get_balance");

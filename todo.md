@@ -274,3 +274,9 @@
 - [x] Verificar as edições visuais e textuais aplicadas em `client/src/pages/Home.tsx` pela interface visual.
 - [x] Corrigir manualmente qualquer inconsistência textual ou de layout encontrada após a revisão de `Home.tsx`.
 - [x] Executar validações técnicas proporcionais, revisar o checklist e salvar checkpoint das edições da página inicial.
+
+- [x] Incluir na jornada da Business dWallet uma etapa de aceite ou rejeição de solicitação de dados, com tela emulada e ações visíveis.
+- [x] Criar uma tela para a API de listagem de value schemas em que o usuário possa escolher um schema retornado pela resposta da API.
+- [x] Criar etapa de visualização de certificados para a Business dWallet, exibindo certificados de dados já em posse da empresa a partir das informações retornadas.
+- [x] Criar etapa de visualização de certificados para a Personal dWallet, exibindo certificados de dados já em posse da pessoa a partir das informações retornadas.
+- [x] Atualizar mapeamento, testes automatizados e validações técnicas das novas etapas de jornada antes de salvar checkpoint.
