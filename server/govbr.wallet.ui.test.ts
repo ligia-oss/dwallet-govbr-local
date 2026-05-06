@@ -380,6 +380,31 @@ describe("GovBR Wallet API response panels", () => {
     expect(personalScreens.some(screen => screen.actionId === "step2_person_signin")).toBe(true);
   });
 
+  it("classifica as telas executáveis com subnumeração passo.letra no mockup", () => {
+    const classifications = [...personalScreens, ...businessScreens]
+      .filter(screen => screen.actionId)
+      .map(screen => [screen.actionId, screen.apiClassification]);
+
+    expect(classifications).toContainEqual(["step10_commercial_dsps", "10.a"]);
+    expect(classifications).toContainEqual(["step10_standard_dsps", "10.b"]);
+    expect(classifications).toContainEqual(["step10_dsp_details", "10.c"]);
+    expect(classifications).toContainEqual(["step10_create_dsp_account", "10.d"]);
+    expect(classifications).toContainEqual(["step7_accept_data_request", "7.b/7.c"]);
+
+    const screen = businessScreens.find(item => item.actionId === "step10_create_dsp_account");
+    expect(screen).toBeDefined();
+    const html = renderToStaticMarkup(React.createElement(ScreenApiInstructionPanel, {
+      screen: screen!,
+      stepNumber: 10,
+      totalSteps: businessScreens.length,
+      status: "pending",
+      m2mReady: true,
+    }));
+
+    expect(html).toContain("Passo 10.d");
+    expect(html).toContain("a ação Passo 10.d / step10_create_dsp_account");
+  });
+
   it("renders mandatory Business ID guidance above the mockup for the Personal data request screen", () => {
     const screen = personalScreens.find(item => item.actionId === "step6_create_data_request");
     expect(screen).toBeDefined();

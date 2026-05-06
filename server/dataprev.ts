@@ -26,6 +26,7 @@ type JourneyAction = {
   buildPath?: (state: RunState) => string;
   onSuccess?: (body: unknown, state: RunState) => RunState;
   missingReason?: string;
+  apiClassification?: string;
 };
 
 type JourneyStep = {
@@ -785,6 +786,18 @@ const actions: JourneyAction[] = [
   },
 ];
 
+const stepLetter = (index: number) => String.fromCharCode(97 + index);
+
+function classifyJourneySteps(journeySteps: JourneyStep[]): JourneyStep[] {
+  return journeySteps.map(step => ({
+    ...step,
+    actions: step.actions.map((action, index) => ({
+      ...action,
+      apiClassification: `${step.id}.${stepLetter(index)}`,
+    })),
+  }));
+}
+
 const steps: JourneyStep[] = [
   { id: 1, title: "Empresa cria conta", app: "Business", summary: "Cadastro, login e criação da entidade empresarial.", status: "partial", actions: actions.filter(a => a.id.startsWith("step1_")) },
   { id: 2, title: "Pessoa cria carteira", app: "Personal", summary: "Cadastro, verificação, login e identificação da pessoa física.", status: "partial", actions: actions.filter(a => a.id.startsWith("step2_")) },
@@ -977,7 +990,7 @@ export const dataprevRouter = router({
       expiresInSeconds: Math.max(0, Math.floor((m2mCache.expiresAt - Date.now()) / 1000)),
     } : (clearExpiredM2MCache(), null),
     initialState: initialState(),
-    steps,
+    steps: classifyJourneySteps(steps),
   })),
   authenticateM2M: publicProcedure
     .input(z.object({ credentials: credentialsInputSchema }).optional())

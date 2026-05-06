@@ -140,6 +140,7 @@ type GovScreen = {
   group: ScreenGroup;
   icon: typeof LayoutDashboard;
   actionId?: string;
+  apiClassification?: string;
   apiLabel: string;
   apiHint: string;
   primaryCta: string;
@@ -148,6 +149,51 @@ type GovScreen = {
   blocks?: string[];
   appEmulation?: AppEmulation;
 };
+
+const apiClassificationByActionId: Record<string, string> = {
+  step1_employee_signup: "1.a",
+  step1_employee_send_code: "1.b",
+  step1_employee_verify_code: "1.c",
+  step1_employee_signin: "1.d",
+  step1_business_create: "1.e",
+  step2_person_signup: "2.a",
+  step2_person_send_code: "2.b",
+  step2_person_verify_code: "2.c",
+  step2_person_signin: "2.d",
+  step3_list_schemas: "3.a",
+  step4_list_products: "4.a",
+  step5_person_catalog: "5.a",
+  step6_create_data_request: "6.a",
+  step7_list_business_requests: "7.a",
+  step7_accept_data_request: "7.b",
+  step7_reject_data_request: "7.c",
+  step8_person_certificates: "8.a",
+  step9_business_certificates: "9.a",
+  step10_commercial_dsps: "10.a",
+  step10_standard_dsps: "10.b",
+  step10_dsp_details: "10.c",
+  step10_create_dsp_account: "10.d",
+  step11_business_offers_gap: "11.a",
+  step12_person_offers: "12.a",
+  step13_offer_accept: "13.a",
+  step14_wallet_statement: "14.a",
+  step15_withdrawal_internal: "15.a",
+  step16_accounts_gap: "16.a",
+  step17_history_gap: "17.a",
+};
+
+function getScreenApiClassification(screen: GovScreen) {
+  if (screen.apiClassification) return screen.apiClassification;
+  if (!screen.actionId) return undefined;
+  return apiClassificationByActionId[screen.actionId];
+}
+
+function applyScreenApiClassifications<T extends GovScreen[]>(screens: T): T {
+  return screens.map(screen => ({
+    ...screen,
+    apiClassification: screen.apiClassification ?? (screen.actionId ? apiClassificationByActionId[screen.actionId] : undefined),
+  })) as T;
+}
 
 const statusLabel: Record<VisualStatus, string> = {
   pending: "aguardando ação",
@@ -235,7 +281,7 @@ const businessTestVariables: TestVariable[] = [
   { key: "btgPaymentId", label: "Pagamento BTG", section: "APIs financeiras BTG", placeholder: "payment-id", description: "Identificador usado para consulta de comprovante BTG." },
 ];
 
-export const personalScreens: GovScreen[] = [
+export const personalScreens: GovScreen[] = applyScreenApiClassifications([
   {
     id: "entrada",
     route: "/",
@@ -533,9 +579,9 @@ export const personalScreens: GovScreen[] = [
     observedFrom: "Padrões de navegação de wallet e labels de Settings dos bundles",
     blocks: ["Dados da conta", "Segurança", "Notificações", "Privacidade e consentimentos"],
   },
-];
+]);
 
-export const businessScreens: GovScreen[] = [
+export const businessScreens: GovScreen[] = applyScreenApiClassifications([
   {
     id: "entrada",
     route: "/",
@@ -667,6 +713,7 @@ export const businessScreens: GovScreen[] = [
     group: "wallet",
     icon: ClipboardList,
     actionId: "step7_accept_data_request",
+    apiClassification: "7.b/7.c",
     apiLabel: "Decidir solicitação",
     apiHint: "Usa PATCH /v1/dwallet/data-request/{dataRequestId}. Se a decisão for accepted, executa aceite; se for rejected, executa rejeição com o mesmo ID de solicitação.",
     primaryCta: "Enviar decisão",
@@ -938,7 +985,7 @@ export const businessScreens: GovScreen[] = [
     observedFrom: "Padrões de Settings e gestão de conta dos bundles",
     blocks: ["Perfil da empresa", "Usuários", "Permissões", "Notificações"],
   },
-];
+]);
 
 function validateField(key: string, label: string, value: unknown, required?: boolean, type?: string) {
   const text = String(value ?? "").trim();
@@ -1007,7 +1054,8 @@ export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, stat
   const hasExternalAction = Boolean(screen.actionId);
   const needsM2M = hasExternalAction && screen.actionId?.startsWith("step");
   const fieldsLabel = screen.fields.length ? "preencha os campos obrigatórios destacados no telefone" : "confira as informações já exibidas na tela";
-  const actionLabel = hasExternalAction ? `a ação ${screen.actionId}` : "uma validação visual/local";
+  const classification = getScreenApiClassification(screen);
+  const actionLabel = hasExternalAction ? `a ação ${classification ? `Passo ${classification} / ` : ""}${screen.actionId}` : "uma validação visual/local";
   const resultInstruction = status === "done"
     ? "revise a resposta OK e confirme se o telefone avançou ou exibiu o resumo esperado"
     : status === "failed"
@@ -1023,6 +1071,7 @@ export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, stat
           <div className="flex flex-wrap items-center gap-2">
             <Badge className="bg-[#1351B4] text-white">Etapa {stepNumber} de {totalSteps}</Badge>
             <Badge variant="outline" className="border-slate-300 text-slate-700">{statusLabel[status]}</Badge>
+            {classification ? <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-900">Passo {classification}</Badge> : null}
             {hasExternalAction ? <Badge variant="outline" className="border-green-200 bg-green-50 text-green-800">API: {screen.actionId}</Badge> : <Badge variant="outline" className="border-slate-200 bg-slate-50 text-slate-600">sem API externa</Badge>}
           </div>
           <p className="text-base font-bold text-slate-950">Como testar esta tela antes de usar o mockup</p>
@@ -2382,6 +2431,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Badge className={active.actionId ? "bg-[#168821]" : "bg-slate-600"}>{active.apiLabel}</Badge>
+                  {getScreenApiClassification(active) ? <Badge variant="outline" className="border-blue-200 bg-blue-50 text-blue-900">Passo {getScreenApiClassification(active)}</Badge> : null}
                   <Badge variant="outline" className="border-slate-300 text-slate-700">{statusLabel[activeStatus]}</Badge>
                 </div>
               </div>
@@ -2423,6 +2473,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                     <CardContent className="space-y-3 text-sm">
                       <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Aplicação</span><strong>{isPersonal ? "Personal" : "Business"}</strong></div>
                       <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Grupo</span><strong>{groupLabel[active.group]}</strong></div>
+                      <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Classificação</span><strong>{getScreenApiClassification(active) ? `Passo ${getScreenApiClassification(active)}` : "visual"}</strong></div>
                       <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>API</span><strong>{active.actionId || "visual"}</strong></div>
                       <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Status da tela</span><strong>{statusLabel[activeStatus]}</strong></div>
                       <div className="flex justify-between rounded-xl bg-slate-50 px-3 py-2"><span>Última resposta</span><strong>{activeEvidence?.executedAt ? new Date(activeEvidence.executedAt).toLocaleTimeString("pt-BR") : "não executada"}</strong></div>

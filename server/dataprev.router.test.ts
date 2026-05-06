@@ -15,7 +15,14 @@ describe("dataprevRouter", () => {
     const metadata = await caller.dataprev.metadata();
 
     expect(metadata.steps).toHaveLength(17);
-    expect(metadata.steps.find(step => step.id === 10)?.actions.some(action => action.id === "step10_dsp_details")).toBe(true);
+    const step10Actions = metadata.steps.find(step => step.id === 10)?.actions;
+    expect(step10Actions?.some(action => action.id === "step10_dsp_details")).toBe(true);
+    expect(step10Actions?.map(action => ({ id: action.id, apiClassification: action.apiClassification }))).toEqual([
+      { id: "step10_commercial_dsps", apiClassification: "10.a" },
+      { id: "step10_standard_dsps", apiClassification: "10.b" },
+      { id: "step10_dsp_details", apiClassification: "10.c" },
+      { id: "step10_create_dsp_account", apiClassification: "10.d" },
+    ]);
     expect(metadata.credentialsConfigured).toBe(true);
     expect(metadata.steps.some(step => step.app === "Personal")).toBe(true);
     expect(metadata.steps.some(step => step.app === "Business")).toBe(true);

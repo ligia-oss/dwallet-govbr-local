@@ -306,3 +306,13 @@
 - [x] Verificar em `client/src/pages/GovBRWalletApp.tsx` se os rótulos da Personal dWallet foram atualizados de “Painel da carteira” para “Home da carteira” e de “Certificados de dados pessoais” para “Certificados da PdW”.
 - [x] Corrigir manualmente qualquer edição visual da Personal dWallet que não tenha sido persistida no código-fonte ou em testes automatizados.
 - [x] Executar validações técnicas e visuais proporcionais e salvar checkpoint das novas edições visuais da Personal dWallet.
+
+- [x] Localizar e revisar a estrutura JSON do projeto que divide as APIs da jornada por passos, identificando passos com múltiplas APIs.
+- [x] Classificar cada API com subnumeração no formato `passo.letra` quando houver mais de uma API no mesmo passo, por exemplo `10.a`, `10.b`, `10.c`, `10.d`.
+- [x] Aplicar a classificação `passo.letra` no mapeamento de APIs, na interface da jornada e nos metadados exibidos ao usuário.
+- [x] Atualizar testes automatizados para cobrir passos com uma API e passos com múltiplas APIs classificadas por subletras.
+- [x] Executar validações técnicas e visuais, revisar checklist e salvar checkpoint da classificação de APIs por passos.
+
+- [x] Classificar APIs da jornada Dataprev com subnumeração passo.letra no backend e no mockup, preservando os 17 passos canônicos.
+- [x] Atualizar testes automatizados para validar a exibição das classificações passo.letra e a metadata canônica.
+- [x] Executar pnpm test, pnpm build, verificar preview e salvar checkpoint da classificação de APIs.
