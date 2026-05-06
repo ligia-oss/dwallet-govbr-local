@@ -339,7 +339,7 @@ export const personalScreens: GovScreen[] = [
   {
     id: "painel",
     route: "/dashboard",
-    title: "Painel da carteira",
+    title: "Home da carteira",
     subtitle: "Resumo de saldo estimado, dados conectados, solicitações e alertas de privacidade.",
     group: "wallet",
     icon: LayoutDashboard,
@@ -369,7 +369,7 @@ export const personalScreens: GovScreen[] = [
   {
     id: "certificados-personal",
     route: "/certificates",
-    title: "Certificados de dados pessoais",
+    title: "Certificados da PdW",
     subtitle: "Visualiza certificados de dados já em posse da pessoa, retornados pela API de Data Savings Certificates.",
     group: "wallet",
     icon: FileCheck2,

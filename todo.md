@@ -302,3 +302,7 @@
 - [x] Separar na jornada Business dWallet a etapa de ver detalhes do DSP, vinculando-a à API correspondente e a um front próprio no mockup.
 - [x] Separar na jornada Business dWallet a etapa de escolher DSP, vinculando-a à API correspondente e a um front próprio no mockup.
 - [x] Atualizar testes automatizados e validações técnicas para cobrir as novas etapas separadas da Business dWallet antes de salvar checkpoint.
+
+- [x] Verificar em `client/src/pages/GovBRWalletApp.tsx` se os rótulos da Personal dWallet foram atualizados de “Painel da carteira” para “Home da carteira” e de “Certificados de dados pessoais” para “Certificados da PdW”.
+- [x] Corrigir manualmente qualquer edição visual da Personal dWallet que não tenha sido persistida no código-fonte ou em testes automatizados.
+- [x] Executar validações técnicas e visuais proporcionais e salvar checkpoint das novas edições visuais da Personal dWallet.
