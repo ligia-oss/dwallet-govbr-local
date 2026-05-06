@@ -250,3 +250,19 @@
 - [x] Verificar as edições visuais aplicadas no arquivo `client/src/pages/GovBRWalletApp.tsx` e confirmar aderência aos textos e estilos solicitados.
 - [x] Executar validações técnicas proporcionais às alterações de texto/layout após a edição visual.
 - [x] Salvar novo checkpoint com as edições visuais verificadas.
+
+- [x] Investigar a falha de implantação reportada e diferenciar erro de código de limitação externa de infraestrutura/logs.
+- [x] Reexecutar validações locais de testes, build e status para verificar se o checkpoint atual está tecnicamente implantável.
+- [x] Entregar conclusão ao usuário sobre causa provável e próximos passos de implantação.
+
+- [x] Reinvestigar a reincidência da falha de implantação com erro `RATE_LIMIT_EXCEEDED` no Google Cloud Logging.
+- [x] Revalidar testes, build e status do projeto após a nova tentativa de publicação falhar.
+- [x] Confirmar ao usuário se há ou não correção de código aplicável para a falha recorrente de deploy.
+
+- [x] Registrar a terceira reincidência da falha de implantação com `RATE_LIMIT_EXCEEDED` no Google Cloud Logging.
+- [x] Confirmar que não há nova correção de código aplicável diante de testes e build já aprovados.
+- [x] Orientar o usuário a acionar suporte da plataforma caso a publicação continue bloqueada por cota de logs.
+
+- [x] Preparar o projeto para nova tentativa de publicação pela interface após falhas externas de cota de logs.
+- [x] Verificar se há alterações locais pendentes que exigem novo checkpoint antes do botão Publish.
+- [x] Orientar o usuário a clicar em Publish novamente após o checkpoint estar disponível.
