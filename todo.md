@@ -270,3 +270,7 @@
 - [x] Verificar se a edição visual do botão em `GovBRWalletApp.tsx` faz o texto caber dividido em duas linhas.
 - [x] Ajustar manualmente o botão caso a edição determinística não esteja refletida corretamente no código-fonte.
 - [x] Executar validação técnica proporcional e salvar checkpoint da edição visual do botão.
+
+- [x] Verificar as edições visuais e textuais aplicadas em `client/src/pages/Home.tsx` pela interface visual.
+- [x] Corrigir manualmente qualquer inconsistência textual ou de layout encontrada após a revisão de `Home.tsx`.
+- [x] Executar validações técnicas proporcionais, revisar o checklist e salvar checkpoint das edições da página inicial.

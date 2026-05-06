@@ -155,10 +155,14 @@ describe("GovBR Wallet API response panels", () => {
     const source = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/Home.tsx", "utf8");
 
     expect(source).toContain("Ordem recomendada");
+    expect(source).toContain("DrumWave dWallets®");
+    expect(source).toContain("mockup operacional para teste de API");
     expect(source).toContain("Preencha na aba Credenciais a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API");
     expect(source).toContain("Clique em <strong>Gerar M2M token</strong>");
+    expect(source).toContain("Abra a Business dWallet® primeiro; você precisará do ID da wallet da empresa");
+    expect(source).toContain("Use o ID da BdWallet® gerado para informar no processo de solicitação de dados da PdWallet®");
     expect(source.indexOf("<strong>1.</strong> Preencha na aba Credenciais")).toBeLessThan(source.indexOf("<strong>2.</strong> Clique em <strong>Gerar M2M token</strong>"));
-    expect(source.indexOf("<strong>2.</strong> Clique em <strong>Gerar M2M token</strong>")).toBeLessThan(source.indexOf("<strong>3.</strong> Abra a Business dWallet"));
+    expect(source.indexOf("<strong>2.</strong> Clique em <strong>Gerar M2M token</strong>")).toBeLessThan(source.indexOf("<strong>3.</strong> Abra a Business dWallet®"));
   });
 
   it("apresenta Business dWallet antes da Personal e oferece atalho para adicionar credenciais", () => {
@@ -167,6 +171,8 @@ describe("GovBR Wallet API response panels", () => {
     expect(source).toContain("Primeiro passo de homologação");
     expect(source).toContain("Adicionar credenciais");
     expect(source).toContain("/business-govbr?tab=credenciais");
+    expect(source).toContain("IDs de dWallet®");
+    expect(source).toContain("style={{ height: \"54px\" }}");
     expect(source.indexOf("Business dWallet GovBR")).toBeLessThan(source.indexOf("Personal dWallet GovBR"));
   });
 

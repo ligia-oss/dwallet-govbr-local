@@ -14,9 +14,9 @@ export default function Home() {
           <div className="flex items-center gap-4">
             <div className="grid h-14 w-14 place-items-center rounded-2xl bg-[#1351B4] text-white shadow-sm"><Landmark className="h-7 w-7" /></div>
             <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#1351B4]">padrão gov.br · mockup operacional</p>
+              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#1351B4]">mockup operacional para teste de API</p>
               <h1 className="text-2xl font-bold tracking-tight text-slate-950">dWallet GovBR</h1>
-              <p className="text-sm text-slate-600">Escolha uma das experiências com identidade visual gov.br e telefone emulado.</p>
+              <p className="text-sm text-slate-600">Escolha uma das experiências com identidade visual gov.br</p>
             </div>
           </div>
           <Badge className="w-fit bg-green-700 text-white"><ShieldCheck className="mr-1 h-3 w-3" />Experiência visual com execução de APIs</Badge>
@@ -27,8 +27,8 @@ export default function Home() {
         <div className="container grid gap-8 py-14 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div className="space-y-5">
             <Badge className="bg-[#FFCD07] text-[#071D41]">Jornada integrada Personal + Business</Badge>
-            <h2 className="max-w-4xl text-4xl font-bold tracking-tight md:text-5xl">Execute as APIs na ordem correta dentro de mockups GovBR.</h2>
-            <p className="max-w-3xl text-base leading-7 text-blue-50">A página principal mantém apenas os atalhos para as experiências com telefone emulado, identidade visual gov.br, guia de execução, dependências entre etapas e pasta de credenciais para guardar identificadores gerados pelas APIs.</p>
+            <h2 className="max-w-4xl text-4xl font-bold tracking-tight md:text-5xl">DrumWave dWallets®</h2>
+            <p className="max-w-3xl text-base leading-7 text-blue-50">A página principal mantém apenas os atalhos para as experiências no app com identidade visual gov.br, guia de execução, dependências entre etapas e pasta de credenciais para guardar identificadores gerados pelas APIs.</p>
           </div>
           <Card className="border-white/20 bg-white/10 text-white backdrop-blur">
             <CardHeader>
@@ -38,8 +38,8 @@ export default function Home() {
             <CardContent className="space-y-3 text-sm leading-6 text-blue-50">
               <p><strong>1.</strong> Preencha na aba Credenciais a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API.</p>
               <p><strong>2.</strong> Clique em <strong>Gerar M2M token</strong> no bloco Credenciais e chaves; o token fica salvo até expirar para uso como header nas APIs que exigirem autenticação técnica.</p>
-              <p><strong>3.</strong> Abra a Business dWallet primeiro quando precisar gerar o ID da BdW.</p>
-              <p><strong>4.</strong> Use o ID da BdW gerado para informar no processo de solicitação de dados da PdWallet.</p>
+              <p><strong>3.</strong> Abra a Business dWallet® primeiro; você precisará do ID da wallet da empresa quando for solicitar os dados pela Personal dWallet®.</p>
+              <p><strong>4.</strong> Use o ID da BdWallet® gerado para informar no processo de solicitação de dados da PdWallet®.</p>
               <p><strong>5.</strong> Execute as APIs na ordem da jornada; chamadas protegidas usam o M2M token salvo enquanto ele estiver ativo.</p>
             </CardContent>
           </Card>
@@ -50,7 +50,7 @@ export default function Home() {
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
           <FolderKey className="h-4 w-4" />
           <AlertTitle>Pasta de credenciais compartilhada por jornada</AlertTitle>
-          <AlertDescription>Sempre que uma API retornar identificadores, tokens opacos, IDs de wallet, IDs de solicitação ou outros valores reutilizáveis, a experiência GovBR guarda esses dados na aba Credenciais para que possam ser usados como input em etapas posteriores.</AlertDescription>
+          <AlertDescription>Sempre que uma API retornar identificadores, tokens opacos, IDs de dWallet®, IDs de solicitação ou outros valores reutilizáveis, a experiência GovBR guarda esses dados na aba Credenciais para que possam ser usados como input em etapas posteriores.</AlertDescription>
         </Alert>
 
         <div className="flex flex-col gap-3 rounded-3xl border border-[#1351B4]/20 bg-white p-5 shadow-sm sm:flex-row sm:items-center sm:justify-between">
@@ -65,10 +65,10 @@ export default function Home() {
 
         <div className="grid gap-5 lg:grid-cols-2">
           <Card className="overflow-hidden border-[#168821]/30 bg-white shadow-sm">
-            <CardHeader className="govbr-hero-business text-white">
+            <CardHeader className="govbr-hero-business text-white" style={{ height: "54px" }}>
               <div className="flex items-center gap-3">
                 <Building2 className="h-6 w-6 text-[#FFCD07]" />
-                <div>
+                <div style={{ marginTop: "11px" }}>
                   <CardTitle>Business dWallet GovBR</CardTitle>
                   <CardDescription className="text-blue-50">Experiência empresarial com mockup de celular, onboarding e carteira de negócios.</CardDescription>
                 </div>
@@ -81,10 +81,10 @@ export default function Home() {
           </Card>
 
           <Card className="overflow-hidden border-[#1351B4]/30 bg-white shadow-sm">
-            <CardHeader className="govbr-hero-personal text-white">
+            <CardHeader className="govbr-hero-personal text-white" style={{ height: "54px" }}>
               <div className="flex items-center gap-3">
                 <Smartphone className="h-6 w-6 text-[#FFCD07]" />
-                <div>
+                <div style={{ paddingTop: "10px" }}>
                   <CardTitle>Personal dWallet GovBR</CardTitle>
                   <CardDescription className="text-blue-50">Experiência da pessoa física com mockup de celular, telas montadas e evidências sanitizadas.</CardDescription>
                 </div>
