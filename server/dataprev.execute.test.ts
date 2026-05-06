@@ -100,6 +100,8 @@ describe("execução Dataprev", () => {
       return jsonResponse(201, { id: "business-1" });
     }) as any;
 
+    await caller.dataprev.authenticateM2M();
+
     await caller.dataprev.executeAction({
       actionId: "step1_employee_signup",
       state: { runId: "130", employeeEmail: "colaborador-address@example.com", businessAddressLine: "Rua Removida", businessCity: "Curitiba", businessState: "PR", businessZip: "80000-000" },
@@ -154,21 +156,28 @@ describe("execução Dataprev", () => {
     expect(evidence.message).toContain("publicado");
   });
 
-  it("retorna evidência sanitizada quando a autenticação técnica M2M automática é recusada", async () => {
+  it("bloqueia API protegida por M2M quando o token explícito ainda não foi gerado", async () => {
     const caller = appRouter.createCaller(ctx);
-    globalThis.fetch = vi.fn(async () => jsonResponse(403, { message: "Forbidden" })) as any;
+    globalThis.fetch = vi.fn() as any;
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step10_commercial_dsps",
       state: { runId: "127" },
+      credentials: {
+        baseUrl: "https://sem-token.test.local",
+        apiKey: "api-key-sem-token",
+        clientId: "client-id-sem-token",
+        clientSecret: "client-secret-sem-token",
+      },
     });
 
     expect(evidence.status).toBe("failed");
     expect(evidence.ok).toBe(false);
-    expect(evidence.httpStatus).toBe(403);
-    expect(evidence.message).toContain("autenticação técnica M2M automática");
+    expect(evidence.httpStatus).toBeUndefined();
+    expect(evidence.message).toContain("M2M token ativo obrigatório");
     expect(evidence.responseBody).toEqual(expect.objectContaining({ etapa: "autenticacao_tecnica_m2m" }));
     expect(JSON.stringify(evidence)).not.toContain("api-key-teste");
+    expect(globalThis.fetch).not.toHaveBeenCalled();
   });
 
   it("executa a autenticação técnica M2M, armazena o token em cache e retorna apenas metadados sanitizados", async () => {
@@ -202,6 +211,8 @@ describe("execução Dataprev", () => {
       return jsonResponse(200, { delivery: "email", status: "sent" });
     }) as any;
 
+    await caller.dataprev.authenticateM2M();
+
     const evidence = await caller.dataprev.executeAction({
       actionId: "step2_person_send_code",
       state: { personEmail: "cidadao@example.com" },
@@ -224,6 +235,8 @@ describe("execução Dataprev", () => {
       verifyBody = init?.body ? JSON.parse(String(init.body)) : undefined;
       return jsonResponse(200, { verified: true });
     }) as any;
+
+    await caller.dataprev.authenticateM2M();
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step1_employee_verify_code",
@@ -260,6 +273,8 @@ describe("execução Dataprev", () => {
       if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "m2m-token", expires_in: 3600 });
       return jsonResponse(200, { accessToken: "eyJuser.token.jwt", dWalletId: "dwallet-123" });
     }) as any;
+
+    await caller.dataprev.authenticateM2M();
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step1_employee_signin",
@@ -386,7 +401,7 @@ describe("execução Dataprev", () => {
     expect(JSON.stringify(result)).not.toContain("api-key-do-postman");
   });
 
-  it("propaga as credenciais temporárias da interface para o token M2M e para a API executada", async () => {
+  it("propaga o token M2M gerado explicitamente com credenciais temporárias para a API executada", async () => {
     const caller = appRouter.createCaller(ctx);
     const calls: Array<{ url: string; headers: Record<string, string>; body?: any }> = [];
     globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -400,15 +415,19 @@ describe("execução Dataprev", () => {
       return jsonResponse(200, [{ id: "schema-ui-1" }]);
     }) as any;
 
+    const credentials = {
+      baseUrl: "https://sandbox.ui.local",
+      apiKey: "api-key-acao-ui",
+      clientId: "client-id-acao-ui",
+      clientSecret: "client-secret-acao-ui",
+    };
+
+    await caller.dataprev.authenticateM2M({ credentials });
+
     const evidence = await caller.dataprev.executeAction({
       actionId: "step3_list_schemas",
       state: { runId: "128" },
-      credentials: {
-        baseUrl: "https://sandbox.ui.local",
-        apiKey: "api-key-acao-ui",
-        clientId: "client-id-acao-ui",
-        clientSecret: "client-secret-acao-ui",
-      },
+      credentials,
     });
 
     expect(evidence.status).toBe("executed");

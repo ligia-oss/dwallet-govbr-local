@@ -238,3 +238,11 @@
 - [x] Manter bloqueio preventivo claro quando alguma das quatro credenciais essenciais estiver ausente antes de executar qualquer API.
 - [x] Atualizar testes Vitest para cobrir persistência de credenciais entre navegações e disparo automático do Passo 0 na primeira API executável.
 - [x] Executar testes, build, status do projeto, revisar checklist e salvar checkpoint da persistência de credenciais e M2M automático.
+
+- [x] Atualizar o box de ordem recomendada para incluir como chamada número 2: após preencher as credenciais, apertar o botão "Gerar M2M token".
+- [x] Reposicionar o bloco "Credenciais e chaves" como primeiro bloco da aba Credenciais e adicionar nele o botão explícito "Gerar M2M token".
+- [x] Salvar o token M2M gerado com metadados de expiração e removê-lo automaticamente quando expirar.
+- [x] Usar o token M2M salvo como header nas demais chamadas de APIs sempre que necessário, sem tentar gerar automaticamente antes da primeira API.
+- [x] Manter bloqueio e mensagem clara quando uma API exigir M2M e não houver token válido gerado.
+- [x] Atualizar testes Vitest para cobrir ordem recomendada, botão explícito, persistência/expiração do token e uso do token salvo nas APIs.
+- [x] Executar testes, build, status do projeto, revisar checklist e salvar checkpoint do fluxo explícito de geração do token M2M.

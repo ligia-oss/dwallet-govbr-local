@@ -73,7 +73,7 @@ type M2MAuthResult = {
 
 const DEFAULT_PASSWORD = "SecurePass123!";
 const tokenStore = new Map<string, string>();
-let m2mCache: { token: string; expiresAt: number; handle: string } | null = null;
+let m2mCache: { token: string; expiresAt: number; handle: string; credentialScope: string } | null = null;
 
 type DataprevCredentialsInput = {
   baseUrl?: string;
@@ -293,8 +293,18 @@ function m2mAuthUrl(credentials?: DataprevCredentialsInput) {
   return `${env(credentials).baseUrl}/v1/auth/token/iam/authn/services/oauth2/token`;
 }
 
-function hasActiveM2MCache() {
-  return Boolean(m2mCache && m2mCache.expiresAt > Date.now() + 60_000);
+function m2mCredentialScope(credentials?: DataprevCredentialsInput) {
+  const config = env(credentials);
+  return createHash("sha256").update([config.baseUrl, config.apiKey, config.clientId, config.clientSecret].join("|"), "utf8").digest("hex");
+}
+
+function clearExpiredM2MCache() {
+  if (m2mCache && m2mCache.expiresAt <= Date.now() + 60_000) m2mCache = null;
+}
+
+function hasActiveM2MCache(credentials?: DataprevCredentialsInput) {
+  clearExpiredM2MCache();
+  return Boolean(m2mCache && m2mCache.credentialScope === m2mCredentialScope(credentials));
 }
 
 async function requestM2MToken(forceRefresh = false, credentials?: DataprevCredentialsInput) {
@@ -305,7 +315,7 @@ async function requestM2MToken(forceRefresh = false, credentials?: DataprevCrede
     throw new Error("Credenciais DATAPREV_* não estão configuradas no servidor.");
   }
   const isVitest = Boolean(process.env.VITEST) || process.env.NODE_ENV === "test";
-  if (!credentials && !forceRefresh && !isVitest && hasActiveM2MCache() && m2mCache) return { token: m2mCache.token, expiresAt: m2mCache.expiresAt, handle: m2mCache.handle, reused: true };
+  if (!forceRefresh && !isVitest && hasActiveM2MCache(credentials) && m2mCache) return { token: m2mCache.token, expiresAt: m2mCache.expiresAt, handle: m2mCache.handle, reused: true };
 
   const response = await fetch(m2mAuthUrl(credentials), {
     method: "POST",
@@ -330,14 +340,18 @@ async function requestM2MToken(forceRefresh = false, credentials?: DataprevCrede
       token: data.access_token,
       expiresAt,
       handle,
+      credentialScope: m2mCredentialScope(credentials),
     };
   }
   return { token: data.access_token, expiresAt, handle, reused: false };
 }
 
-async function getM2MToken(credentials?: DataprevCredentialsInput) {
-  const result = await requestM2MToken(false, credentials);
-  return result.token;
+function getActiveM2MToken(credentials?: DataprevCredentialsInput) {
+  clearExpiredM2MCache();
+  if (!m2mCache || m2mCache.credentialScope !== m2mCredentialScope(credentials)) {
+    throw new Error("M2M_TOKEN_REQUIRED: gere um M2M token ativo na aba Credenciais antes de executar esta API Dataprev.");
+  }
+  return m2mCache.token;
 }
 
 async function authenticateM2MExplicitly(credentials?: DataprevCredentialsInput): Promise<M2MAuthResult> {
@@ -401,7 +415,7 @@ function headers(options: { m2m?: string; userToken?: string; region?: boolean; 
 function authFailureMessage(status: number, context: "m2m" | "api") {
   if (status !== 401 && status !== 403) return "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.";
   if (context === "m2m") {
-    return "A sandbox recusou a autenticação técnica M2M automática. Se o Postman funciona, preencha todos os campos temporários da aba Credenciais com o mesmo API URL, x-api-key, client_id e client_secret, ou atualize os Secrets publicados e publique novamente. Quando local funciona e publicado retorna 403, a causa provável é x-api-key/client_secret divergente, expirado ou sem permissão no runtime publicado.";
+    return "A sandbox recusou a geração explícita do M2M token. Se o Postman funciona, preencha todos os campos temporários da aba Credenciais com o mesmo API URL, x-api-key, client_id e client_secret e clique em Gerar M2M token, ou atualize os Secrets publicados e publique novamente. Quando local funciona e publicado retorna 403, a causa provável é x-api-key/client_secret divergente, expirado ou sem permissão no runtime publicado.";
   }
   return "A sandbox recusou a chamada com Forbidden/Unauthorized. Para cadastro Personal/Business, isso normalmente indica DATAPREV_API_KEY inválida, divergente entre local e publicado, expirada ou sem permissão para a base configurada.";
 }
@@ -844,7 +858,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
 
   let m2m: string | undefined;
   try {
-    m2m = action.requiresM2M ? await getM2MToken(credentials) : undefined;
+    m2m = action.requiresM2M ? getActiveM2MToken(credentials) : undefined;
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha desconhecida ao obter token M2M.";
     const statusMatch = message.match(/HTTP\s+(\d+)/i);
@@ -858,9 +872,9 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
       httpStatus: status,
       ok: false,
       requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
-      responseBody: { etapa: "autenticacao_tecnica_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor.", diagnostics: credentialDiagnostics(credentials) },
+      responseBody: { etapa: "autenticacao_tecnica_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Gere um M2M token ativo na aba Credenciais antes de executar esta API. O token salvo foi removido se expirou ou se pertence a outro conjunto de credenciais.", diagnostics: credentialDiagnostics(credentials) },
       stateUpdates: {},
-      message: status ? authFailureMessage(status, "m2m") : message,
+      message: status ? authFailureMessage(status, "m2m") : "M2M token ativo obrigatório antes desta chamada Dataprev.",
       executedAt,
     };
   }
@@ -932,7 +946,7 @@ export const dataprevRouter = router({
       expiresAt: new Date(m2mCache.expiresAt).toISOString(),
       active: m2mCache.expiresAt > Date.now() + 60_000,
       expiresInSeconds: Math.max(0, Math.floor((m2mCache.expiresAt - Date.now()) / 1000)),
-    } : null,
+    } : (clearExpiredM2MCache(), null),
     initialState: initialState(),
     steps,
   })),

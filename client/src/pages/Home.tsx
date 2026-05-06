@@ -37,9 +37,10 @@ export default function Home() {
             </CardHeader>
             <CardContent className="space-y-3 text-sm leading-6 text-blue-50">
               <p><strong>1.</strong> Preencha na aba Credenciais a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API.</p>
-              <p><strong>2.</strong> Abra a Business dWallet primeiro quando precisar gerar o ID da BdW.</p>
-              <p><strong>3.</strong> Use o ID da BdW gerado para informar no processo de solicitação de dados da PdWallet.</p>
-              <p><strong>4.</strong> Execute as APIs na ordem da jornada; a autenticação técnica é aplicada automaticamente quando necessária.</p>
+              <p><strong>2.</strong> Clique em <strong>Gerar M2M token</strong> no bloco Credenciais e chaves; o token fica salvo até expirar para uso como header nas APIs que exigirem autenticação técnica.</p>
+              <p><strong>3.</strong> Abra a Business dWallet primeiro quando precisar gerar o ID da BdW.</p>
+              <p><strong>4.</strong> Use o ID da BdW gerado para informar no processo de solicitação de dados da PdWallet.</p>
+              <p><strong>5.</strong> Execute as APIs na ordem da jornada; chamadas protegidas usam o M2M token salvo enquanto ele estiver ativo.</p>
             </CardContent>
           </Card>
         </div>
@@ -90,7 +91,7 @@ export default function Home() {
               </div>
             </CardHeader>
             <CardContent className="space-y-4 pt-5">
-              <p className="text-sm leading-6 text-slate-700">Use esta experiência depois de abrir a BdW quando a etapa exigir dados empresariais, para obter o ID da Business dWallet. A autenticação técnica é aplicada automaticamente nas chamadas que exigem token M2M. O mockup mostra exemplos de avatar, carteira, solicitações e telas finais montadas.</p>
+              <p className="text-sm leading-6 text-slate-700">Use esta experiência depois de abrir a BdW quando a etapa exigir dados empresariais, para obter o ID da Business dWallet. Antes das chamadas protegidas, gere o M2M token na aba Credenciais; ele será usado como header enquanto estiver ativo. O mockup mostra exemplos de avatar, carteira, solicitações e telas finais montadas.</p>
               <Button asChild className="bg-[#1351B4] hover:bg-[#0C326F]"><Link href="/personal-govbr">Abrir Personal GovBR <ArrowRight className="ml-2 h-4 w-4" /></Link></Button>
             </CardContent>
           </Card>
