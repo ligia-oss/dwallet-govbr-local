@@ -220,6 +220,10 @@ const businessTestVariables: TestVariable[] = [
   { key: "dataRequestId", label: "Data Request ID", section: "Identificadores da jornada", placeholder: "Gerado/listado pela API", description: "Usado para aceite ou rejeição de solicitação de dados." },
   { key: "dataRequestDecision", label: "Decisão da solicitação", section: "Identificadores da jornada", placeholder: "accepted ou rejected", description: "Define se a Business dWallet aceitará ou rejeitará a solicitação de dados." },
   { key: "valueSchemaSid", label: "Value Schema SID", section: "Identificadores da jornada", placeholder: "Selecionado na listagem de schemas", description: "Schema escolhido a partir da resposta da API de Standard Value Schemas." },
+  { key: "dsku", label: "Produto/dSKU", section: "Identificadores da jornada", placeholder: "Selecionado na listagem de produtos", description: "Produto ou dSKU retornado pela API de catálogo de produtos." },
+  { key: "standardDspId", label: "DSP standard", section: "Identificadores da jornada", placeholder: "Gerado na listagem de DSP", description: "Plano DSP standard retornado pela API de Data Savings Plan." },
+  { key: "commercialDspId", label: "CSP comercial", section: "Identificadores da jornada", placeholder: "Gerado na listagem de CSP", description: "Plano comercial retornado pela API de Commercial Savings Plan." },
+  { key: "selectedDspId", label: "DSP escolhido", section: "Identificadores da jornada", placeholder: "Selecionado no detalhe do DSP", description: "Identificador usado para consultar detalhe e escolher o DSP." },
   { key: "dspAccountId", label: "Conta DSP", section: "Identificadores da jornada", placeholder: "Conta DSP conhecida", description: "Apoia telas financeiras e extrato parcial." },
   { key: "btgCompanyId", label: "Company ID BTG", section: "APIs financeiras BTG", placeholder: "company-id BTG", description: "Identificador da empresa usado nas APIs BTG quando não vier de Secret server-side." },
   { key: "btgAccountId", label: "Conta BTG", section: "APIs financeiras BTG", placeholder: "account-id da conta BTG", description: "Identificador da conta para saldo, extrato e débito de pagamentos." },
@@ -677,17 +681,106 @@ export const businessScreens: GovScreen[] = [
   {
     id: "schemas",
     route: "/schemas-datasets",
-    title: "Listar Value Schemas padrão",
-    subtitle: "Conexão e seleção de conjuntos de dados para configurar produtos e campanhas, com escolha visual entre os schemas retornados pela API.",
+    title: "Listar standard value schemas disponíveis",
+    subtitle: "Etapa dedicada à API de value schema: consulta os Standard Value Schemas e permite escolher o SID usado nas próximas telas.",
     group: "wallet",
     icon: Database,
     actionId: "step3_list_schemas",
-    apiLabel: "Listar schemas",
-    apiHint: "Consulta schemas externos disponíveis e monta uma lista selecionável; quando a resposta trouxer sid/id, o primeiro schema é salvo como Value Schema SID para uso posterior.",
-    primaryCta: "Consultar schemas",
-    fields: [{ key: "valueSchemaSid", label: "Schema selecionado", placeholder: "Escolha após consultar a API", required: false }],
-    observedFrom: "Labels Connect datasets/databases e schema dos bundles",
-    blocks: ["Schemas retornados pela API", "Escolha do schema", "Conectar database", "Mapear campos", "Status de integração"],
+    apiLabel: "GET Standard Value Schemas",
+    apiHint: "API associada: GET /v1/data-registry/value-schemas/standard. A resposta alimenta os cartões do mockup e salva valueSchemaSid quando houver sid/id.",
+    primaryCta: "Listar value schemas",
+    fields: [{ key: "valueSchemaSid", label: "Value Schema SID", placeholder: "Escolha após consultar a API", required: false }],
+    observedFrom: "API Data Registry: Standard Value Schemas",
+    blocks: ["Chamada GET", "Lista de schemas", "SID selecionado", "Variável valueSchemaSid"],
+    appEmulation: { kind: "input-response", header: "Value schemas", lead: "Liste os schemas padrão disponíveis para configurar produtos de dados.", responseEmpty: "Toque em Listar value schemas para montar a lista de schemas retornados pela API.", footerNote: "A seleção salva valueSchemaSid em Variáveis para o produto/dSKU." },
+  },
+  {
+    id: "produtos",
+    route: "/products",
+    title: "Listar produtos disponíveis",
+    subtitle: "Etapa dedicada à API de produtos/dSKUs: consulta o catálogo disponível e permite selecionar um produto para a jornada BdW.",
+    group: "mercado",
+    icon: PackageCheck,
+    actionId: "step4_list_products",
+    apiLabel: "GET Produtos/dSKUs",
+    apiHint: "API associada: GET /v1/data-registry/dskus/product. A resposta alimenta os cartões do catálogo e salva dsku quando houver dsku/id.",
+    primaryCta: "Listar produtos",
+    fields: [
+      { key: "businessId", label: "Identificador da empresa", placeholder: "Gerado no cadastro empresarial", required: true },
+      { key: "valueSchemaSid", label: "Value Schema SID", placeholder: "Selecionado na etapa anterior", required: false },
+      { key: "dsku", label: "Produto/dSKU selecionado", placeholder: "Escolha após consultar a API", required: false },
+    ],
+    observedFrom: "API Data Registry: dSKUs/Product",
+    blocks: ["Chamada GET", "Catálogo de produtos", "dSKU selecionado", "Variável dsku"],
+    appEmulation: { kind: "input-response", header: "Produtos disponíveis", lead: "Consulte produtos de dados disponíveis para a Business dWallet.", responseEmpty: "Toque em Listar produtos para renderizar o catálogo de dSKUs retornado pela API.", footerNote: "Produto escolhido pode ser usado em campanhas/ofertas quando os endpoints estiverem externalizados." },
+  },
+  {
+    id: "dsp-standard",
+    route: "/data-savings-plans/standard",
+    title: "Listar DSP (Data Savings Plan)",
+    subtitle: "Etapa dedicada à listagem de Data Savings Plans standard disponíveis para adesão ou consulta.",
+    group: "mercado",
+    icon: PiggyBank,
+    actionId: "step10_standard_dsps",
+    apiLabel: "GET DSP standard",
+    apiHint: "API associada: GET /v1/dsavings/data-savings-plans/standard. A resposta alimenta cartões de DSP e salva standardDspId/selectedDspId quando houver id.",
+    primaryCta: "Listar DSP",
+    fields: [{ key: "standardDspId", label: "DSP standard selecionado", placeholder: "Escolha após consultar a API", required: false }],
+    observedFrom: "API Data Savings: data-savings-plans/standard",
+    blocks: ["Chamada GET", "Lista DSP", "Plano selecionado", "Variáveis standardDspId e selectedDspId"],
+    appEmulation: { kind: "input-response", header: "DSP disponíveis", lead: "Liste planos standard de poupança de dados para revisar opções disponíveis.", responseEmpty: "Toque em Listar DSP para montar os cartões com planos standard retornados.", footerNote: "A escolha prepara a tela de detalhe do DSP." },
+  },
+  {
+    id: "csp-commercial",
+    route: "/data-savings-plans/commercial",
+    title: "Listar CSP (Commercial Savings Plan)",
+    subtitle: "Etapa dedicada à listagem de planos comerciais disponíveis na jornada BdW.",
+    group: "mercado",
+    icon: PiggyBank,
+    actionId: "step10_commercial_dsps",
+    apiLabel: "GET CSP comercial",
+    apiHint: "API associada: GET /v1/dsavings/data-savings-plans/commercial. A resposta alimenta cartões de CSP e salva commercialDspId/selectedDspId quando houver id.",
+    primaryCta: "Listar CSP",
+    fields: [{ key: "commercialDspId", label: "CSP selecionado", placeholder: "Escolha após consultar a API", required: false }],
+    observedFrom: "API Data Savings: data-savings-plans/commercial",
+    blocks: ["Chamada GET", "Lista CSP", "Plano comercial", "Variável commercialDspId"],
+    appEmulation: { kind: "input-response", header: "CSP comerciais", lead: "Liste planos comerciais para comparar condições de monetização de dados.", responseEmpty: "Toque em Listar CSP para montar os cartões de planos comerciais retornados.", footerNote: "A seleção pode alimentar a criação de conta DSP quando aplicável." },
+  },
+  {
+    id: "dsp-detalhes",
+    route: "/data-savings-plans/detail",
+    title: "Ver detalhes do DSP",
+    subtitle: "Etapa dedicada ao detalhe de um plano DSP selecionado, exibindo metadados e regras retornadas pela API.",
+    group: "mercado",
+    icon: FileCheck2,
+    actionId: "step10_dsp_details",
+    apiLabel: "GET detalhe DSP",
+    apiHint: "API associada: GET /v1/dsavings/data-savings-plans/standard/{standardDspId}. Usa selectedDspId/standardDspId para montar a rota de detalhe.",
+    primaryCta: "Ver detalhe do DSP",
+    fields: [{ key: "standardDspId", label: "DSP para detalhar", placeholder: "ID retornado na listagem DSP", required: true }],
+    observedFrom: "API Data Savings: detalhe de plano DSP",
+    blocks: ["ID do DSP", "Chamada GET de detalhe", "Regras do plano", "Metadados de adesão"],
+    appEmulation: { kind: "input-response", header: "Detalhe do DSP", lead: "Revise o plano selecionado antes de confirmar a escolha.", responseEmpty: "Toque em Ver detalhe do DSP para exibir os metadados retornados pela API.", footerNote: "O detalhe confirma se o DSP pode ser escolhido na próxima etapa." },
+  },
+  {
+    id: "dsp-escolha",
+    route: "/data-savings-plans/choose",
+    title: "Escolher DSP",
+    subtitle: "Etapa dedicada à escolha/adesão do DSP usando o identificador confirmado no detalhe.",
+    group: "mercado",
+    icon: BadgeCheck,
+    actionId: "step10_create_dsp_account",
+    apiLabel: "POST escolher DSP",
+    apiHint: "API associada: POST /v1/dsavings/data-savings-accounts. Usa selectedDspId, commercialDspId ou standardDspId como cdspId conforme retorno disponível.",
+    primaryCta: "Escolher DSP",
+    fields: [
+      { key: "selectedDspId", label: "DSP escolhido", placeholder: "ID confirmado no detalhe", required: false },
+      { key: "commercialDspId", label: "CSP de referência", placeholder: "ID comercial retornado pela API", required: false },
+      { key: "standardDspId", label: "DSP standard", placeholder: "ID standard retornado pela API", required: false },
+    ],
+    observedFrom: "API Data Savings: data-savings-accounts",
+    blocks: ["Plano escolhido", "Payload de adesão", "Conta DSP", "Resultado da escolha"],
+    appEmulation: { kind: "input-response", header: "Escolher DSP", lead: "Confirme o plano que será usado para criar a conta DSP de teste.", responseEmpty: "Toque em Escolher DSP para enviar a escolha e registrar a evidência de execução.", footerNote: "A conta DSP retornada é salva em Variáveis quando a API disponibiliza identificador." },
   },
   {
     id: "certificados-business",
@@ -704,36 +797,6 @@ export const businessScreens: GovScreen[] = [
     observedFrom: "Jornada de APIs Dataprev: passo Empresa consulta certificados",
     blocks: ["Certificados retornados", "Dados em posse da empresa", "Emissor", "Status e validade"],
     appEmulation: { kind: "response", header: "Certificados da empresa", lead: "Acompanhe certificados de dados vinculados à Business dWallet.", responseEmpty: "Toque em Visualizar certificados para consultar os certificados empresariais disponíveis.", footerNote: "Quando a sandbox retorna erro parcial, o painel técnico preserva a evidência sem expor tokens no celular." },
-  },
-  {
-    id: "produtos",
-    route: "/products",
-    title: "Selecionar Value schema, Listar produtos, selecionar produtos e cadastrar produto",
-    subtitle: "Criação e gerenciamento de produtos que podem originar ofertas e campanhas.",
-    group: "mercado",
-    icon: PackageCheck,
-    actionId: "step4_list_products",
-    apiLabel: "Listar produtos",
-    apiHint: "Consulta o catálogo de dSKUs/produtos disponível para a empresa registrada.",
-    primaryCta: "Consultar produtos",
-    fields: [{ key: "businessId", label: "Identificador da empresa", placeholder: "Gerado no cadastro empresarial", required: true }],
-    observedFrom: "Labels Products, Marketplace e Create product dos bundles",
-    blocks: ["Lista de produtos", "Novo produto", "Schema usado", "Status de publicação"],
-  },
-  {
-    id: "planos",
-    route: "/data-savings-plans",
-    title: "Listar DSP padrão, listar DS comercial, ver detalhe do DSP, selecionar DSP",
-    subtitle: "Planos comerciais, contribuições de dados, assinatura e renovação automática.",
-    group: "mercado",
-    icon: PiggyBank,
-    actionId: "step10_commercial_dsps",
-    apiLabel: "Listar DSPs",
-    apiHint: "Consulta planos DSP aplicáveis às operações Business e Personal.",
-    primaryCta: "Ver planos",
-    fields: [],
-    observedFrom: "Labels Data Savings Plan, subscription, contribution e renewal dos bundles",
-    blocks: ["Criar plano", "Detalhes do plano", "Contribuições", "Renovação automática"],
   },
   {
     id: "saldo-btg",
@@ -986,7 +1049,7 @@ function normalizeResponseItems(value: unknown): Record<string, unknown>[] {
   if (Array.isArray(value)) return value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === "object" && !Array.isArray(item));
   if (typeof value !== "object") return [];
   const record = value as Record<string, unknown>;
-  const candidates = [record.items, record.data, record.results, record.valueSchemas, record.schemas, record.certificates, record.content];
+  const candidates = [record.items, record.data, record.results, record.valueSchemas, record.schemas, record.products, record.dskus, record.plans, record.dataSavingsPlans, record.certificates, record.content];
   for (const candidate of candidates) {
     const normalized = normalizeResponseItems(candidate);
     if (normalized.length) return normalized;
@@ -1022,6 +1085,68 @@ function SchemaSelectionPreview({ evidence, selectedSchema, onChange }: { eviden
             <button key={sid + "-" + index} type="button" onClick={() => onChange("valueSchemaSid", sid)} className={"w-full rounded-2xl border p-3 text-left transition " + (checked ? "border-[#1351B4] bg-[#E7F0FF]" : "border-slate-200 bg-slate-50 hover:bg-white")}>
               <div className="flex items-center justify-between gap-2"><strong className="text-sm text-slate-950">{name}</strong><span className="rounded-full bg-white px-2 py-1 font-mono text-[10px] text-[#1351B4]">{sid}</span></div>
               <p className="mt-1 text-xs leading-5 text-slate-600">{description}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
+function ProductCatalogPreview({ evidence, selectedProduct, onChange }: { evidence?: Evidence; selectedProduct?: string; onChange: (key: string, value: string) => void }) {
+  const products = normalizeResponseItems(evidence?.responseBody);
+  const visibleProducts = products.length ? products.slice(0, 4) : [
+    { dsku: selectedProduct || "dsku-sandbox", name: "Produto aguardando resposta", description: "Execute a API para substituir este exemplo pelos produtos retornados." },
+  ];
+  const selected = selectedProduct || pickText(visibleProducts[0], ["dsku", "id", "productId", "sku"], "");
+  return (
+    <div className="space-y-3 rounded-[1.35rem] border border-violet-100 bg-white p-4 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wide text-violet-700">Produtos disponíveis</p>
+      <p className="text-xs leading-5 text-slate-500">A resposta da API de produtos é exibida como catálogo de dSKUs; o item escolhido fica disponível em Variáveis.</p>
+      <div className="space-y-2">
+        {visibleProducts.map((product, index) => {
+          const dsku = pickText(product, ["dsku", "id", "productId", "sku"], "produto-" + (index + 1));
+          const name = pickText(product, ["name", "title", "label", "displayName"], "Produto " + (index + 1));
+          const description = pickText(product, ["description", "summary", "category", "type"], "Produto retornado pela sandbox Dataprev.");
+          const checked = selected === dsku;
+          return (
+            <button key={dsku + "-" + index} type="button" onClick={() => onChange("dsku", dsku)} className={"w-full rounded-2xl border p-3 text-left transition " + (checked ? "border-violet-500 bg-violet-50" : "border-slate-200 bg-slate-50 hover:bg-white")}>
+              <div className="flex items-center justify-between gap-2"><strong className="text-sm text-slate-950">{name}</strong><span className="rounded-full bg-white px-2 py-1 font-mono text-[10px] text-violet-700">{dsku}</span></div>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{description}</p>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function SavingsPlanPreview({ kind, evidence, selectedPlan, onChange }: { kind: "dsp" | "csp" | "detail" | "choice"; evidence?: Evidence; selectedPlan?: string; onChange: (key: string, value: string) => void }) {
+  const plans = normalizeResponseItems(evidence?.responseBody);
+  const label = kind === "csp" ? "Commercial Savings Plans" : kind === "detail" ? "Detalhe do DSP" : kind === "choice" ? "Escolha do DSP" : "Data Savings Plans";
+  const variableKey = kind === "csp" ? "commercialDspId" : kind === "choice" ? "selectedDspId" : "standardDspId";
+  const visiblePlans = plans.length ? plans.slice(0, 4) : [
+    { id: selectedPlan || (kind === "csp" ? "csp-sandbox" : "dsp-sandbox"), name: kind === "csp" ? "CSP aguardando resposta" : "DSP aguardando resposta", description: "Execute a API para renderizar os planos retornados." },
+  ];
+  const selected = selectedPlan || pickText(visiblePlans[0], ["id", "sid", "planId", "cdspId", "dspId"], "");
+  return (
+    <div className="space-y-3 rounded-[1.35rem] border border-emerald-100 bg-white p-4 shadow-sm">
+      <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">{label}</p>
+      <p className="text-xs leading-5 text-slate-500">{kind === "detail" ? "Mostra nome, descrição, meta, moeda e identificador do DSP selecionado quando o endpoint de detalhe retorna dados." : kind === "choice" ? "Confirme qual DSP será usado na criação/adesão de conta DSP." : "Liste planos retornados pela API e selecione um identificador para as etapas seguintes."}</p>
+      <div className="space-y-2">
+        {visiblePlans.map((plan, index) => {
+          const id = pickText(plan, ["id", "sid", "planId", "cdspId", "dspId"], (kind === "csp" ? "csp-" : "dsp-") + (index + 1));
+          const name = pickText(plan, ["name", "title", "label", "displayName"], (kind === "csp" ? "CSP " : "DSP ") + (index + 1));
+          const description = pickText(plan, ["description", "summary", "category", "type"], "Plano retornado pela sandbox Dataprev.");
+          const currency = pickText(plan, ["currency", "settlementCurrency"], "BRL");
+          const goal = pickText(plan, ["savingsGoal", "goal", "target", "amount"], "meta sob consulta");
+          const checked = selected === id;
+          return (
+            <button key={id + "-" + index} type="button" onClick={() => onChange(variableKey, id)} className={"w-full rounded-2xl border p-3 text-left transition " + (checked ? "border-emerald-500 bg-emerald-50" : "border-slate-200 bg-slate-50 hover:bg-white")}>
+              <div className="flex items-center justify-between gap-2"><strong className="text-sm text-slate-950">{name}</strong><span className="rounded-full bg-white px-2 py-1 font-mono text-[10px] text-emerald-700">{id}</span></div>
+              <p className="mt-1 text-xs leading-5 text-slate-600">{description}</p>
+              <p className="mt-2 text-[11px] font-semibold text-slate-500">Moeda: {currency} · Meta: {goal}</p>
             </button>
           );
         })}
@@ -1209,6 +1334,11 @@ export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status
           ) : null}
 
           {screen.id === "schemas" ? <SchemaSelectionPreview evidence={evidence} selectedSchema={String(values.valueSchemaSid || "")} onChange={onChange} /> : null}
+          {screen.id === "produtos" ? <ProductCatalogPreview evidence={evidence} selectedProduct={String(values.dsku || "")} onChange={onChange} /> : null}
+          {screen.id === "dsp-standard" ? <SavingsPlanPreview kind="dsp" evidence={evidence} selectedPlan={String(values.standardDspId || values.selectedDspId || "")} onChange={onChange} /> : null}
+          {screen.id === "csp-commercial" ? <SavingsPlanPreview kind="csp" evidence={evidence} selectedPlan={String(values.commercialDspId || values.selectedDspId || "")} onChange={onChange} /> : null}
+          {screen.id === "dsp-detalhes" ? <SavingsPlanPreview kind="detail" evidence={evidence} selectedPlan={String(values.selectedDspId || values.standardDspId || "")} onChange={onChange} /> : null}
+          {screen.id === "dsp-escolha" ? <SavingsPlanPreview kind="choice" evidence={evidence} selectedPlan={String(values.selectedDspId || values.commercialDspId || values.standardDspId || "")} onChange={onChange} /> : null}
           {screen.id === "decisao-solicitacao" ? <DataRequestDecisionPreview values={values} evidence={evidence} onChange={onChange} /> : null}
           {(screen.id === "certificados-personal" || screen.id === "certificados-business") ? <CertificatesPreview evidence={evidence} walletKind={screen.id === "certificados-business" ? "business" : "personal"} /> : null}
           <MockupExample screen={phoneScreen} values={values} />

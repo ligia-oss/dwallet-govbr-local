@@ -294,3 +294,11 @@
 - [x] Verificar as edições visuais recentes em `client/src/pages/GovBRWalletApp.tsx`: Extrato BdW, Configurações BdW, Cadastro de funcionário, subtítulo da tela inicial BdWallet® e instrução com mockup de celular.
 - [x] Corrigir manualmente qualquer edição visual que não tenha sido persistida no código-fonte ou que exija ajuste de teste.
 - [x] Executar validações técnicas e salvar checkpoint das novas edições visuais da Business dWallet.
+
+- [x] Separar na jornada Business dWallet a etapa de listar standard value schemas disponíveis, vinculando-a à API correspondente e a um front próprio no mockup.
+- [x] Separar na jornada Business dWallet a etapa de listar produtos disponíveis, vinculando-a à API correspondente e a um front próprio no mockup.
+- [x] Separar na jornada Business dWallet a etapa de listar DSP, vinculando-a à API correspondente e a um front próprio no mockup.
+- [x] Separar na jornada Business dWallet a etapa de listar CSP, vinculando-a à API correspondente e a um front próprio no mockup.
+- [x] Separar na jornada Business dWallet a etapa de ver detalhes do DSP, vinculando-a à API correspondente e a um front próprio no mockup.
+- [x] Separar na jornada Business dWallet a etapa de escolher DSP, vinculando-a à API correspondente e a um front próprio no mockup.
+- [x] Atualizar testes automatizados e validações técnicas para cobrir as novas etapas separadas da Business dWallet antes de salvar checkpoint.

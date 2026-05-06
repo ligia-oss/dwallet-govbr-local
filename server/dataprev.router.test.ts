@@ -10,11 +10,12 @@ const ctx = {
 };
 
 describe("dataprevRouter", () => {
-  it("expõe os 17 passos da jornada com aplicações Personal e Business", async () => {
+  it("expõe os passos da jornada com aplicações Personal e Business", async () => {
     const caller = appRouter.createCaller(ctx);
     const metadata = await caller.dataprev.metadata();
 
     expect(metadata.steps).toHaveLength(17);
+    expect(metadata.steps.find(step => step.id === 10)?.actions.some(action => action.id === "step10_dsp_details")).toBe(true);
     expect(metadata.credentialsConfigured).toBe(true);
     expect(metadata.steps.some(step => step.app === "Personal")).toBe(true);
     expect(metadata.steps.some(step => step.app === "Business")).toBe(true);

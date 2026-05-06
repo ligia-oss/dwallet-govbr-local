@@ -666,7 +666,7 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     description: "Lista planos comerciais de poupança de dados.",
-    onSuccess: body => ({ commercialDspId: firstListItem(body)?.id as string | undefined }),
+    onSuccess: body => ({ commercialDspId: firstListItem(body)?.id as string | undefined, selectedDspId: firstListItem(body)?.id as string | undefined }),
   },
   {
     id: "step10_standard_dsps",
@@ -678,6 +678,19 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     description: "Lista planos standard de poupança de dados.",
+    onSuccess: body => ({ standardDspId: firstListItem(body)?.id as string | undefined, selectedDspId: firstListItem(body)?.id as string | undefined }),
+  },
+  {
+    id: "step10_dsp_details",
+    title: "Pessoa visualiza detalhe do DSP",
+    app: "Personal",
+    group: "Data Savings",
+    method: "GET",
+    status: "partial",
+    requiresM2M: true,
+    description: "Consulta detalhe de um plano DSP standard usando o identificador salvo pela listagem.",
+    expectedStatus: [200, 500],
+    buildPath: state => "/v1/dsavings/data-savings-plans/standard/" + encodeURIComponent(String(state.selectedDspId || state.standardDspId || state.commercialDspId || "")),
   },
   {
     id: "step10_create_dsp_account",
@@ -691,7 +704,8 @@ const actions: JourneyAction[] = [
     requiresUser: "person",
     description: "Tenta criar uma conta DSP; respostas 4xx de regra de negócio são exibidas como evidência.",
     expectedStatus: [200, 500],
-    buildBody: state => ({ cdspId: state.commercialDspId, categories: ["travel-and-transportation"], currency: "BRL", savingsGoal: 1000, agreedToTermsAndConditions: true }),
+    buildBody: state => ({ cdspId: state.selectedDspId || state.commercialDspId || state.standardDspId, categories: ["travel-and-transportation"], currency: "BRL", savingsGoal: 1000, agreedToTermsAndConditions: true }),
+    onSuccess: body => ({ dspAccountId: firstListItem(body)?.id as string | undefined || findFirst(body, ["id", "accountId", "dspAccountId"]) }),
   },
   {
     id: "step11_business_offers_gap",
@@ -835,7 +849,8 @@ function missingPrerequisite(action: JourneyAction, state: RunState) {
   if (action.id === "step6_create_data_request" && !state.businessId) return "Crie a entidade empresarial antes de solicitar dados.";
   if (action.id === "step7_list_business_requests" && !state.businessId) return "Crie a entidade empresarial antes de listar solicitações.";
   if ((action.id === "step7_accept_data_request" || action.id === "step7_reject_data_request") && !state.dataRequestId) return "Crie ou liste uma solicitação de dados antes de aceitar ou rejeitar.";
-  if (action.id === "step10_create_dsp_account" && !state.commercialDspId) return "Liste DSPs comerciais antes de criar a conta DSP.";
+  if (action.id === "step10_dsp_details" && !(state.selectedDspId || state.standardDspId || state.commercialDspId)) return "Liste DSPs ou CSPs antes de consultar o detalhe do plano.";
+  if (action.id === "step10_create_dsp_account" && !(state.selectedDspId || state.commercialDspId || state.standardDspId)) return "Liste e escolha um DSP ou CSP antes de criar a conta DSP.";
   if (action.id === "step13_offer_accept" && !state.offerId) return "O passo 12 não retornou offerId utilizável para aceite.";
   return undefined;
 }

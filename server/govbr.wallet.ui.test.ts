@@ -159,10 +159,13 @@ describe("GovBR Wallet API response panels", () => {
     const appSource = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/GovBRWalletApp.tsx", "utf8");
     expect(appSource).toContain("Business dWallet®");
     expect(appSource).toContain("Home da Business dWallet");
-    expect(appSource).toContain("Listar Value Schemas padrão");
+    expect(appSource).toContain("Listar standard value schemas disponíveis");
     expect(appSource).toContain("Listar certificados já em custódia");
-    expect(appSource).toContain("Selecionar Value schema, Listar produtos, selecionar produtos e cadastrar produto");
-    expect(appSource).toContain("Listar DSP padrão, listar DS comercial, ver detalhe do DSP, selecionar DSP");
+    expect(appSource).toContain("Listar produtos disponíveis");
+    expect(appSource).toContain("Listar DSP (Data Savings Plan)");
+    expect(appSource).toContain("Listar CSP (Commercial Savings Plan)");
+    expect(appSource).toContain("Ver detalhes do DSP");
+    expect(appSource).toContain("Escolher DSP");
     expect(appSource).toContain("Saldo BdW");
     expect(appSource).toContain("Extrato BdW");
     expect(appSource).toContain("Configurações BdW");
@@ -839,6 +842,103 @@ describe("GovBR Wallet API response panels", () => {
     expect(businessCertificatesHtml).toContain("Empresa GovBR");
     expect(businessCertificatesHtml).toContain("cert_001");
     expect(personalCertificatesHtml).toContain("certificados de dados já em posse da pessoa");
+  });
+
+  it("renders separated Business BdW API steps for value schemas, products, DSP, CSP, DSP details and DSP choice", () => {
+    const expected = [
+      { id: "schemas", actionId: "step3_list_schemas", title: "Listar standard value schemas disponíveis" },
+      { id: "produtos", actionId: "step4_list_products", title: "Listar produtos disponíveis" },
+      { id: "dsp-standard", actionId: "step10_standard_dsps", title: "Listar DSP (Data Savings Plan)" },
+      { id: "csp-commercial", actionId: "step10_commercial_dsps", title: "Listar CSP (Commercial Savings Plan)" },
+      { id: "dsp-detalhes", actionId: "step10_dsp_details", title: "Ver detalhes do DSP" },
+      { id: "dsp-escolha", actionId: "step10_create_dsp_account", title: "Escolher DSP" },
+    ];
+
+    for (const item of expected) {
+      const screen = businessScreens.find(screen => screen.id === item.id);
+      expect(screen, item.id).toBeDefined();
+      expect(screen?.actionId).toBe(item.actionId);
+      expect(screen?.title).toBe(item.title);
+      expect(screen?.apiHint).toContain("API associada");
+    }
+
+    const productHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: businessScreens.find(screen => screen.id === "produtos")!,
+      values: { businessId: "biz_123", valueSchemaSid: "schema-income-001", dsku: "dsku-001" },
+      evidence: {
+        actionId: "step4_list_products",
+        actionTitle: "Consultar catálogo de dSKUs/produtos",
+        status: "executed",
+        ok: true,
+        httpStatus: 200,
+        responseBody: { products: [{ dsku: "dsku-001", name: "Produto renda", description: "Produto de dados de renda" }] },
+        stateUpdates: { dsku: "dsku-001" },
+        executedAt: "2026-05-06T12:00:00.000Z",
+      },
+      status: "done",
+      onChange: () => undefined,
+      onRun: () => undefined,
+    }));
+
+    expect(productHtml).toContain("Produtos disponíveis");
+    expect(productHtml).toContain("Produto renda");
+    expect(productHtml).toContain("dsku-001");
+
+    const dspHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: businessScreens.find(screen => screen.id === "dsp-standard")!,
+      values: { standardDspId: "dsp-001" },
+      evidence: {
+        actionId: "step10_standard_dsps",
+        actionTitle: "Pessoa visualiza DSPs standard",
+        status: "executed",
+        ok: true,
+        httpStatus: 200,
+        responseBody: { plans: [{ id: "dsp-001", name: "DSP renda", currency: "BRL", savingsGoal: 1000 }] },
+        stateUpdates: { standardDspId: "dsp-001", selectedDspId: "dsp-001" },
+        executedAt: "2026-05-06T12:00:00.000Z",
+      },
+      status: "done",
+      onChange: () => undefined,
+      onRun: () => undefined,
+    }));
+
+    expect(dspHtml).toContain("Data Savings Plans");
+    expect(dspHtml).toContain("DSP renda");
+    expect(dspHtml).toContain("dsp-001");
+
+    const cspHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: businessScreens.find(screen => screen.id === "csp-commercial")!,
+      values: { commercialDspId: "csp-001" },
+      evidence: {
+        actionId: "step10_commercial_dsps",
+        actionTitle: "Pessoa visualiza DSPs comerciais",
+        status: "executed",
+        ok: true,
+        httpStatus: 200,
+        responseBody: { plans: [{ id: "csp-001", name: "CSP comercial", currency: "BRL", savingsGoal: 2500 }] },
+        stateUpdates: { commercialDspId: "csp-001", selectedDspId: "csp-001" },
+        executedAt: "2026-05-06T12:00:00.000Z",
+      },
+      status: "done",
+      onChange: () => undefined,
+      onRun: () => undefined,
+    }));
+
+    expect(cspHtml).toContain("Commercial Savings Plans");
+    expect(cspHtml).toContain("CSP comercial");
+    expect(cspHtml).toContain("csp-001");
+
+    const chooseHtml = renderToStaticMarkup(React.createElement(AppEmulatedScreen, {
+      screen: businessScreens.find(screen => screen.id === "dsp-escolha")!,
+      values: { selectedDspId: "dsp-001", commercialDspId: "csp-001", standardDspId: "dsp-001" },
+      status: "pending",
+      onChange: () => undefined,
+      onRun: () => undefined,
+    }));
+
+    expect(chooseHtml).toContain("Escolha do DSP");
+    expect(chooseHtml).toContain("Escolher DSP");
+    expect(chooseHtml).toContain("dsp-001");
   });
 
   it("maps Business financial app screens to BTG APIs and keeps Pix key registration gap explicit", () => {
