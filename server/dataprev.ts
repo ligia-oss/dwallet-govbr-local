@@ -349,7 +349,7 @@ async function requestM2MToken(forceRefresh = false, credentials?: DataprevCrede
 function getActiveM2MToken(credentials?: DataprevCredentialsInput) {
   clearExpiredM2MCache();
   if (!m2mCache || m2mCache.credentialScope !== m2mCredentialScope(credentials)) {
-    throw new Error("M2M_TOKEN_REQUIRED: gere um M2M token ativo na aba Credenciais antes de executar esta API Dataprev.");
+    throw new Error("M2M_TOKEN_REQUIRED: gere um M2M token ativo na aba Variáveis antes de executar esta API Dataprev.");
   }
   return m2mCache.token;
 }
@@ -415,7 +415,7 @@ function headers(options: { m2m?: string; userToken?: string; region?: boolean; 
 function authFailureMessage(status: number, context: "m2m" | "api") {
   if (status !== 401 && status !== 403) return "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.";
   if (context === "m2m") {
-    return "A sandbox recusou a geração explícita do M2M token. Se o Postman funciona, preencha todos os campos temporários da aba Credenciais com o mesmo API URL, x-api-key, client_id e client_secret e clique em Gerar M2M token, ou atualize os Secrets publicados e publique novamente. Quando local funciona e publicado retorna 403, a causa provável é x-api-key/client_secret divergente, expirado ou sem permissão no runtime publicado.";
+    return "A sandbox recusou a geração explícita do M2M token. Se o Postman funciona, preencha todos os campos temporários da aba Variáveis com o mesmo API URL, x-api-key, client_id e client_secret e clique em Gerar M2M token, ou atualize os Secrets publicados e publique novamente. Quando local funciona e publicado retorna 403, a causa provável é x-api-key/client_secret divergente, expirado ou sem permissão no runtime publicado.";
   }
   return "A sandbox recusou a chamada com Forbidden/Unauthorized. Para cadastro Personal/Business, isso normalmente indica DATAPREV_API_KEY inválida, divergente entre local e publicado, expirada ou sem permissão para a base configurada.";
 }
@@ -886,7 +886,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
       httpStatus: status,
       ok: false,
       requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
-      responseBody: { etapa: "autenticacao_tecnica_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Gere um M2M token ativo na aba Credenciais antes de executar esta API. O token salvo foi removido se expirou ou se pertence a outro conjunto de credenciais.", diagnostics: credentialDiagnostics(credentials) },
+      responseBody: { etapa: "autenticacao_tecnica_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Gere um M2M token ativo na aba Variáveis antes de executar esta API. O token salvo foi removido se expirou ou se pertence a outro conjunto de credenciais.", diagnostics: credentialDiagnostics(credentials) },
       stateUpdates: {},
       message: status ? authFailureMessage(status, "m2m") : "M2M token ativo obrigatório antes desta chamada Dataprev.",
       executedAt,

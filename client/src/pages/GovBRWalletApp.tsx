@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
 import { clearPersistedDataprevCredentials, clearPersistedM2MTokenStatus, EMPTY_DATAPREV_CREDENTIALS, isM2MAuthResultActive, normalizeDataprevCredentials, persistDataprevCredentials, persistM2MTokenStatus, readPersistedDataprevCredentials, readPersistedM2MTokenStatus, type DataprevCredentialForm } from "@/lib/dataprevCredentials";
@@ -975,8 +975,8 @@ export function ScreenApiInstructionPanel({ screen, stepNumber, totalSteps, stat
         <li className="rounded-2xl border border-slate-200 bg-slate-50 p-3 text-slate-700"><strong>3. Resultado:</strong> {resultInstruction}.</li>
       </ol>
         <p className="mt-3 text-xs leading-5 text-slate-500"><strong>Integração esperada:</strong> {screen.apiHint}</p>
-        <p className="mt-2 rounded-2xl border border-blue-100 bg-blue-50 p-3 text-xs leading-5 text-blue-950"><strong>Guardar retorno:</strong> qualquer identificador, token opaco, ID de wallet, ID de solicitação ou dado financeiro retornado por esta API é salvo na aba <strong>Credenciais</strong> para ser reutilizado como input nas próximas etapas.</p>
-        {screen.actionId === "step6_create_data_request" ? <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950"><strong>Ordem obrigatória:</strong> abra a Business dWallet primeiro, crie a BdW e confirme que o ID da BdW foi salvo em Credenciais. Depois volte para a Personal dWallet e use esse ID para solicitar as informações na PdW.</p> : null}
+        <p className="mt-2 rounded-2xl border border-blue-100 bg-blue-50 p-3 text-xs leading-5 text-blue-950"><strong>Guardar retorno:</strong> qualquer identificador, token opaco, ID de wallet, ID de solicitação ou dado financeiro retornado por esta API é salvo na aba <strong>Variáveis</strong> para ser reutilizado como input nas próximas etapas.</p>
+        {screen.actionId === "step6_create_data_request" ? <p className="mt-2 rounded-2xl border border-amber-200 bg-amber-50 p-3 text-xs leading-5 text-amber-950"><strong>Ordem obrigatória:</strong> abra a Business dWallet primeiro, crie a BdW e confirme que o ID da BdW foi salvo em Variáveis. Depois volte para a Personal dWallet e use esse ID para solicitar as informações na PdW.</p> : null}
     </div>
   );
 }
@@ -1466,10 +1466,10 @@ export function CredentialFolderPanel({ items, values, onClear }: { items: Crede
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <CardTitle className="flex items-center gap-2 text-xl"><FolderKey className="h-5 w-5 text-[#1351B4]" />Pasta de credenciais</CardTitle>
+            <CardTitle className="flex items-center gap-2 text-xl"><FolderKey className="h-5 w-5 text-[#1351B4]" />Pasta de variáveis</CardTitle>
             <CardDescription>Valores gerados ou preenchidos durante as APIs ficam guardados aqui para uso como input em outras etapas. Exemplos: ID da BdW, ID da PdW, IDs de solicitação, tokens opacos, conta BTG e referências de pagamento.</CardDescription>
           </div>
-          {onClear ? <Button type="button" variant="outline" onClick={onClear} className="shrink-0"><Trash2 className="mr-2 h-4 w-4" />Limpar pasta</Button> : null}
+          {onClear ? <Button type="button" variant="outline" onClick={onClear} className="shrink-0"><Trash2 className="mr-2 h-4 w-4" />Limpar variáveis de resposta do teste</Button> : null}
         </div>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -1496,18 +1496,18 @@ export function CredentialFolderPanel({ items, values, onClear }: { items: Crede
 export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, runningId, m2mCompleted = false, reviewedSteps = {}, onToggleReviewed, onOpenStep }: { walletKind: WalletKind; screens?: GovScreen[]; evidences?: Record<string, Evidence>; runningId?: string; m2mCompleted?: boolean; reviewedSteps?: Record<string, boolean>; onToggleReviewed?: (stepId: string, checked: boolean) => void; onOpenStep?: (screenId: string) => void }) {
   const appName = walletKind === "personal" ? "Personal dWallet" : "Business dWallet";
   const orderedSteps = walletKind === "personal" ? [
-    ["1", "Preencher credenciais do 1Password", "Abra a aba Credenciais e confirme API URL/Base URL, API ID / x-api-key, Client ID e Client Secret no primeiro bloco Credenciais e chaves."],
-    ["2", "Gerar M2M token", "Ainda na aba Credenciais, clique no botão Gerar M2M token. O token fica salvo até expirar e será usado como Authorization Bearer nas demais APIs Dataprev quando necessário."],
-    ["3", "Criar e validar Personal dWallet", "Execute criação, envio de código e validação na ordem da navegação lateral. IDs da PdW, usuário ou sessão retornados pela API são salvos automaticamente em Credenciais."],
-    ["4", "Abrir a BdW antes de solicitar dados", "Quando uma tela Personal exigir Business ID, abra a Business dWallet, crie/abra a BdW e copie da pasta Credenciais o ID da BdW gerado pela API empresarial."],
+    ["1", "Preencher credenciais do 1Password", "Abra a aba Variáveis e confirme API URL/Base URL, API ID / x-api-key, Client ID e Client Secret no primeiro bloco Variáveis e chaves."],
+    ["2", "Gerar M2M token", "Ainda na aba Variáveis, clique no botão Gerar M2M token. O token fica salvo até expirar e será usado como Authorization Bearer nas demais APIs Dataprev quando necessário."],
+    ["3", "Criar e validar Personal dWallet", "Execute criação, envio de código e validação na ordem da navegação lateral. IDs da PdW, usuário ou sessão retornados pela API são salvos automaticamente em Variáveis."],
+    ["4", "Abrir a BdW antes de solicitar dados", "Quando uma tela Personal exigir Business ID, abra a Business dWallet, crie/abra a BdW e copie da aba Variáveis o ID da BdW gerado pela API empresarial."],
     ["5", "Solicitar informações na PdW", "Volte para a Personal dWallet, confirme que o Business ID está preenchido e execute a solicitação de dados. Guarde o requestId/consentId retornado para aprovação, consulta ou próximos testes."],
     ["6", "Executar telas finais e financeiras", "Depois da wallet criada e dos IDs salvos, teste saldo, extrato, Pix, pagamento e marketplace. O mockup deve mostrar comprovante, resumo ou tela final montada, não apenas JSON técnico."],
   ] : [
-    ["1", "Preencher credenciais do 1Password", "Abra a aba Credenciais e confirme API URL/Base URL, API ID / x-api-key, Client ID e Client Secret no primeiro bloco Credenciais e chaves."],
-    ["2", "Gerar M2M token", "Ainda na aba Credenciais, clique no botão Gerar M2M token. O token fica salvo até expirar e será usado como Authorization Bearer nas demais APIs Dataprev quando necessário."],
+    ["1", "Preencher credenciais do 1Password", "Abra a aba Variáveis e confirme API URL/Base URL, API ID / x-api-key, Client ID e Client Secret no primeiro bloco Variáveis e chaves."],
+    ["2", "Gerar M2M token", "Ainda na aba Variáveis, clique no botão Gerar M2M token. O token fica salvo até expirar e será usado como Authorization Bearer nas demais APIs Dataprev quando necessário."],
     ["3", "Criar Business dWallet", "Cadastre empresa, colaborador e validações no mockup. Guarde automaticamente o ID da BdW, companyId ou walletId retornado pela API."],
     ["4", "Abrir e validar a BdW", "Continue na ordem lateral até a carteira empresarial estar aberta. Esses dados serão usados pela Personal dWallet quando ela precisar solicitar informações à BdW."],
-    ["5", "Produtos, schemas e solicitações", "Execute uma tela por vez, salvando IDs de produto, schema, solicitação ou consentimento em Credenciais para chamadas relacionadas."],
+    ["5", "Produtos, schemas e solicitações", "Execute uma tela por vez, salvando IDs de produto, schema, solicitação ou consentimento em Variáveis para chamadas relacionadas."],
     ["6", "Operações financeiras", "Teste saldo, extrato, Pix, cobranças e pagamentos no fim da jornada. O mockup deve mostrar resumo ou comprovante montado com os dados retornados."],
   ];
   const checklistItems = [
@@ -1532,13 +1532,13 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
     <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl"><ClipboardList className="h-5 w-5 text-[#1351B4]" />Guia de execução das APIs</CardTitle>
-        <CardDescription className="max-w-3xl text-base leading-7">Siga esta ordem para testar a {appName} dentro do mockup. Edite os dados no telefone, execute uma API por vez e confira quais informações foram salvas em Credenciais para alimentar etapas seguintes.</CardDescription>
+        <CardDescription className="max-w-3xl text-base leading-7">Siga esta ordem para testar a {appName} dentro do mockup. Edite os dados no telefone, execute uma API por vez e confira quais informações foram salvas em Variáveis para alimentar etapas seguintes.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Antes de começar</AlertTitle>
-          <AlertDescription>Primeiro confirme na aba Credenciais se os quatro valores recebidos via 1Password foram colados como conjunto completo. Depois use a navegação lateral de cima para baixo. As próximas etapas ficam sinalizadas como dependentes quando ainda faltam IDs, confirmações ou respostas OK anteriores. Se aparecer erro, corrija o campo destacado no telefone e tente novamente.</AlertDescription>
+          <AlertDescription>Primeiro confirme na aba Variáveis se os quatro valores recebidos via 1Password foram colados como conjunto completo. Depois use a navegação lateral de cima para baixo. As próximas etapas ficam sinalizadas como dependentes quando ainda faltam IDs, confirmações ou respostas OK anteriores. Se aparecer erro, corrija o campo destacado no telefone e tente novamente.</AlertDescription>
         </Alert>
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
           <div className="hidden bg-[#1351B4] px-4 py-3 text-sm font-bold text-white md:grid md:grid-cols-[72px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4">
@@ -1558,7 +1558,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <h3 className="text-lg font-bold text-slate-950">Checklist visual de progresso</h3>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa uma etapa da execução. As etapas ficam concluídas quando a API retorna OK, e os valores gerados ficam disponíveis em Credenciais para serem reutilizados como input em outras APIs.</p>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa uma etapa da execução. As etapas ficam concluídas quando a API retorna OK, e os valores gerados ficam disponíveis em Variáveis para serem reutilizados como input em outras APIs.</p>
             </div>
             <Badge className="bg-[#1351B4] text-white">{doneOrReviewed} de {checklistItems.length} revisadas</Badge>
           </div>
@@ -1618,7 +1618,7 @@ export function getMissingM2MCredentialLabels(credentials: DataprevCredentialFor
 }
 
 export function buildRequiredApiCredentialsMessage(missingCredentials: string[]) {
-  return `Antes de executar qualquer API, preencha na aba Credenciais as quatro credenciais obrigatórias de acesso: ${missingCredentials.join(", ")}. A chamada não foi realizada para evitar autenticação incompleta ou uso de ambiente incorreto.`;
+  return `Antes de executar qualquer API, preencha na aba Variáveis as quatro credenciais obrigatórias de acesso: ${missingCredentials.join(", ")}. A chamada não foi realizada para evitar autenticação incompleta ou uso de ambiente incorreto.`;
 }
 
 export function buildDataprevCredentialsInput(credentials: DataprevCredentialForm) {
@@ -1687,7 +1687,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
   return (
     <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Credenciais e chaves</CardTitle>
+        <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Variáveis e chaves</CardTitle>
         <CardDescription>Informe credenciais Dataprev temporárias para testar chamadas reais sem alterar os Secrets do projeto. Os valores ficam preservados nesta aba do navegador ao mudar entre páginas da jornada. Depois de preencher o conjunto completo, clique em <strong>Gerar M2M token</strong>; o servidor guardará o token bruto apenas até expirar e o usará como header nas demais APIs quando necessário.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -1839,6 +1839,63 @@ export function compactRunState(mergedState: RunState): Record<string, string | 
   return Object.fromEntries(Object.entries(mergedState).filter(([, value]) => value !== undefined)) as Record<string, string | number | boolean | null>;
 }
 
+const WALLET_RUN_STORAGE_VERSION = 1;
+
+type PersistedWalletRun = {
+  version: number;
+  state: RunState;
+  evidences: Record<string, Evidence>;
+  credentialFolder: CredentialFolderItem[];
+  m2mResult?: M2MAuthResult;
+  reviewedGuideSteps: Record<string, boolean>;
+};
+
+function getWalletRunStorageKey(kind: WalletKind) {
+  return `govbr-wallet-run-state-v${WALLET_RUN_STORAGE_VERSION}-${kind}`;
+}
+
+function emptyPersistedWalletRun(): PersistedWalletRun {
+  return {
+    version: WALLET_RUN_STORAGE_VERSION,
+    state: {},
+    evidences: {},
+    credentialFolder: [],
+    reviewedGuideSteps: {},
+  };
+}
+
+function readPersistedWalletRun(kind: WalletKind): PersistedWalletRun {
+  if (typeof window === "undefined") return emptyPersistedWalletRun();
+
+  try {
+    const raw = window.localStorage.getItem(getWalletRunStorageKey(kind));
+    if (!raw) return emptyPersistedWalletRun();
+    const parsed = JSON.parse(raw) as Partial<PersistedWalletRun>;
+    if (parsed.version !== WALLET_RUN_STORAGE_VERSION) return emptyPersistedWalletRun();
+
+    return {
+      version: WALLET_RUN_STORAGE_VERSION,
+      state: parsed.state && typeof parsed.state === "object" ? parsed.state : {},
+      evidences: parsed.evidences && typeof parsed.evidences === "object" ? parsed.evidences : {},
+      credentialFolder: Array.isArray(parsed.credentialFolder) ? parsed.credentialFolder : [],
+      m2mResult: parsed.m2mResult,
+      reviewedGuideSteps: parsed.reviewedGuideSteps && typeof parsed.reviewedGuideSteps === "object" ? parsed.reviewedGuideSteps : {},
+    };
+  } catch {
+    return emptyPersistedWalletRun();
+  }
+}
+
+function persistWalletRun(kind: WalletKind, snapshot: PersistedWalletRun) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(getWalletRunStorageKey(kind), JSON.stringify({ ...snapshot, version: WALLET_RUN_STORAGE_VERSION }));
+}
+
+function clearPersistedWalletRun(kind: WalletKind) {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(getWalletRunStorageKey(kind));
+}
+
 export function clearCredentialResultState(previous: RunState, credentialItems: CredentialFolderItem[] = [], evidenceMap: Record<string, Evidence> = {}): RunState {
   const resultKeys = new Set<string>(["m2mTokenHandle", "m2mExpiresAt", "m2mActive"]);
   credentialItems.forEach(item => resultKeys.add(item.key));
@@ -1866,11 +1923,14 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const executeAction = trpc.dataprev.executeAction.useMutation();
   const executeBtgAction = trpc.btg.executeAction.useMutation();
   const authenticateM2M = trpc.dataprev.authenticateM2M.useMutation();
-  const initialTab = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("tab") === "credenciais" ? "credenciais" : "tela";
+  const requestedTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
+  const initialTab = requestedTab === "variaveis" || requestedTab === "credenciais" ? "variaveis" : "tela";
+  const persistedRun = useMemo(() => readPersistedWalletRun(kind), [kind]);
   const [activeId, setActiveId] = useState(screens[0]?.id ?? "entrada");
-  const [state, setState] = useState<RunState>({});
-  const [evidences, setEvidences] = useState<Record<string, Evidence>>({});
+  const [state, setState] = useState<RunState>(() => persistedRun.state);
+  const [evidences, setEvidences] = useState<Record<string, Evidence>>(() => persistedRun.evidences);
   const [m2mResult, setM2mResult] = useState<M2MAuthResult | undefined>(() => {
+    if (persistedRun.m2mResult) return persistedRun.m2mResult;
     const persisted = readPersistedM2MTokenStatus();
     if (!persisted) return undefined;
     return {
@@ -1888,9 +1948,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   });
   const [runningId, setRunningId] = useState<string>();
   const [errors, setErrors] = useState<Record<string, string>>({});
-  const [reviewedGuideSteps, setReviewedGuideSteps] = useState<Record<string, boolean>>({});
+  const [reviewedGuideSteps, setReviewedGuideSteps] = useState<Record<string, boolean>>(() => persistedRun.reviewedGuideSteps);
   const [dataprevCredentials, setDataprevCredentials] = useState<DataprevCredentialForm>(() => readPersistedDataprevCredentials());
-  const [credentialFolder, setCredentialFolder] = useState<CredentialFolderItem[]>([]);
+  const [credentialFolder, setCredentialFolder] = useState<CredentialFolderItem[]>(() => persistedRun.credentialFolder);
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
   const activeIndex = screens.findIndex(screen => screen.id === active.id);
   const nextScreen = activeIndex >= 0 ? screens[activeIndex + 1] : undefined;
@@ -1899,6 +1959,17 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const mergedState = useMemo(() => ({ ...(metadata.data?.initialState || {}), ...(btgMetadata.data?.initialState || {}), ...state }), [btgMetadata.data?.initialState, metadata.data?.initialState, state]);
   const completed = screens.filter(screen => screen.actionId && evidences[screen.actionId]?.ok).length;
   const callable = screens.filter(screen => screen.actionId).length;
+
+  useEffect(() => {
+    persistWalletRun(kind, {
+      version: WALLET_RUN_STORAGE_VERSION,
+      state,
+      evidences,
+      credentialFolder,
+      m2mResult,
+      reviewedGuideSteps,
+    });
+  }, [kind, state, evidences, credentialFolder, m2mResult, reviewedGuideSteps]);
 
   const grouped = useMemo(() => {
     return screens.reduce<Record<ScreenGroup, GovScreen[]>>((acc, screen) => {
@@ -1945,7 +2016,14 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
     clearPersistedDataprevCredentials();
     clearPersistedM2MTokenStatus();
     setDataprevCredentials({ ...EMPTY_DATAPREV_CREDENTIALS });
-    clearApiReturnFields();
+    setM2mResult(undefined);
+    setState(previous => {
+      const next = { ...previous };
+      delete next.m2mTokenHandle;
+      delete next.m2mExpiresAt;
+      delete next.m2mActive;
+      return next;
+    });
   };
 
   const updateBtgFutureInfo = (key: BtgFutureInfoKey, value: string) => {
@@ -1958,6 +2036,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
     setM2mResult(undefined);
     clearPersistedM2MTokenStatus();
     setCredentialFolder([]);
+    clearPersistedWalletRun(kind);
     setRunningId(undefined);
     setErrors(previous => {
       const next = { ...previous };
@@ -1993,7 +2072,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
 
     const missingCredentials = getMissingM2MCredentialLabels(dataprevCredentials);
     if (missingCredentials.length > 0) {
-      const message = `Antes de executar APIs Dataprev com credenciais temporárias, preencha na aba Credenciais os campos obrigatórios: ${missingCredentials.join(", ")}. A chamada não foi realizada porque esses dados são essenciais para gerar a autenticação técnica.`;
+      const message = `Antes de executar APIs Dataprev com credenciais temporárias, preencha na aba Variáveis os campos obrigatórios: ${missingCredentials.join(", ")}. A chamada não foi realizada porque esses dados são essenciais para gerar a autenticação técnica.`;
       setM2mResult(undefined);
       clearPersistedM2MTokenStatus();
       setErrors(previous => ({ ...previous, m2m: message }));
@@ -2053,7 +2132,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       if (!active.actionId.startsWith("btg_") && !isM2MAuthResultActive(m2mResult)) {
         clearPersistedM2MTokenStatus();
         setM2mResult(undefined);
-        setErrors(previous => ({ ...previous, [active.id]: "Gere um token M2M válido na aba Credenciais antes de executar esta API. O botão Gerar M2M token é a chamada número 2 da ordem recomendada e o token será usado como Authorization Bearer enquanto não expirar." }));
+        setErrors(previous => ({ ...previous, [active.id]: "Gere um token M2M válido na aba Variáveis antes de executar esta API. O botão Gerar M2M token é a chamada número 2 da ordem recomendada e o token será usado como Authorization Bearer enquanto não expirar." }));
         return;
       }
 
@@ -2077,17 +2156,17 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   return (
     <main className="min-h-screen bg-[#F8F8F8] text-slate-950">
       <header className="border-b border-[#DFE1E2] bg-white">
-        <div className="container flex flex-col gap-4 py-4 lg:flex-row lg:items-center lg:justify-between">
-          <div className="flex items-center gap-4">
-            <div className="grid h-12 w-12 place-items-center rounded-xl bg-[#1351B4] text-white"><Landmark className="h-6 w-6" /></div>
-            <div>
-              <p className="text-xs font-bold uppercase tracking-[0.22em] text-[#1351B4]">gov.br · carteira digital de dados</p>
-              <h1 className="text-xl font-bold">{isPersonal ? "Personal dWallet GovBR" : "Business dWallet GovBR"}</h1>
+        <div className="container flex flex-col gap-4 py-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="flex min-w-0 items-start gap-3 sm:items-center sm:gap-4">
+            <div className="grid h-12 w-12 shrink-0 place-items-center rounded-xl bg-[#1351B4] text-white"><Landmark className="h-6 w-6" /></div>
+            <div className="min-w-0 flex-1 space-y-1">
+              <p className="max-w-full break-words text-[11px] font-bold uppercase leading-5 tracking-[0.16em] text-[#1351B4] sm:text-xs sm:tracking-[0.22em]">gov.br · carteira digital de dados</p>
+              <h1 className="max-w-full whitespace-normal break-words text-xl font-bold leading-tight sm:text-2xl">{isPersonal ? "Personal dWallet GovBR" : "Business dWallet GovBR"}</h1>
             </div>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Link href="/"><Button variant="outline" className="gap-2"><ArrowLeft className="h-4 w-4" />Jornada integrada</Button></Link>
-            <Link href={isPersonal ? "/business-govbr" : "/personal-govbr"}><Button className="bg-[#1351B4] hover:bg-[#0C326F]">Abrir {isPersonal ? "Business" : "Personal"}</Button></Link>
+            <Link href="/"><Button variant="outline" className="h-auto min-h-10 whitespace-normal text-left leading-5 gap-2"><ArrowLeft className="h-4 w-4 shrink-0" />Jornada integrada</Button></Link>
+            <Link href={isPersonal ? "/business-govbr" : "/personal-govbr"}><Button className="h-auto min-h-10 whitespace-normal text-left leading-5 bg-[#1351B4] hover:bg-[#0C326F]">Abrir {isPersonal ? "Business" : "Personal"}</Button></Link>
           </div>
         </div>
       </header>
@@ -2096,17 +2175,17 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         <div className="container grid gap-8 py-10 text-white lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
           <div className="space-y-4">
             <Badge className="bg-[#FFCD07] text-[#071D41]">Protótipo para teste de APIs</Badge>
-            <h2 className="max-w-4xl text-4xl font-bold tracking-tight md:text-5xl">{isPersonal ? "Carteira cidadã para controlar, autorizar e monetizar dados." : "DrumWave dWallets®"}</h2>
-            <p className="max-w-3xl text-base leading-7 text-blue-50">Este front-end reproduz a navegação pública, onboarding e telas internas mapeadas das dWallets® DrumWave, redesenhadas com hierarquia visual, cores, foco acessível e linguagem institucional do governo brasileiro</p>
+            <h2 className="max-w-4xl break-words text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl">{isPersonal ? "Carteira cidadã para controlar, autorizar e monetizar dados." : "DrumWave dWallets®"}</h2>
+            <p className="max-w-3xl text-base leading-7 text-blue-50">Este front-end reproduz a navegação pública, onboarding e telas internas mapeadas das dWallets® DrumWave, redesenhadas com hierarquia visual, cores, foco acessível e linguagem institucional do governo brasileiro.</p>
           </div>
           <Card className="border-white/20 bg-white/10 text-white backdrop-blur">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><ShieldCheck className="h-5 w-5" />APIs e evidências</CardTitle>
-              <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local. APIs Dataprev protegidas usam o M2M token gerado na aba Credenciais enquanto ele estiver ativo.</CardDescription>
+              <CardDescription className="text-blue-50">{completed} de {callable} telas com chamadas OK nesta sessão local. APIs Dataprev protegidas usam o M2M token gerado na aba Variáveis enquanto ele estiver ativo. As respostas ficam preservadas ao alternar entre Home, PdW e BdW até a limpeza explícita.</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-blue-50">
               <Button type="button" variant="outline" onClick={clearApiReturnFields} className="justify-center border-white/30 bg-white/10 text-white hover:bg-white/20 hover:text-white">
-                <Trash2 className="mr-2 h-4 w-4" />Limpar retornos das APIs executadas
+                <Trash2 className="mr-2 h-4 w-4" />Limpar variáveis de resposta do teste
               </Button>
               <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base Dataprev</span><span className="font-mono text-xs">{metadata.data?.baseUrl || "carregando"}</span></div>
               <div className="flex items-center justify-between rounded-xl bg-white/10 px-3 py-2"><span>Base BTG</span><span className="font-mono text-xs">{btgMetadata.data?.baseUrl || "pendente"}</span></div>
@@ -2154,10 +2233,10 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         <section className="space-y-5">
           <Tabs defaultValue={initialTab} className="space-y-5">
             <TabsList className="grid w-full grid-cols-4 bg-white">
-              <TabsTrigger value="tela">Tela atual</TabsTrigger>
-              <TabsTrigger value="guia">Guia de teste</TabsTrigger>
-              <TabsTrigger value="variaveis">Variáveis de teste</TabsTrigger>
-              <TabsTrigger value="credenciais">Credenciais</TabsTrigger>
+              <TabsTrigger value="tela" className="h-auto min-h-10 whitespace-normal px-2 py-2 text-center leading-5">Tela atual</TabsTrigger>
+              <TabsTrigger value="guia" className="h-auto min-h-10 whitespace-normal px-2 py-2 text-center leading-5">Guia de teste</TabsTrigger>
+              <TabsTrigger value="teste" className="h-auto min-h-10 whitespace-normal px-2 py-2 text-center leading-5">Inputs de teste</TabsTrigger>
+              <TabsTrigger value="variaveis" className="h-auto min-h-10 whitespace-normal px-2 py-2 text-center leading-5">Variáveis</TabsTrigger>
             </TabsList>
             <TabsContent value="tela" className="space-y-5">
           <Card className="overflow-hidden border-slate-200 bg-white shadow-sm">
@@ -2205,7 +2284,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                     <strong>Como testar no telefone:</strong> edite os campos diretamente dentro do mockup, pressione o botão principal do próprio aplicativo para disparar a API e, se a resposta for OK, a tela do telefone avançará para a próxima etapa real da jornada.
                   </div>
                   <Button type="button" variant="outline" onClick={clearApiReturnFields} className="border-slate-300 bg-white text-slate-700 hover:bg-slate-50">
-                    <Trash2 className="mr-2 h-4 w-4" />Limpar retornos das APIs executadas
+                    <Trash2 className="mr-2 h-4 w-4" />Limpar variáveis de resposta do teste
                   </Button>
                 </div>
                 <div className="space-y-4">
@@ -2228,10 +2307,10 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
             <TabsContent value="guia">
               <BeginnerTestGuide walletKind={kind} screens={screens} evidences={evidences} runningId={runningId} m2mCompleted={Boolean(m2mResult?.ok || metadata.data?.m2mToken?.active)} reviewedSteps={reviewedGuideSteps} onToggleReviewed={toggleGuideStepReview} onOpenStep={setActiveId} />
             </TabsContent>
-            <TabsContent value="variaveis">
+            <TabsContent value="teste">
               <TestVariablesPanel variables={testVariables} values={mergedState} onChange={updateField} onReset={resetTestVariables} />
             </TabsContent>
-            <TabsContent value="credenciais" className="space-y-6">
+            <TabsContent value="variaveis" className="space-y-6">
               <CredentialsPanel baseUrl={metadata.data?.baseUrl} configured={metadata.data?.credentialsConfigured} btgBaseUrl={btgMetadata.data?.baseUrl || undefined} btgConfigured={btgMetadata.data?.credentialsConfigured} credentials={dataprevCredentials} m2mResult={m2mResult} cachedToken={metadata.data?.m2mToken} isGeneratingM2M={authenticateM2M.isPending} m2mError={errors.m2m} onGenerateM2M={() => void runM2MAuthentication(true)} onChange={updateDataprevCredential} onClear={clearDataprevCredentials} />
               <CredentialFolderPanel items={credentialFolder} values={mergedState} onClear={clearApiReturnFields} />
               <BtgFutureInfoPanel values={mergedState} serverBaseUrl={btgMetadata.data?.baseUrl || undefined} serverConfigured={btgMetadata.data?.credentialsConfigured} onChange={updateBtgFutureInfo} onClear={clearBtgFutureInfo} />

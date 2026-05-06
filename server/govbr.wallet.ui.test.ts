@@ -122,7 +122,7 @@ describe("GovBR Wallet API response panels", () => {
     expect(variablesHtml).toContain("Variáveis de entrada editáveis");
     expect(variablesHtml).toContain("teste@example.com");
     expect(variablesHtml).toContain("redigido");
-    expect(credentialsHtml).toContain("Credenciais e chaves");
+    expect(credentialsHtml).toContain("Variáveis e chaves");
     expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Credenciais temporárias Dataprev");
@@ -157,11 +157,11 @@ describe("GovBR Wallet API response panels", () => {
     expect(source).toContain("Ordem recomendada");
     expect(source).toContain("DrumWave dWallets®");
     expect(source).toContain("mockup operacional para teste de API");
-    expect(source).toContain("Preencha na aba Credenciais a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API");
+    expect(source).toContain("Preencha na aba Variáveis a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API");
     expect(source).toContain("Clique em <strong>Gerar M2M token</strong>");
     expect(source).toContain("Abra a Business dWallet® primeiro; você precisará do ID da wallet da empresa");
     expect(source).toContain("Use o ID da BdWallet® gerado para informar no processo de solicitação de dados da PdWallet®");
-    expect(source.indexOf("<strong>1.</strong> Preencha na aba Credenciais")).toBeLessThan(source.indexOf("<strong>2.</strong> Clique em <strong>Gerar M2M token</strong>"));
+    expect(source.indexOf("<strong>1.</strong> Preencha na aba Variáveis")).toBeLessThan(source.indexOf("<strong>2.</strong> Clique em <strong>Gerar M2M token</strong>"));
     expect(source.indexOf("<strong>2.</strong> Clique em <strong>Gerar M2M token</strong>")).toBeLessThan(source.indexOf("<strong>3.</strong> Abra a Business dWallet®"));
   });
 
@@ -169,17 +169,17 @@ describe("GovBR Wallet API response panels", () => {
     const source = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/Home.tsx", "utf8");
 
     expect(source).toContain("Primeiro passo de homologação");
-    expect(source).toContain("Adicionar credenciais");
-    expect(source).toContain("/business-govbr?tab=credenciais");
+    expect(source).toContain("Adicionar variáveis");
+    expect(source).toContain("/business-govbr?tab=variaveis");
     expect(source).toContain("IDs de dWallet®");
     expect(source).toContain("style={{ height: \"54px\" }}");
     expect(source.indexOf("Business dWallet GovBR")).toBeLessThan(source.indexOf("Personal dWallet GovBR"));
   });
 
-  it("permite abrir diretamente a aba Credenciais por parâmetro de URL", () => {
+  it("permite abrir diretamente a aba Variáveis por parâmetro de URL", () => {
     const source = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/GovBRWalletApp.tsx", "utf8");
 
-    expect(source).toContain('new URLSearchParams(window.location.search).get("tab") === "credenciais"');
+    expect(source).toContain('requestedTab === "variaveis" || requestedTab === "credenciais" ? "variaveis" : "tela"');
     expect(source).toContain("<Tabs defaultValue={initialTab}");
   });
 
@@ -268,25 +268,25 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(isM2MAuthResultActive(activeResult, Date.parse("2026-05-06T19:00:00.000Z"))).toBe(true);
     expect(source).toContain("onGenerateM2M={() => void runM2MAuthentication(true)}");
-    expect(source).toContain("Gere um token M2M válido na aba Credenciais antes de executar esta API");
+    expect(source).toContain("Gere um token M2M válido na aba Variáveis antes de executar esta API");
     expect(source).not.toContain("const authResult = await runM2MAuthentication();");
     expect(source).toContain("Gerar M2M token");
     expect(source).toContain("Sem token ativo, as demais APIs Dataprev ficam bloqueadas");
   });
 
-  it("renders generated API outputs in the credential folder for reuse between steps", () => {
+  it("renders generated API outputs in the variables folder for reuse between steps", () => {
     const html = renderToStaticMarkup(React.createElement(CredentialFolderPanel, {
       items: [{ key: "businessWalletId", value: "bdw_123", source: "Criar Business dWallet", savedAt: "2026-05-05T20:00:00.000Z", purpose: "Use como entrada em solicitações da Personal dWallet." }],
       values: { requestId: "req_456" },
       onClear: () => undefined,
     }));
 
-    expect(html).toContain("Pasta de credenciais");
+    expect(html).toContain("Pasta de variáveis");
     expect(html).toContain("bdw_123");
     expect(html).toContain("requestId");
     expect(html).toContain("solicitações da Personal dWallet");
     expect(html).toContain("abra a BdW para gerar o ID da BdW");
-    expect(html).toContain("Limpar pasta");
+    expect(html).toContain("Limpar variáveis de resposta");
   });
 
   it("renders the BTG future information panel without requiring a token today", () => {

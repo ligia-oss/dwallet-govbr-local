@@ -280,3 +280,9 @@
 - [x] Criar etapa de visualização de certificados para a Business dWallet, exibindo certificados de dados já em posse da empresa a partir das informações retornadas.
 - [x] Criar etapa de visualização de certificados para a Personal dWallet, exibindo certificados de dados já em posse da pessoa a partir das informações retornadas.
 - [x] Atualizar mapeamento, testes automatizados e validações técnicas das novas etapas de jornada antes de salvar checkpoint.
+
+- [x] Revisar e ajustar os headers das páginas principais da Personal dWallet e Business dWallet para garantir que nenhum texto fique cortado por falta de espaço.
+- [x] Garantir que respostas das APIs permaneçam armazenadas ao navegar entre Home, Personal dWallet e Business dWallet.
+- [x] Restringir a limpeza das respostas das APIs ao botão de limpar variáveis de resposta do teste na aba de variáveis.
+- [x] Renomear a aba/página Credenciais para Variáveis em toda a interface e testes relacionados.
+- [x] Atualizar testes automatizados e validar visualmente headers, persistência de respostas e renomeação antes de salvar checkpoint.
