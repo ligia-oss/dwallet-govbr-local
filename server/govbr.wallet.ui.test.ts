@@ -156,6 +156,20 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(source).toContain("Ordem recomendada");
     expect(source).toContain("DrumWave dWallets®");
+    const appSource = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/GovBRWalletApp.tsx", "utf8");
+    expect(appSource).toContain("Business dWallet®");
+    expect(appSource).toContain("Home da Business dWallet");
+    expect(appSource).toContain("Listar Value Schemas padrão");
+    expect(appSource).toContain("Listar certificados já em custódia");
+    expect(appSource).toContain("Selecionar Value schema, Listar produtos, selecionar produtos e cadastrar produto");
+    expect(appSource).toContain("Listar DSP padrão, listar DS comercial, ver detalhe do DSP, selecionar DSP");
+    expect(appSource).toContain("Saldo BdW");
+    expect(appSource).toContain("whitespace-normal break-words leading-5");
+    expect(appSource).not.toContain("DrumWave dWallets®");
+    expect(appSource).not.toContain("Painel empresarial");
+    expect(appSource).not.toContain("Schemas, datasets e databases");
+    expect(appSource).not.toContain("Certificados de dados empresariais");
+    expect(appSource).not.toContain("Saldo empresarial");
     expect(source).toContain("mockup operacional para teste de API");
     expect(source).toContain("Preencha na aba Variáveis a Base URL/API URL, x-api-key/API ID, Client ID e Client Secret antes de executar qualquer API");
     expect(source).toContain("Clique em <strong>Gerar M2M token</strong>");
@@ -892,7 +906,7 @@ describe("GovBR Wallet API response panels", () => {
 
   it("renders Business financial screens for balance, statement, Pix receiving, Pix key gap and payment inside the mobile shell", () => {
     const required = [
-      { actionId: "btg_get_balance", label: "Saldo empresarial", value: "acc_biz_123" },
+      { actionId: "btg_get_balance", label: "Saldo BdW", value: "acc_biz_123" },
       { actionId: "btg_get_statement", label: "Extrato", value: "2026-05-05" },
       { actionId: "btg_register_pix_key_gap", label: "Chaves Pix", value: "financeiro@empresa.gov.br" },
       { actionId: "btg_create_pix_instant_collection", label: "Receber Pix", value: "1.10" },

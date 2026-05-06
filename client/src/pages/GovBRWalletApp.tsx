@@ -643,7 +643,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "painel",
     route: "/dashboard",
-    title: "Painel empresarial",
+    title: "Home da Business dWallet",
     subtitle: "Visão de produtos, solicitações recebidas, campanhas ativas e indicadores financeiros.",
     group: "wallet",
     icon: LayoutDashboard,
@@ -677,7 +677,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "schemas",
     route: "/schemas-datasets",
-    title: "Schemas, datasets e databases",
+    title: "Listar Value Schemas padrão",
     subtitle: "Conexão e seleção de conjuntos de dados para configurar produtos e campanhas, com escolha visual entre os schemas retornados pela API.",
     group: "wallet",
     icon: Database,
@@ -692,7 +692,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "certificados-business",
     route: "/certificates",
-    title: "Certificados de dados empresariais",
+    title: "Listar certificados já em custódia",
     subtitle: "Visualiza certificados de dados já em posse da empresa, retornados pela API de Data Savings Certificates.",
     group: "wallet",
     icon: FileCheck2,
@@ -708,7 +708,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "produtos",
     route: "/products",
-    title: "Produtos de dados",
+    title: "Selecionar Value schema, Listar produtos, selecionar produtos e cadastrar produto",
     subtitle: "Criação e gerenciamento de produtos que podem originar ofertas e campanhas.",
     group: "mercado",
     icon: PackageCheck,
@@ -723,7 +723,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "planos",
     route: "/data-savings-plans",
-    title: "Data Savings Plans",
+    title: "Listar DSP padrão, listar DS comercial, ver detalhe do DSP, selecionar DSP",
     subtitle: "Planos comerciais, contribuições de dados, assinatura e renovação automática.",
     group: "mercado",
     icon: PiggyBank,
@@ -738,7 +738,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "saldo-btg",
     route: "/finance/balance",
-    title: "Saldo empresarial",
+    title: "Saldo BdW",
     subtitle: "Tela de saldo operacional da BdWallet para acompanhar conta vinculada, disponibilidade e bloqueios.",
     group: "financeiro",
     icon: WalletCards,
@@ -749,7 +749,7 @@ export const businessScreens: GovScreen[] = [
     fields: [{ key: "btgAccountId", label: "Conta BTG", placeholder: "account-id da conta BTG", required: true }],
     observedFrom: "Bundles Business, telas financeiras e coleção BTG Pactual",
     blocks: ["Saldo disponível", "Limites", "Bloqueios", "Atualização"],
-    appEmulation: { kind: "input-response", header: "Saldo empresarial", lead: "Acompanhe os valores disponíveis para operações da empresa.", responseEmpty: "A resposta de saldo aparecerá como cards de valores no app.", footerNote: "Tokens e headers permanecem server-side." },
+    appEmulation: { kind: "input-response", header: "Saldo BdW", lead: "Acompanhe os valores disponíveis para operações da empresa.", responseEmpty: "A resposta de saldo aparecerá como cards de valores no app.", footerNote: "Tokens e headers permanecem server-side." },
   },
   {
     id: "extrato-btg",
@@ -2175,7 +2175,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
         <div className="container grid gap-8 py-10 text-white lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
           <div className="space-y-4">
             <Badge className="bg-[#FFCD07] text-[#071D41]">Protótipo para teste de APIs</Badge>
-            <h2 className="max-w-4xl break-words text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl">{isPersonal ? "Carteira cidadã para controlar, autorizar e monetizar dados." : "DrumWave dWallets®"}</h2>
+            <h2 className="max-w-4xl break-words text-3xl font-bold leading-tight tracking-tight sm:text-4xl md:text-5xl">{isPersonal ? "Carteira cidadã para controlar, autorizar e monetizar dados." : "Business dWallet®"}</h2>
             <p className="max-w-3xl text-base leading-7 text-blue-50">Este front-end reproduz a navegação pública, onboarding e telas internas mapeadas das dWallets® DrumWave, redesenhadas com hierarquia visual, cores, foco acessível e linguagem institucional do governo brasileiro.</p>
           </div>
           <Card className="border-white/20 bg-white/10 text-white backdrop-blur">
@@ -2214,7 +2214,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                     const blockedByPrevious = screenOrderIndex > 0 && screens.slice(0, screenOrderIndex).some(previous => previous.actionId && !evidences[previous.actionId]?.ok && !reviewedGuideSteps[previous.id]);
                     return (
                       <button key={screen.id} disabled={blockedByPrevious} title={blockedByPrevious ? "Conclua ou revise manualmente as etapas anteriores no Guia de teste" : undefined} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "bg-[#1351B4] text-white" : blockedByPrevious ? "bg-amber-50 text-amber-900" : "text-slate-700 hover:bg-slate-100"}`}>
-                        <span className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{screen.title}</span></span>
+                        <span className="flex min-w-0 items-start gap-2"><Icon className="mt-0.5 h-4 w-4 shrink-0" /><span className="whitespace-normal break-words leading-5">{screen.title}</span></span>
                         <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase opacity-80">{blockedByPrevious ? "pré-req." : statusLabel[visualStatus]}{evidence?.ok ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : blockedByPrevious ? <LockKeyhole className="h-3 w-3 opacity-70" /> : screen.actionId ? <Play className="h-3 w-3 opacity-70" /> : <LockKeyhole className="h-3 w-3 opacity-60" />}</span>
                       </button>
                     );

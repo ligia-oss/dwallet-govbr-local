@@ -286,3 +286,7 @@
 - [x] Restringir a limpeza das respostas das APIs ao botão de limpar variáveis de resposta do teste na aba de variáveis.
 - [x] Renomear a aba/página Credenciais para Variáveis em toda a interface e testes relacionados.
 - [x] Atualizar testes automatizados e validar visualmente headers, persistência de respostas e renomeação antes de salvar checkpoint.
+
+- [x] Verificar as edições visuais de rótulos da Business dWallet em `client/src/pages/GovBRWalletApp.tsx`, incluindo título e nomes de etapas.
+- [x] Corrigir manualmente qualquer rótulo, quebra de linha ou layout que não esteja legível após a edição visual determinística.
+- [x] Executar validações técnicas e visuais proporcionais e salvar checkpoint dos novos rótulos da Business dWallet.
