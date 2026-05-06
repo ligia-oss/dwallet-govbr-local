@@ -1549,7 +1549,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
             <div className="flex flex-col gap-2 sm:flex-row md:flex-col lg:flex-row" style={{ width: "194px", minHeight: "81px" }}>
               <Button type="button" onClick={onGenerateM2M} disabled={isGeneratingM2M || !allTypedCredentialsReady} className="bg-[#1351B4] text-white hover:bg-[#0C326F]">
                 {isGeneratingM2M ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
-                {isGeneratingM2M ? "Gerando token" : "Gerar M2M token"}
+                {isGeneratingM2M ? <span className="leading-tight">Gerando<br />token</span> : <span className="leading-tight">Gerar M2M<br />token</span>}
               </Button>
               <Button type="button" variant="outline" onClick={onClear}><Trash2 className="mr-2 h-4 w-4" /><span className="leading-tight">Limpar<br />Dataprev</span></Button>
             </div>

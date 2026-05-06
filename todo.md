@@ -266,3 +266,7 @@
 - [x] Preparar o projeto para nova tentativa de publicação pela interface após falhas externas de cota de logs.
 - [x] Verificar se há alterações locais pendentes que exigem novo checkpoint antes do botão Publish.
 - [x] Orientar o usuário a clicar em Publish novamente após o checkpoint estar disponível.
+
+- [x] Verificar se a edição visual do botão em `GovBRWalletApp.tsx` faz o texto caber dividido em duas linhas.
+- [x] Ajustar manualmente o botão caso a edição determinística não esteja refletida corretamente no código-fonte.
+- [x] Executar validação técnica proporcional e salvar checkpoint da edição visual do botão.
