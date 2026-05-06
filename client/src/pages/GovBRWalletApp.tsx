@@ -517,14 +517,14 @@ export const businessScreens: GovScreen[] = [
   {
     id: "entrada",
     route: "/",
-    title: "Criar conta do empregado",
+    title: "Criar conta do funcionário",
     subtitle: "Tela inicial da jornada BdWallet em que o empregado responsável cria a própria conta antes de abrir a carteira empresarial.",
     group: "acesso",
     icon: Building2,
     actionId: "step1_employee_signup",
     apiLabel: "Cadastro de empregado",
     apiHint: "Cria a conta do empregado Business com e-mail corporativo; este passo precisa vir antes das telas de abertura da BdWallet para disponibilizar e-mail, senha e token de usuário nas chamadas seguintes.",
-    primaryCta: "Criar conta do empregado",
+    primaryCta: "Criar conta do funcionário",
     fields: [
       { key: "employeeFirstName", label: "Nome", placeholder: "Maria", required: true },
       { key: "employeeLastName", label: "Sobrenome", placeholder: "Silva", required: true },
@@ -538,7 +538,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "envio-email",
     route: "/email-verification/send-code",
-    title: "Envio do código corporativo",
+    title: "Envio do código de confirmação",
     subtitle: "Executa a API de envio de OTP para o e-mail corporativo cadastrado na Business dWallet.",
     group: "onboarding",
     icon: MailCheck,
@@ -570,7 +570,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "login-empregado",
     route: "/signin",
-    title: "Entrar na conta do empregado",
+    title: "Entrar na conta do funcionário",
     subtitle: "Autentica o empregado recém-criado para obter o token de usuário necessário à abertura da BdWallet empresarial.",
     group: "onboarding",
     icon: KeyRound,
@@ -589,7 +589,7 @@ export const businessScreens: GovScreen[] = [
   {
     id: "empresa",
     route: "/enter-business-information",
-    title: "Abrir BdWallet empresarial",
+    title: "Abrir BdWallet",
     subtitle: "Formulário do aplicativo para cadastrar a empresa e iniciar a carteira empresarial usando a sessão do empregado.",
     group: "onboarding",
     icon: FileCheck2,
@@ -1544,14 +1544,14 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Credenciais temporárias Dataprev</p>
-              <p className="text-sm leading-6 text-slate-600">Para usar credenciais temporárias, preencha obrigatoriamente API URL/Base URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo recebido no 1Password. Evite salvar capturas contendo segredos.</p>
+              <p className="text-sm leading-6 text-slate-600">Para usar credenciais temporárias, preencha obrigatoriamente API URL/Base URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo recebido no 1Password. </p>
             </div>
-            <div className="flex flex-col gap-2 sm:flex-row md:flex-col lg:flex-row">
+            <div className="flex flex-col gap-2 sm:flex-row md:flex-col lg:flex-row" style={{ width: "194px", minHeight: "81px" }}>
               <Button type="button" onClick={onGenerateM2M} disabled={isGeneratingM2M || !allTypedCredentialsReady} className="bg-[#1351B4] text-white hover:bg-[#0C326F]">
                 {isGeneratingM2M ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
                 {isGeneratingM2M ? "Gerando token" : "Gerar M2M token"}
               </Button>
-              <Button type="button" variant="outline" onClick={onClear}><Trash2 className="mr-2 h-4 w-4" />Limpar Dataprev</Button>
+              <Button type="button" variant="outline" onClick={onClear}><Trash2 className="mr-2 h-4 w-4" /><span className="leading-tight">Limpar<br />Dataprev</span></Button>
             </div>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
@@ -1943,9 +1943,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       <section className={isPersonal ? "govbr-hero-personal" : "govbr-hero-business"}>
         <div className="container grid gap-8 py-10 text-white lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
           <div className="space-y-4">
-            <Badge className="bg-[#FFCD07] text-[#071D41]">Protótipo espelhado da homologação</Badge>
-            <h2 className="max-w-4xl text-4xl font-bold tracking-tight md:text-5xl">{isPersonal ? "Carteira cidadã para controlar, autorizar e monetizar dados." : "Carteira empresarial para produtos, campanhas e operações de dados."}</h2>
-            <p className="max-w-3xl text-base leading-7 text-blue-50">Este front-end reproduz a navegação pública, onboarding e telas internas mapeadas nos ambientes DrumWave, redesenhadas com hierarquia visual, cores, foco acessível e linguagem institucional brasileira.</p>
+            <Badge className="bg-[#FFCD07] text-[#071D41]">Protótipo para teste de APIs</Badge>
+            <h2 className="max-w-4xl text-4xl font-bold tracking-tight md:text-5xl">{isPersonal ? "Carteira cidadã para controlar, autorizar e monetizar dados." : "DrumWave dWallets®"}</h2>
+            <p className="max-w-3xl text-base leading-7 text-blue-50">Este front-end reproduz a navegação pública, onboarding e telas internas mapeadas das dWallets® DrumWave, redesenhadas com hierarquia visual, cores, foco acessível e linguagem institucional do governo brasileiro</p>
           </div>
           <Card className="border-white/20 bg-white/10 text-white backdrop-blur">
             <CardHeader>

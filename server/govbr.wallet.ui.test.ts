@@ -137,7 +137,8 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("API ID / x-api-key");
     expect(credentialsHtml).toContain("Secret ID / Client secret");
     expect(credentialsHtml).toContain("Gerar M2M token");
-    expect(credentialsHtml).toContain("Limpar Dataprev");
+    expect(credentialsHtml).toContain("Limpar");
+    expect(credentialsHtml).toContain("Dataprev");
   });
 
   it("identifica o progresso do checklist de credenciais recebido via 1Password", () => {

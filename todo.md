@@ -246,3 +246,7 @@
 - [x] Manter bloqueio e mensagem clara quando uma API exigir M2M e não houver token válido gerado.
 - [x] Atualizar testes Vitest para cobrir ordem recomendada, botão explícito, persistência/expiração do token e uso do token salvo nas APIs.
 - [x] Executar testes, build, status do projeto, revisar checklist e salvar checkpoint do fluxo explícito de geração do token M2M.
+
+- [x] Verificar as edições visuais aplicadas no arquivo `client/src/pages/GovBRWalletApp.tsx` e confirmar aderência aos textos e estilos solicitados.
+- [x] Executar validações técnicas proporcionais às alterações de texto/layout após a edição visual.
+- [x] Salvar novo checkpoint com as edições visuais verificadas.
