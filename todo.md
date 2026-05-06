@@ -220,3 +220,6 @@
 - [x] Bloquear preventivamente a execução de qualquer API quando uma das quatro credenciais essenciais estiver vazia, exibindo mensagem clara para preenchimento.
 - [x] Atualizar testes automatizados para cobrir a nova ordem recomendada, a posição prioritária do bloco de credenciais e o bloqueio global antes de APIs.
 - [x] Executar Vitest, build, status do projeto, revisar checklist e salvar checkpoint dos ajustes de credenciais obrigatórias.
+
+- [x] Substituir a frase do item 3 da ordem recomendada para: "Use o ID da BdW gerado para informar no processo de solicitação de dados da PdWallet".
+- [x] Validar a alteração textual, atualizar testes se necessário e salvar checkpoint.
