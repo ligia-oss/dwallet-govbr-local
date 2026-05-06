@@ -231,3 +231,10 @@
 - [x] Investigar e corrigir os erros de HMR/reload do Vite em `/src/pages/Home.tsx` e `/src/index.css` reportados na página inicial.
 - [x] Validar que a página inicial continua com Business dWallet antes da Personal dWallet e botão Adicionar credenciais após a correção.
 - [x] Executar testes, build, status do projeto e salvar checkpoint da correção de HMR.
+
+- [x] Persistir as credenciais essenciais do Passo 0 M2M — Base URL/API URL, x-api-key/API ID, Client ID e Client Secret — para que não sejam apagadas ao mudar de página ou alternar entre Business e Personal dWallet.
+- [x] Carregar automaticamente as credenciais persistidas ao abrir `/business-govbr`, `/personal-govbr` ou retornar à página inicial e depois voltar para uma wallet.
+- [x] Garantir que o Passo 0 M2M seja executado automaticamente quando a primeira API que exige autenticação for acionada, sem exigir botão manual de autenticação.
+- [x] Manter bloqueio preventivo claro quando alguma das quatro credenciais essenciais estiver ausente antes de executar qualquer API.
+- [x] Atualizar testes Vitest para cobrir persistência de credenciais entre navegações e disparo automático do Passo 0 na primeira API executável.
+- [x] Executar testes, build, status do projeto, revisar checklist e salvar checkpoint da persistência de credenciais e M2M automático.

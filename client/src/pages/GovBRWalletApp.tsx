@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link } from "wouter";
 import { trpc } from "@/lib/trpc";
+import { clearPersistedDataprevCredentials, EMPTY_DATAPREV_CREDENTIALS, isM2MAuthResultActive, normalizeDataprevCredentials, persistDataprevCredentials, readPersistedDataprevCredentials, type DataprevCredentialForm } from "@/lib/dataprevCredentials";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -77,13 +78,6 @@ export type Evidence = {
   missingReason?: string;
   durationMs?: number;
   executedAt: string;
-};
-
-export type DataprevCredentialForm = {
-  baseUrl: string;
-  apiKey: string;
-  clientId: string;
-  clientSecret: string;
 };
 
 export const btgFutureInfoFields = [
@@ -1481,6 +1475,7 @@ export function buildDataprevCredentialsInput(credentials: DataprevCredentialFor
   return Object.values(trimmed).some(Boolean) ? trimmed : undefined;
 }
 
+
 export function getDataprevCredentialChecklist(credentials: DataprevCredentialForm) {
   return [
     {
@@ -1533,7 +1528,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
     <Card className="border-slate-200 bg-white shadow-sm">
       <CardHeader>
         <CardTitle className="flex items-center gap-2 text-xl"><KeyRound className="h-5 w-5 text-[#1351B4]" />Credenciais e chaves</CardTitle>
-        <CardDescription>Informe credenciais Dataprev temporárias para testar chamadas reais sem alterar os Secrets do projeto. Os valores ficam apenas no estado desta tela e são enviados ao backend somente durante a execução da API.</CardDescription>
+        <CardDescription>Informe credenciais Dataprev temporárias para testar chamadas reais sem alterar os Secrets do projeto. Os valores ficam preservados nesta aba do navegador ao mudar entre páginas da jornada e são enviados ao backend somente durante a execução da API.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
@@ -1562,7 +1557,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o Secret ID / client_secret" autoComplete="off" />
             </div>
           </div>
-          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo do Postman antes de executar chamadas reais. Quando uma API exigir autenticação técnica, o servidor obtém o token automaticamente; se algum campo obrigatório estiver vazio, a aplicação informa exatamente o que falta preencher.</p>
+          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo do Postman antes de executar chamadas reais. Esses campos permanecem preenchidos ao alternar entre páginas na mesma aba; quando a primeira API Dataprev for acionada, o Passo 0 M2M é executado automaticamente antes da requisição principal. Se algum campo obrigatório estiver vazio, a aplicação informa exatamente o que falta preencher.</p>
         </div>
 
         <Alert className={allTypedCredentialsReady ? "border-green-200 bg-green-50 text-green-950" : usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
@@ -1603,7 +1598,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
             <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base Dataprev do servidor</span><strong className="break-all text-slate-900">{baseUrl || "não informada"}</strong></div>
             <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Base BTG</span><strong className="break-all text-slate-900">{btgBaseUrl || "não informada"}</strong></div>
             <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Credenciais BTG</span><strong className={btgConfigured ? "text-green-700" : "text-amber-700"}>{btgConfigured ? "detectadas no servidor" : "pendentes no servidor"}</strong></div>
-            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Entrada Dataprev temporária</span><strong className={usingTypedCredentials ? "text-blue-700" : "text-slate-700"}>{usingTypedCredentials ? "informada nesta sessão" : "não informada"}</strong></div>
+            <div className="rounded-2xl bg-white p-4 text-sm shadow-sm"><span className="block text-slate-500">Entrada Dataprev temporária</span><strong className={usingTypedCredentials ? "text-blue-700" : "text-slate-700"}>{usingTypedCredentials ? "preservada nesta aba" : "não informada"}</strong></div>
           </div>
         </div>
         <div className="space-y-3">
@@ -1707,7 +1702,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const [runningId, setRunningId] = useState<string>();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [reviewedGuideSteps, setReviewedGuideSteps] = useState<Record<string, boolean>>({});
-  const [dataprevCredentials, setDataprevCredentials] = useState<DataprevCredentialForm>({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+  const [dataprevCredentials, setDataprevCredentials] = useState<DataprevCredentialForm>(() => readPersistedDataprevCredentials());
   const [credentialFolder, setCredentialFolder] = useState<CredentialFolderItem[]>([]);
   const active = screens.find(screen => screen.id === activeId) ?? screens[0];
   const activeIndex = screens.findIndex(screen => screen.id === active.id);
@@ -1750,11 +1745,16 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   };
 
   const updateDataprevCredential = (key: keyof DataprevCredentialForm, value: string) => {
-    setDataprevCredentials(previous => ({ ...previous, [key]: value }));
+    setDataprevCredentials(previous => {
+      const next = normalizeDataprevCredentials({ ...previous, [key]: value });
+      persistDataprevCredentials(next);
+      return next;
+    });
   };
 
   const clearDataprevCredentials = () => {
-    setDataprevCredentials({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+    clearPersistedDataprevCredentials();
+    setDataprevCredentials({ ...EMPTY_DATAPREV_CREDENTIALS });
     clearApiReturnFields();
   };
 
@@ -1791,7 +1791,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
     clearApiReturnFields();
   };
 
-  const runM2MAuthentication = async () => {
+  const runM2MAuthentication = async (): Promise<M2MAuthResult | undefined> => {
+    if (isM2MAuthResultActive(m2mResult)) return m2mResult;
+
     setErrors(previous => {
       const next = { ...previous };
       delete next.m2m;
@@ -1803,7 +1805,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       const message = `Antes de executar APIs Dataprev com credenciais temporárias, preencha na aba Credenciais os campos obrigatórios: ${missingCredentials.join(", ")}. A chamada não foi realizada porque esses dados são essenciais para gerar a autenticação técnica.`;
       setM2mResult(undefined);
       setErrors(previous => ({ ...previous, m2m: message }));
-      return;
+      return undefined;
     }
 
     try {
@@ -1811,13 +1813,15 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       const typed = result as M2MAuthResult;
       setM2mResult(typed);
       if (typed.ok) {
-        setCredentialFolder(previous => mergeCredentialFolder(previous, createCredentialFolderItems("Autenticação técnica", { m2mTokenHandle: typed.tokenHandle, m2mExpiresAt: typed.expiresAt, m2mActive: typed.active })));
+        setCredentialFolder(previous => mergeCredentialFolder(previous, createCredentialFolderItems("Passo 0 — autenticação técnica automática", { m2mTokenHandle: typed.tokenHandle, m2mExpiresAt: typed.expiresAt, m2mActive: typed.active })));
       }
       if (!typed.ok) setErrors(previous => ({ ...previous, m2m: typed.message }));
       await metadata.refetch();
+      return typed;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Falha inesperada ao executar a autenticação técnica.";
       setErrors(previous => ({ ...previous, m2m: message }));
+      return undefined;
     }
   };
 
@@ -1849,6 +1853,14 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
     try {
+      if (!active.actionId.startsWith("btg_")) {
+        const authResult = await runM2MAuthentication();
+        if (!isM2MAuthResultActive(authResult)) {
+          setErrors(previous => ({ ...previous, [active.id]: authResult?.message || "O Passo 0 de autenticação técnica não retornou token ativo. A API solicitada não foi executada." }));
+          return;
+        }
+      }
+
       const evidence = active.actionId.startsWith("btg_")
         ? await executeBtgAction.mutateAsync(buildExecuteActionInput(active.actionId, mergedState))
         : await executeAction.mutateAsync(buildExecuteActionInput(active.actionId, mergedState, dataprevCredentials));

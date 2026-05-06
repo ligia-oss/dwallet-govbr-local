@@ -4,6 +4,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
 import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { clearPersistedDataprevCredentials, DATAPREV_CREDENTIALS_STORAGE_KEY, isM2MAuthResultActive, normalizeDataprevCredentials, persistDataprevCredentials, readPersistedDataprevCredentials } from "../client/src/lib/dataprevCredentials";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -185,6 +186,45 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(buildRequiredApiCredentialsMessage(["API URL", "Client ID"])).toContain("Antes de executar qualquer API");
     expect(buildRequiredApiCredentialsMessage(["API URL", "Client ID"])).toContain("API URL, Client ID");
+  });
+
+  it("persiste e recarrega as quatro credenciais Dataprev ao alternar páginas na mesma aba", () => {
+    const memory = new Map<string, string>();
+    const storage = {
+      getItem: (key: string) => memory.get(key) ?? null,
+      setItem: (key: string, value: string) => memory.set(key, value),
+      removeItem: (key: string) => memory.delete(key),
+    };
+    const credentials = normalizeDataprevCredentials({ baseUrl: "https://api.example.local", apiKey: "api-key", clientId: "client-id", clientSecret: "client-secret" });
+
+    persistDataprevCredentials(credentials, storage);
+
+    expect(memory.has(DATAPREV_CREDENTIALS_STORAGE_KEY)).toBe(true);
+    expect(readPersistedDataprevCredentials(storage)).toEqual(credentials);
+
+    clearPersistedDataprevCredentials(storage);
+    expect(readPersistedDataprevCredentials(storage)).toEqual({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+  });
+
+  it("documenta no componente que o Passo 0 M2M roda automaticamente antes da primeira API Dataprev", () => {
+    const source = fs.readFileSync("/home/ubuntu/dwallet-govbr-local/client/src/pages/GovBRWalletApp.tsx", "utf8");
+    const activeResult: M2MAuthResult = {
+      status: "executed",
+      ok: true,
+      method: "POST",
+      url: "https://api.example.local/token",
+      active: true,
+      tokenHandle: "token-handle",
+      expiresAt: "2026-05-06T20:00:00.000Z",
+      responseBody: { tokenArmazenado: true },
+      message: "Token ativo.",
+      executedAt: "2026-05-06T17:00:00.000Z",
+    };
+
+    expect(isM2MAuthResultActive(activeResult, Date.parse("2026-05-06T19:00:00.000Z"))).toBe(true);
+    expect(source).toContain("const authResult = await runM2MAuthentication();");
+    expect(source.indexOf("const authResult = await runM2MAuthentication();")).toBeLessThan(source.indexOf("await executeAction.mutateAsync"));
+    expect(source).toContain("Passo 0 — autenticação técnica automática");
   });
 
   it("renders generated API outputs in the credential folder for reuse between steps", () => {
