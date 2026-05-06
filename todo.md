@@ -205,3 +205,12 @@
 - [x] Corrigir os botões Limpar da aba Credenciais para apagar também resultados/evidências de testes persistidos relacionados a cada bloco de dados.
 - [x] Atualizar testes automatizados para cobrir M2M automático invisível, ausência de instruções explícitas de Passo 0 e limpeza de resultados persistidos por bloco.
 - [x] Executar Vitest/build/status, revisar checklist e salvar checkpoint da versão com autenticação M2M automática e limpeza corrigida.
+
+- [x] Revisar a jornada de homologação para orientar usuários com credenciais do 1Password: API URL/Base URL, x-api-key/API ID, Client ID e Client Secret.
+- [x] Melhorar a aba Credenciais com onboarding contextual, status de preenchimento por campo e linguagem clara sobre onde usar cada valor recebido via 1Password.
+- [x] Reorganizar a navegação de execução para evidenciar a ordem correta das APIs, dependências entre etapas e estados habilitado/bloqueado conforme pré-requisitos.
+- [x] Redesenhar o mockup da Personal dWallet como tela mobile de aplicativo governamental real, com identidade visual Gov.BR, header institucional e cards de documentos/ações.
+- [x] Redesenhar o mockup da Business dWallet como tela mobile de aplicativo governamental real para pessoa jurídica, com identidade visual Gov.BR e cards empresariais.
+- [x] Atualizar textos, microcópias e estados vazios/erro para reduzir dúvidas de homologação e evitar exposição de segredos.
+- [x] Atualizar testes automatizados para cobrir a nova experiência de credenciais, ordem de execução e elementos visuais Gov.BR dos mockups.
+- [x] Executar validações finais com pnpm test, pnpm build, status do projeto e revisão do checklist antes do checkpoint.

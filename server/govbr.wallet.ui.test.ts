@@ -2,7 +2,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 
 describe("GovBR Wallet API response panels", () => {
   it("renders pending, running and missing API states inside the user-facing panel", () => {
@@ -122,6 +122,10 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("DATAPREV_CLIENT_SECRET");
     expect(credentialsHtml).toContain("BTG_ACCESS_TOKEN");
     expect(credentialsHtml).toContain("Credenciais temporárias Dataprev");
+    expect(credentialsHtml).toContain("Checklist do item recebido via 1Password");
+    expect(credentialsHtml).toContain("0 de 4 preenchidas");
+    expect(credentialsHtml).toContain("No 1Password: Base URL ou API URL");
+    expect(credentialsHtml).toContain("Para homologar exatamente com o item recebido via 1Password");
     expect(credentialsHtml).toContain("Para usar credenciais temporárias");
     expect(credentialsHtml).toContain("API URL");
     expect(credentialsHtml).not.toContain("Base URL opcional");
@@ -129,6 +133,16 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml).toContain("Secret ID / Client secret");
     expect(credentialsHtml).not.toContain("Execução manual de autenticação");
     expect(credentialsHtml).toContain("Limpar Dataprev");
+  });
+
+  it("identifica o progresso do checklist de credenciais recebido via 1Password", () => {
+    const emptyChecklist = getDataprevCredentialChecklist({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
+    const partialChecklist = getDataprevCredentialChecklist({ baseUrl: "https://api.example.local", apiKey: "x-api-key", clientId: "", clientSecret: "" });
+
+    expect(emptyChecklist).toHaveLength(4);
+    expect(emptyChecklist.map(item => item.onePasswordName)).toEqual(["Base URL ou API URL", "x-api-key", "Client ID", "Client Secret"]);
+    expect(emptyChecklist.every(item => item.filled)).toBe(false);
+    expect(partialChecklist.filter(item => item.filled).map(item => item.key)).toEqual(["baseUrl", "apiKey"]);
   });
 
   it("identifica credenciais obrigatórias faltantes antes de executar APIs Dataprev com credenciais temporárias", () => {
@@ -458,6 +472,10 @@ describe("GovBR Wallet API response panels", () => {
     expect(loginInput.actionId).toBe("step1_employee_signin");
     expect(html).toContain("Carteira de dados");
     expect(html).toContain("gov.br");
+    expect(html).toContain("Pessoa jurídica");
+    expect(html).toContain("CNPJ verificado");
+    expect(html).toContain("Compartilhamento seguro");
+    expect(html).toContain("Navegação inferior do aplicativo Gov.BR");
     expect(html).toContain("Abrir Business dWallet");
     expect(html).toContain("Empresa Direta Validada");
     expect(html).toContain("Resultado no app");

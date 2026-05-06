@@ -997,6 +997,11 @@ export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status
   const responseText = evidence?.message || evidence?.missingReason || emulation.responseEmpty;
   const responseDetails = evidence ? summarizeStateUpdates(evidence.stateUpdates) : "Sem dados retornados nesta sessão.";
   const actionTone = status === "done" ? "bg-[#168821] text-white" : status === "failed" ? "bg-[#D04F4F] text-white" : "bg-[#1351B4] text-white";
+  const isBusinessWallet = screen.route.includes("business") || screen.title.toLowerCase().includes("business") || screen.title.toLowerCase().includes("empresa") || screen.title.toLowerCase().includes("colaborador");
+  const walletPersona = isBusinessWallet ? "Pessoa jurídica" : "Pessoa física";
+  const walletDocumentLabel = isBusinessWallet ? "CNPJ verificado" : "CPF verificado";
+  const walletMainDocument = isBusinessWallet ? String(values.businessCnpj ?? "00.000.000/0001-00") : String(values.personCpf ?? "***.000.111-**");
+  const walletDisplayName = isBusinessWallet ? String(values.businessName ?? "Empresa GovBR") : String(values.personName ?? values.personFirstName ?? "Cidadão GovBR");
   const canRunCurrentAction = Boolean(screen.actionId) && !shouldAdvanceToNextScreen;
   const buttonLabel = shouldAdvanceToNextScreen && nextScreen ? nextScreen.primaryCta : isRunning ? "Enviando dados" : screen.primaryCta;
   const handlePrimaryClick = () => {
@@ -1015,17 +1020,37 @@ export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status
           <div className="h-1.5 w-20 rounded-full bg-white/80" aria-hidden="true" />
           <span className="text-[11px] font-semibold">5G</span>
         </div>
-        <div className="bg-[#1351B4] px-5 pb-5 pt-4 text-white">
+        <div className="bg-[linear-gradient(180deg,#1351B4_0%,#0C326F_100%)] px-5 pb-5 pt-4 text-white">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15"><Landmark className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-50">gov.br</p><p className="text-sm font-bold">Carteira de dados</p></div></div>
+            <div className="flex items-center gap-2"><div className="grid h-9 w-9 place-items-center rounded-xl bg-white/15 ring-1 ring-white/20"><Landmark className="h-5 w-5" /></div><div><p className="text-[10px] font-bold uppercase tracking-[0.2em] text-blue-50">gov.br</p><p className="text-sm font-bold">Carteira de dados</p></div></div>
             <Badge className="bg-[#FFCD07] text-[#071D41]">{shouldAdvanceToNextScreen && nextScreen ? "próxima tela" : statusLabel[status]}</Badge>
           </div>
-          <div className="mt-5 space-y-2">
-            <p className="text-2xl font-bold leading-tight">{phoneEmulation.header}</p>
+          <div className="mt-5 rounded-[1.35rem] bg-white/10 p-4 ring-1 ring-white/15 backdrop-blur">
+            <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-[#FFCD07]">{walletPersona}</p>
+            <p className="mt-1 text-2xl font-bold leading-tight">{walletDisplayName}</p>
+            <div className="mt-3 flex flex-wrap gap-2 text-[11px] font-semibold">
+              <span className="rounded-full bg-white/15 px-3 py-1">{walletDocumentLabel}: {walletMainDocument}</span>
+              <span className="rounded-full bg-white/15 px-3 py-1">Conta prata/ouro</span>
+            </div>
+          </div>
+          <div className="mt-4 space-y-2">
+            <p className="text-xl font-bold leading-tight">{phoneEmulation.header}</p>
             <p className="text-sm leading-6 text-blue-50">{shouldAdvanceToNextScreen && nextScreen ? `A API de ${screen.apiLabel} retornou OK. Continue na etapa: ${nextScreen.title}.` : phoneEmulation.lead}</p>
           </div>
         </div>
         <div className="space-y-4 p-5">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-[1.35rem] border border-blue-100 bg-white p-4 shadow-sm">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[#1351B4]">Identidade</p>
+              <p className="mt-2 text-sm font-bold text-slate-950">{walletDocumentLabel}</p>
+              <p className="mt-1 truncate text-xs text-slate-500">{walletMainDocument}</p>
+            </div>
+            <div className="rounded-[1.35rem] border border-green-100 bg-white p-4 shadow-sm">
+              <p className="text-[11px] font-bold uppercase tracking-wide text-[#168821]">Permissões</p>
+              <p className="mt-2 text-sm font-bold text-slate-950">Compartilhamento seguro</p>
+              <p className="mt-1 text-xs text-slate-500">Dados sob consentimento</p>
+            </div>
+          </div>
           {shouldAdvanceToNextScreen && nextScreen ? (
             <div className="rounded-[1.35rem] border border-green-200 bg-green-50 p-4">
               <div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-700" /><p className="text-xs font-bold uppercase tracking-wide text-green-800">Resposta OK · fluxo avançado</p></div>
@@ -1076,6 +1101,12 @@ export function AppEmulatedScreen({ screen, nextScreen, values, evidence, status
 
           {!evidence && (emulation.kind === "response" || emulation.kind === "input-response") ? <p className="rounded-2xl bg-white px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm"><strong>Resultado no app:</strong> {emulation.responseEmpty}</p> : null}
           {phoneEmulation.footerNote ? <p className="rounded-2xl bg-white px-4 py-3 text-xs leading-5 text-slate-500 shadow-sm">{phoneEmulation.footerNote}</p> : null}
+          <div className="grid grid-cols-4 gap-2 rounded-[1.35rem] bg-white px-3 py-3 text-center text-[10px] font-semibold text-slate-500 shadow-sm" aria-label="Navegação inferior do aplicativo Gov.BR">
+            <span className="rounded-xl bg-[#E7F0FF] px-2 py-2 text-[#1351B4]">Início</span>
+            <span className="px-2 py-2">Dados</span>
+            <span className="px-2 py-2">Consent.</span>
+            <span className="px-2 py-2">Conta</span>
+          </div>
         </div>
       </div>
     </div>
@@ -1317,15 +1348,17 @@ export function CredentialFolderPanel({ items, values, onClear }: { items: Crede
 export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, runningId, m2mCompleted = false, reviewedSteps = {}, onToggleReviewed, onOpenStep }: { walletKind: WalletKind; screens?: GovScreen[]; evidences?: Record<string, Evidence>; runningId?: string; m2mCompleted?: boolean; reviewedSteps?: Record<string, boolean>; onToggleReviewed?: (stepId: string, checked: boolean) => void; onOpenStep?: (screenId: string) => void }) {
   const appName = walletKind === "personal" ? "Personal dWallet" : "Business dWallet";
   const orderedSteps = walletKind === "personal" ? [
-    ["1", "Criar e validar Personal dWallet", "Execute criação, envio de código e validação na ordem da navegação lateral. Quando a API exigir autenticação técnica, o servidor obtém o token automaticamente antes da requisição. IDs da PdW, usuário ou sessão retornados pela API são salvos automaticamente em Credenciais."],
-    ["2", "Abrir a BdW antes de solicitar dados", "Quando uma tela Personal exigir Business ID, abra a Business dWallet, crie/abra a BdW e copie da pasta Credenciais o ID da BdW gerado pela API empresarial."],
-    ["3", "Solicitar informações na PdW", "Volte para a Personal dWallet, confirme que o Business ID está preenchido e execute a solicitação de dados. Guarde o requestId/consentId retornado para aprovação, consulta ou próximos testes."],
-    ["4", "Executar telas finais e financeiras", "Depois da wallet criada e dos IDs salvos, teste saldo, extrato, Pix, pagamento e marketplace. O mockup deve mostrar comprovante, resumo ou tela final montada, não apenas JSON técnico."],
+    ["1", "Preparar credenciais do 1Password", "Antes de usar o telefone, abra a aba Credenciais e confirme API URL/Base URL, API ID / x-api-key, Client ID e Client Secret. Esse conjunto alimenta a autenticação técnica automática e evita chamadas com ambiente misturado."],
+    ["2", "Criar e validar Personal dWallet", "Execute criação, envio de código e validação na ordem da navegação lateral. Quando a API exigir autenticação técnica, o servidor obtém o token automaticamente antes da requisição. IDs da PdW, usuário ou sessão retornados pela API são salvos automaticamente em Credenciais."],
+    ["3", "Abrir a BdW antes de solicitar dados", "Quando uma tela Personal exigir Business ID, abra a Business dWallet, crie/abra a BdW e copie da pasta Credenciais o ID da BdW gerado pela API empresarial."],
+    ["4", "Solicitar informações na PdW", "Volte para a Personal dWallet, confirme que o Business ID está preenchido e execute a solicitação de dados. Guarde o requestId/consentId retornado para aprovação, consulta ou próximos testes."],
+    ["5", "Executar telas finais e financeiras", "Depois da wallet criada e dos IDs salvos, teste saldo, extrato, Pix, pagamento e marketplace. O mockup deve mostrar comprovante, resumo ou tela final montada, não apenas JSON técnico."],
   ] : [
-    ["1", "Criar Business dWallet", "Cadastre empresa, colaborador e validações no mockup. Quando a API exigir autenticação técnica, o servidor obtém o token automaticamente antes da requisição. Guarde automaticamente o ID da BdW, companyId ou walletId retornado pela API."],
-    ["2", "Abrir e validar a BdW", "Continue na ordem lateral até a carteira empresarial estar aberta. Esses dados serão usados pela Personal dWallet quando ela precisar solicitar informações à BdW."],
-    ["3", "Produtos, schemas e solicitações", "Execute uma tela por vez, salvando IDs de produto, schema, solicitação ou consentimento em Credenciais para chamadas relacionadas."],
-    ["4", "Operações financeiras", "Teste saldo, extrato, Pix, cobranças e pagamentos no fim da jornada. O mockup deve mostrar resumo ou comprovante montado com os dados retornados."],
+    ["1", "Preparar credenciais do 1Password", "Antes de usar o telefone, abra a aba Credenciais e confirme API URL/Base URL, API ID / x-api-key, Client ID e Client Secret. Esse conjunto alimenta a autenticação técnica automática e evita chamadas com ambiente misturado."],
+    ["2", "Criar Business dWallet", "Cadastre empresa, colaborador e validações no mockup. Quando a API exigir autenticação técnica, o servidor obtém o token automaticamente antes da requisição. Guarde automaticamente o ID da BdW, companyId ou walletId retornado pela API."],
+    ["3", "Abrir e validar a BdW", "Continue na ordem lateral até a carteira empresarial estar aberta. Esses dados serão usados pela Personal dWallet quando ela precisar solicitar informações à BdW."],
+    ["4", "Produtos, schemas e solicitações", "Execute uma tela por vez, salvando IDs de produto, schema, solicitação ou consentimento em Credenciais para chamadas relacionadas."],
+    ["5", "Operações financeiras", "Teste saldo, extrato, Pix, cobranças e pagamentos no fim da jornada. O mockup deve mostrar resumo ou comprovante montado com os dados retornados."],
   ];
   const checklistItems = [
     ...screens.map(screen => ({
@@ -1355,7 +1388,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Antes de começar</AlertTitle>
-          <AlertDescription>Use a navegação lateral de cima para baixo. Não pule etapas que ainda não foram executadas, porque algumas telas dependem de IDs ou confirmações gerados pela etapa anterior. Se aparecer erro, corrija o campo destacado no telefone e tente novamente.</AlertDescription>
+          <AlertDescription>Primeiro confirme na aba Credenciais se os quatro valores recebidos via 1Password foram colados como conjunto completo. Depois use a navegação lateral de cima para baixo. As próximas etapas ficam sinalizadas como dependentes quando ainda faltam IDs, confirmações ou respostas OK anteriores. Se aparecer erro, corrija o campo destacado no telefone e tente novamente.</AlertDescription>
         </Alert>
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
           <div className="hidden bg-[#1351B4] px-4 py-3 text-sm font-bold text-white md:grid md:grid-cols-[72px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4">
@@ -1387,8 +1420,11 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
             {checklistItems.map((item, index) => {
               const checked = item.status === "done" || Boolean(reviewedSteps[item.id]);
               const running = item.status === "running";
+              const previousPending = checklistItems.slice(0, index).some(previous => previous.status !== "done" && !reviewedSteps[previous.id]);
               return (
-                <div key={item.id} className="grid gap-3 rounded-2xl border border-slate-200 bg-white p-4 md:grid-cols-[auto_1fr_auto] md:items-center">
+                <div key={item.id} className={
+                  "grid gap-3 rounded-2xl border p-4 md:grid-cols-[auto_1fr_auto] md:items-center " + (previousPending ? "border-amber-200 bg-amber-50" : "border-slate-200 bg-white")
+                }>
                   <div className="flex items-center gap-3">
                     <Checkbox id={`guide-check-${walletKind}-${item.id}`} checked={checked} onCheckedChange={value => onToggleReviewed?.(item.id, value === true)} aria-label={`Marcar etapa ${index + 1} como revisada`} />
                     <span className="grid h-8 w-8 place-items-center rounded-full bg-[#E7F0FF] font-mono text-sm font-bold text-[#1351B4]">{index + 1}</span>
@@ -1398,10 +1434,11 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
                       <p className="font-semibold text-slate-950">{item.title}</p>
                       <Badge variant="outline" className={statusClasses[item.status]}>{running ? <Loader2 className="mr-1 h-3 w-3 animate-spin" /> : item.status === "done" ? <CheckCircle2 className="mr-1 h-3 w-3" /> : null}{statusLabel[item.status]}</Badge>
                       {reviewedSteps[item.id] && item.status !== "done" ? <Badge variant="outline" className="border-[#FFCD07] bg-[#FFF7CC] text-[#071D41]">revisada manualmente</Badge> : null}
+                      {previousPending ? <Badge variant="outline" className="border-amber-300 bg-white text-amber-900">aguardando pré-requisito</Badge> : null}
                     </div>
                     <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
                   </div>
-                  <Button type="button" variant="outline" onClick={() => onOpenStep?.(item.id)} className="justify-center">Abrir etapa</Button>
+                  <Button type="button" variant="outline" disabled={previousPending} onClick={() => onOpenStep?.(item.id)} className="justify-center bg-white">{previousPending ? "Concluir anteriores" : "Abrir etapa"}</Button>
                 </div>
               );
             })}
@@ -1440,8 +1477,44 @@ export function buildDataprevCredentialsInput(credentials: DataprevCredentialFor
   return Object.values(trimmed).some(Boolean) ? trimmed : undefined;
 }
 
+export function getDataprevCredentialChecklist(credentials: DataprevCredentialForm) {
+  return [
+    {
+      key: "baseUrl" as const,
+      label: "API URL",
+      onePasswordName: "Base URL ou API URL",
+      hint: "Cole o endereço base do ambiente de homologação informado no item do 1Password.",
+      filled: Boolean(credentials.baseUrl.trim()),
+    },
+    {
+      key: "apiKey" as const,
+      label: "API ID / x-api-key",
+      onePasswordName: "x-api-key",
+      hint: "Cole a chave de API exatamente como recebida, sem espaços extras.",
+      filled: Boolean(credentials.apiKey.trim()),
+    },
+    {
+      key: "clientId" as const,
+      label: "Client ID",
+      onePasswordName: "Client ID",
+      hint: "Identifica o cliente técnico usado na autenticação M2M automática.",
+      filled: Boolean(credentials.clientId.trim()),
+    },
+    {
+      key: "clientSecret" as const,
+      label: "Secret ID / Client secret",
+      onePasswordName: "Client Secret",
+      hint: "Segredo usado apenas no backend para obter o token técnico; nunca aparece nas evidências.",
+      filled: Boolean(credentials.clientSecret.trim()),
+    },
+  ];
+}
+
 export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigured, credentials, onChange, onClear }: { baseUrl?: string; configured?: boolean; btgBaseUrl?: string; btgConfigured?: boolean; credentials: DataprevCredentialForm; onChange: (key: keyof DataprevCredentialForm, value: string) => void; onClear: () => void }) {
   const usingTypedCredentials = Boolean(buildDataprevCredentialsInput(credentials));
+  const credentialChecklist = getDataprevCredentialChecklist(credentials);
+  const filledCredentials = credentialChecklist.filter(item => item.filled).length;
+  const allTypedCredentialsReady = filledCredentials === credentialChecklist.length;
   const secretRows = [
     { key: "DATAPREV_BASE_URL", purpose: "Base da sandbox/API DrumWave-Dataprev usada pelo servidor." },
     { key: "DATAPREV_API_KEY", purpose: "Chave x-api-key enviada em todas as chamadas server-side." },
@@ -1459,23 +1532,49 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
         <CardDescription>Informe credenciais Dataprev temporárias para testar chamadas reais sem alterar os Secrets do projeto. Os valores ficam apenas no estado desta tela e são enviados ao backend somente durante a execução da API.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-5">
-        <Alert className={usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
+        <Alert className={allTypedCredentialsReady ? "border-green-200 bg-green-50 text-green-950" : usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>{usingTypedCredentials ? "Credenciais temporárias serão usadas nas APIs Dataprev" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes no servidor"}</AlertTitle>
-          <AlertDescription>{usingTypedCredentials ? "Ao executar chamadas reais, a aplicação priorizará os valores digitados abaixo. Preencha API URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo do Postman. A aplicação não mistura parcialmente credenciais secretas digitadas com Secrets publicados." : configured ? "A aplicação reconhece variáveis Dataprev no runtime server-side. Para homologar pela interface com dados do Postman, preencha temporariamente API URL, API ID / x-api-key, Client ID e Secret ID / Client secret como conjunto completo." : "Configure as variáveis DATAPREV_* no painel seguro de Secrets ou preencha API URL, API ID / x-api-key, Client ID e Secret ID / Client secret abaixo antes de executar chamadas reais."}</AlertDescription>
+          <AlertTitle>{allTypedCredentialsReady ? "Credenciais do 1Password prontas para homologação" : usingTypedCredentials ? "Complete o conjunto de credenciais do 1Password" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes para chamadas reais"}</AlertTitle>
+          <AlertDescription>{allTypedCredentialsReady ? "As quatro credenciais temporárias estão preenchidas. Ao executar uma API Dataprev, o backend usa esse conjunto, obtém o token técnico automaticamente quando necessário e mantém os segredos fora dos painéis de evidência." : usingTypedCredentials ? "Há campos preenchidos, mas o conjunto só fica seguro e executável quando API URL, API ID / x-api-key, Client ID e Secret ID / Client secret estiverem completos. A aplicação não mistura parcialmente credenciais digitadas com Secrets publicados." : configured ? "A aplicação reconhece variáveis Dataprev no runtime server-side. Para homologar exatamente com o item recebido via 1Password, preencha temporariamente os quatro campos abaixo como conjunto completo." : "Abra o item compartilhado no 1Password e cole API URL/Base URL, x-api-key, Client ID e Client Secret antes de executar chamadas reais."}</AlertDescription>
         </Alert>
+
+        <div className="rounded-3xl border border-[#1351B4]/20 bg-[linear-gradient(135deg,#F7FAFF,#EEF5FF)] p-5" aria-label="Checklist 1Password de credenciais Dataprev">
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Checklist do item recebido via 1Password</p>
+              <p className="mt-1 text-sm leading-6 text-slate-600">Cole os quatro valores do mesmo item compartilhado. O progresso abaixo evita tentar uma API com credencial parcial ou de ambientes diferentes.</p>
+            </div>
+            <Badge className={allTypedCredentialsReady ? "bg-[#168821] text-white" : "bg-[#FFCD07] text-[#071D41]"}>{filledCredentials} de {credentialChecklist.length} preenchidas</Badge>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {credentialChecklist.map(item => (
+              <div key={item.key} className={
+                "rounded-2xl border p-4 text-sm shadow-sm " + (item.filled ? "border-green-200 bg-white text-green-950" : "border-amber-200 bg-white text-amber-950")
+              }>
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="font-bold text-slate-950">{item.label}</p>
+                    <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-slate-500">No 1Password: {item.onePasswordName}</p>
+                  </div>
+                  {item.filled ? <Badge className="bg-[#168821] text-white">preenchido</Badge> : <Badge variant="outline" className="border-amber-300 bg-amber-50 text-amber-900">pendente</Badge>}
+                </div>
+                <p className="mt-2 text-xs leading-5 text-slate-600">{item.hint}</p>
+              </div>
+            ))}
+          </div>
+        </div>
 
         <div className="rounded-3xl border border-slate-200 bg-[#F8F8F8] p-5">
           <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
             <div>
               <p className="text-sm font-bold uppercase tracking-wide text-[#1351B4]">Credenciais temporárias Dataprev</p>
-              <p className="text-sm leading-6 text-slate-600">Para usar credenciais temporárias, preencha obrigatoriamente API URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo. Evite salvar capturas contendo segredos.</p>
+              <p className="text-sm leading-6 text-slate-600">Para usar credenciais temporárias, preencha obrigatoriamente API URL/Base URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo recebido no 1Password. Evite salvar capturas contendo segredos.</p>
             </div>
             <Button type="button" variant="outline" onClick={onClear}><Trash2 className="mr-2 h-4 w-4" />Limpar Dataprev</Button>
           </div>
           <div className="mt-5 grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
-              <Label htmlFor="dataprev-base-url">API URL</Label>
+              <Label htmlFor="dataprev-base-url">API URL <span className="font-normal text-slate-500">(Base URL no 1Password)</span></Label>
               <Input id="dataprev-base-url" type="url" value={credentials.baseUrl} onChange={event => onChange("baseUrl", event.target.value)} placeholder={baseUrl || "https://api.sandbox.drumwave.com.br"} autoComplete="off" />
             </div>
             <div className="space-y-2">
@@ -1487,7 +1586,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <Input id="dataprev-client-id" value={credentials.clientId} onChange={event => onChange("clientId", event.target.value)} placeholder="Cole o client_id" autoComplete="off" />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="dataprev-client-secret">Secret ID / Client secret</Label>
+              <Label htmlFor="dataprev-client-secret">Secret ID / Client secret <span className="font-normal text-slate-500">(Client Secret)</span></Label>
               <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o Secret ID / client_secret" autoComplete="off" />
             </div>
           </div>
@@ -1811,10 +1910,12 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                     const selected = screen.id === active.id;
                     const evidence = screen.actionId ? evidences[screen.actionId] : undefined;
                     const visualStatus = getVisualStatus(screen, evidence, runningId);
+                    const screenOrderIndex = screens.findIndex(item => item.id === screen.id);
+                    const blockedByPrevious = screenOrderIndex > 0 && screens.slice(0, screenOrderIndex).some(previous => previous.actionId && !evidences[previous.actionId]?.ok && !reviewedGuideSteps[previous.id]);
                     return (
-                      <button key={screen.id} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition ${selected ? "bg-[#1351B4] text-white" : "text-slate-700 hover:bg-slate-100"}`}>
+                      <button key={screen.id} disabled={blockedByPrevious} title={blockedByPrevious ? "Conclua ou revise manualmente as etapas anteriores no Guia de teste" : undefined} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between gap-2 rounded-xl px-3 py-2 text-left text-sm transition disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "bg-[#1351B4] text-white" : blockedByPrevious ? "bg-amber-50 text-amber-900" : "text-slate-700 hover:bg-slate-100"}`}>
                         <span className="flex min-w-0 items-center gap-2"><Icon className="h-4 w-4 shrink-0" /><span className="truncate">{screen.title}</span></span>
-                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase opacity-80">{statusLabel[visualStatus]}{evidence?.ok ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : screen.actionId ? <Play className="h-3 w-3 opacity-70" /> : <LockKeyhole className="h-3 w-3 opacity-60" />}</span>
+                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase opacity-80">{blockedByPrevious ? "pré-req." : statusLabel[visualStatus]}{evidence?.ok ? <CheckCircle2 className="h-4 w-4 text-green-300" /> : blockedByPrevious ? <LockKeyhole className="h-3 w-3 opacity-70" /> : screen.actionId ? <Play className="h-3 w-3 opacity-70" /> : <LockKeyhole className="h-3 w-3 opacity-60" />}</span>
                       </button>
                     );
                   })}
