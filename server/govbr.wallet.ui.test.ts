@@ -617,6 +617,38 @@ describe("GovBR Wallet API response panels", () => {
     expect(html).toContain("guide-check-personal-step-3");
   });
 
+  it("keeps later executable steps open when previous canonical steps are only pending", () => {
+    const signupScreen = personalScreens.find(screen => screen.actionId === "step2_person_signup");
+    const schemaScreen = businessScreens.find(screen => screen.actionId === "step3_list_schemas");
+    expect(signupScreen).toBeDefined();
+    expect(schemaScreen).toBeDefined();
+
+    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, {
+      walletKind: "personal",
+      screens: [signupScreen!, schemaScreen!],
+      evidences: {
+        step2_person_signup: {
+          actionId: "step2_person_signup",
+          actionTitle: "Criar Personal dWallet",
+          status: "failed",
+          ok: false,
+          message: "Cadastro já existente, mas login posterior pode fornecer as variáveis necessárias.",
+          executedAt: "2026-05-05T20:00:00.000Z",
+        },
+      },
+      onOpenStep: () => undefined,
+    }));
+
+    expect(html).toContain("Há passos anteriores pendentes, mas este passo pode ser aberto se suas variáveis obrigatórias estiverem preenchidas.");
+    expect(html).toContain("Abrir passo");
+    expect(html).not.toContain("Concluir anteriores");
+    const step3Start = html.indexOf("Passo 3: Consultar Standard Value Schemas");
+    const step4Start = html.indexOf("Passo 4:", step3Start);
+    const step3Markup = html.slice(step3Start, step4Start);
+    expect(step3Markup).toContain("Abrir passo");
+    expect(step3Markup).not.toContain("disabled=\"\"");
+  });
+
   it("renders editable variables directly inside the emulated Dataprev app screen", () => {
     const html = renderToStaticMarkup(React.createElement(DirectScreenVariablesPanel, {
       variables: [

@@ -344,3 +344,6 @@
 - [x] Revisar os rótulos do guia/tracker de testes para que passos com API executável não sejam exibidos como “API parcial”.
 - [x] Atualizar testes automatizados para cobrir funcionamento do Passo 0 M2M após limpeza de dados e classificação correta dos rótulos de API.
 - [x] Executar validações técnicas, revisar checklist e salvar checkpoint da correção de regressão M2M e rótulos de API.
+- [x] Corrigir bloqueio indevido dos passos seguintes após criar e entrar na BdW/PdW quando todas as variáveis necessárias estão presentes.
+- [x] Atualizar testes automatizados para cobrir criação/entrada na wallet e desbloqueio das APIs subsequentes.
+

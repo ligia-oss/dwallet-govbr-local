@@ -1860,7 +1860,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
         <Alert className="border-blue-200 bg-blue-50 text-blue-950">
           <ShieldCheck className="h-4 w-4" />
           <AlertTitle>Antes de começar</AlertTitle>
-          <AlertDescription>Primeiro confirme na aba Variáveis se os quatro valores recebidos via 1Password foram colados como conjunto completo. Depois use a navegação lateral por passos canônicos. As próximas etapas ficam sinalizadas quando ainda faltam IDs, confirmações ou respostas OK anteriores.</AlertDescription>
+          <AlertDescription>Primeiro confirme na aba Variáveis se os quatro valores recebidos via 1Password foram colados como conjunto completo. Depois use a navegação lateral por passos canônicos. As próximas etapas podem ser abertas mesmo quando passos anteriores não tiveram evidência OK, desde que os campos obrigatórios da API atual estejam preenchidos; pendências anteriores ficam apenas sinalizadas como atenção.</AlertDescription>
         </Alert>
         <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white">
           <div className="hidden bg-[#1351B4] px-4 py-3 text-sm font-bold text-white md:grid md:grid-cols-[90px_minmax(180px,1fr)_minmax(260px,1.6fr)] md:gap-4">
@@ -1925,7 +1925,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
                     </div>
                     <p className="mt-1 text-sm leading-6 text-slate-600">{item.description}</p>
                   </div>
-                  <Button type="button" variant="outline" disabled={!item.hasExecutableScreen || previousPending} onClick={() => item.screenToOpen ? onOpenStep?.(item.screenToOpen) : undefined} className="justify-center bg-white">{!item.hasExecutableScreen ? "Sem tela/API" : previousPending ? "Concluir anteriores" : "Abrir passo"}</Button>
+                  <Button type="button" variant="outline" disabled={!item.hasExecutableScreen} title={previousPending && item.hasExecutableScreen ? "Há passos anteriores pendentes, mas este passo pode ser aberto se suas variáveis obrigatórias estiverem preenchidas." : undefined} onClick={() => item.screenToOpen ? onOpenStep?.(item.screenToOpen) : undefined} className="justify-center bg-white">{!item.hasExecutableScreen ? "Sem tela/API" : "Abrir passo"}</Button>
                 </div>
               );
             })}
@@ -2622,11 +2622,11 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
                                     const Icon = screen.icon;
                                     const selected = screen.id === active.id;
                                     const screenOrderIndex = screens.findIndex(item => item.id === screen.id);
-                                    const blockedByPrevious = screenOrderIndex > 0 && screens.slice(0, screenOrderIndex).some(previous => previous.actionId && !evidences[previous.actionId]?.ok && !reviewedGuideSteps[previous.id]);
+                                    const previousPending = screenOrderIndex > 0 && screens.slice(0, screenOrderIndex).some(previous => previous.actionId && !evidences[previous.actionId]?.ok && !reviewedGuideSteps[previous.id]);
                                     return (
-                                      <button key={screen.id} disabled={blockedByPrevious} title={blockedByPrevious ? "Conclua ou revise manualmente as etapas anteriores no Guia de teste" : undefined} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-xs transition disabled:cursor-not-allowed disabled:opacity-55 ${selected ? "bg-[#1351B4] text-white" : blockedByPrevious ? "bg-amber-50 text-amber-900" : "bg-white text-slate-700 hover:bg-slate-100"}`}>
+                                      <button key={screen.id} title={previousPending ? "Há passos anteriores pendentes, mas a API pode ser aberta se suas variáveis obrigatórias estiverem preenchidas." : undefined} onClick={() => setActiveId(screen.id)} className={`flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-xs transition ${selected ? "bg-[#1351B4] text-white" : previousPending ? "bg-amber-50 text-amber-900 hover:bg-amber-100" : "bg-white text-slate-700 hover:bg-slate-100"}`}>
                                         <span className="flex min-w-0 items-start gap-2"><Icon className="mt-0.5 h-3.5 w-3.5 shrink-0" /><span className="whitespace-normal break-words leading-4">{screen.title}</span></span>
-                                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase opacity-80">{blockedByPrevious ? "pré-req." : entryEvidence?.ok ? "OK" : "abrir"}{entryEvidence?.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-green-300" /> : blockedByPrevious ? <LockKeyhole className="h-3 w-3 opacity-70" /> : <Play className="h-3 w-3 opacity-70" />}</span>
+                                        <span className="flex shrink-0 items-center gap-1 text-[10px] font-semibold uppercase opacity-80">{entryEvidence?.ok ? "OK" : "abrir"}{entryEvidence?.ok ? <CheckCircle2 className="h-3.5 w-3.5 text-green-300" /> : <Play className="h-3 w-3 opacity-70" />}</span>
                                       </button>
                                     );
                                   })}
