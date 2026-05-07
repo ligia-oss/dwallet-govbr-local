@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, canonicalJourneySteps, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getLegacyWalletRunStorageKey, getMissingM2MCredentialLabels, getVisualStatus, getWalletRunStorageKey, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, mergePersistedWalletRuns, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, canonicalJourneySteps, clearCredentialResultState, clearTestDataState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getLegacyWalletRunStorageKey, getMissingM2MCredentialLabels, getVisualStatus, getWalletRunStorageKey, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, mergePersistedWalletRuns, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 import { clearPersistedDataprevCredentials, clearPersistedM2MTokenStatus, DATAPREV_CREDENTIALS_STORAGE_KEY, DATAPREV_M2M_TOKEN_STORAGE_KEY, isM2MAuthResultActive, normalizeDataprevCredentials, persistDataprevCredentials, persistM2MTokenStatus, readPersistedDataprevCredentials, readPersistedM2MTokenStatus } from "../client/src/lib/dataprevCredentials";
 
 describe("GovBR Wallet API response panels", () => {
@@ -120,6 +120,7 @@ describe("GovBR Wallet API response panels", () => {
     }));
 
     expect(variablesHtml).toContain("Variáveis de entrada editáveis");
+    expect(variablesHtml).toContain("Limpar dados do teste");
     expect(variablesHtml).toContain("teste@example.com");
     expect(variablesHtml).toContain("redigido");
     expect(credentialsHtml).toContain("Variáveis e chaves");
@@ -459,6 +460,38 @@ describe("GovBR Wallet API response panels", () => {
     );
 
     expect(cleaned).toEqual({ personEmail: "manual@example.com", btgCompanyId: "btg_manual" });
+  });
+
+  it("cleans input data, API response fields and tracker state when the explicit test cleanup is requested", () => {
+    const cleaned = clearTestDataState(
+      {
+        personEmail: "teste@example.com",
+        personPassword: "Senha123!",
+        personId: "person_123",
+        businessId: "biz_123",
+        m2mTokenHandle: "m2m_abc",
+        m2mActive: true,
+        unrelatedManualNote: "preservar",
+      },
+      [
+        { key: "personEmail", label: "E-mail", section: "Pessoa física", placeholder: "cidadao@example.com", description: "Entrada editável" },
+        { key: "personPassword", label: "Senha", section: "Pessoa física", placeholder: "Senha", description: "Entrada editável", sensitive: true },
+      ],
+      [{ key: "businessId", value: "biz_123", source: "Criar Business dWallet", savedAt: "2026-05-05T00:00:00.000Z", purpose: "Resposta Business" }],
+      {
+        step2_person_signup: {
+          actionId: "step2_person_signup",
+          actionTitle: "Criar Personal dWallet",
+          status: "executed",
+          ok: true,
+          stateUpdates: { personId: "person_123" },
+          responsePreview: "{\"personId\":\"person_123\"}",
+          executedAt: "2026-05-05T00:00:00.000Z",
+        },
+      }
+    );
+
+    expect(cleaned).toEqual({ unrelatedManualNote: "preservar" });
   });
 
   it("persists test statuses and API responses in one shared wallet run across Personal and Business screens", () => {

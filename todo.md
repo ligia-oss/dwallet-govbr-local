@@ -335,3 +335,7 @@
 - [x] Persistir status e respostas dos testes ao trocar de tela, removendo-os somente quando o botão de limpar testes for acionado.
 - [x] Atualizar testes automatizados para cobrir persistência de resultados entre telas e limpeza explícita.
 - [x] Executar validações técnicas, revisar checklist e salvar checkpoint da correção de persistência entre telas.
+
+- [x] Ajustar o botão “limpar dados do teste” para resetar respostas sanitizadas das APIs, evidências e tracker/status dos testes compartilhados entre Personal e Business.
+- [x] Atualizar testes automatizados para cobrir limpeza explícita completa dos dados de resposta e do tracker.
+- [x] Executar validações técnicas, revisar checklist e salvar checkpoint da correção de limpeza dos testes.

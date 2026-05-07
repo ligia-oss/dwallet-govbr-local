@@ -1634,7 +1634,7 @@ export function TestVariablesPanel({ variables, values, onChange, onReset }: { v
             <CardTitle className="flex items-center gap-2 text-xl"><Settings className="h-5 w-5 text-[#1351B4]" />Variáveis de entrada editáveis</CardTitle>
             <CardDescription>Altere nomes, e-mails, telefones, endereços, senhas de teste e identificadores antes de executar as chamadas. Esses valores alimentam o mesmo estado enviado para a API da tela ativa.</CardDescription>
           </div>
-          <Button type="button" variant="outline" onClick={onReset}>Restaurar padrões desta sessão</Button>
+          <Button type="button" variant="outline" onClick={onReset}>Limpar dados do teste</Button>
         </div>
       </CardHeader>
       <CardContent className="space-y-5">
@@ -2270,8 +2270,8 @@ function clearPersistedWalletRun(kind: WalletKind) {
   window.localStorage.removeItem(getLegacyWalletRunStorageKey("business"));
 }
 
-export function clearCredentialResultState(previous: RunState, credentialItems: CredentialFolderItem[] = [], evidenceMap: Record<string, Evidence> = {}): RunState {
-  const resultKeys = new Set<string>(["m2mTokenHandle", "m2mExpiresAt", "m2mActive"]);
+export function clearCredentialResultState(previous: RunState, credentialItems: CredentialFolderItem[] = [], evidenceMap: Record<string, Evidence> = {}, extraKeys: string[] = []): RunState {
+  const resultKeys = new Set<string>(["m2mTokenHandle", "m2mExpiresAt", "m2mActive", ...extraKeys]);
   credentialItems.forEach(item => resultKeys.add(item.key));
   Object.values(evidenceMap).forEach(evidence => {
     Object.keys(evidence.stateUpdates || {}).forEach(key => resultKeys.add(key));
@@ -2282,6 +2282,10 @@ export function clearCredentialResultState(previous: RunState, credentialItems: 
   const next = { ...previous };
   resultKeys.forEach(key => delete next[key]);
   return next;
+}
+
+export function clearTestDataState(previous: RunState, variables: TestVariable[], credentialItems: CredentialFolderItem[] = [], evidenceMap: Record<string, Evidence> = {}): RunState {
+  return clearCredentialResultState(previous, credentialItems, evidenceMap, variables.map(item => item.key));
 }
 
 export function buildExecuteActionInput(actionId: string, mergedState: RunState, credentials?: DataprevCredentialForm) {
@@ -2363,12 +2367,13 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   };
 
   const resetTestVariables = () => {
-    const keys = new Set(testVariables.map(item => item.key));
-    setState(previous => {
-      const next = { ...previous };
-      keys.forEach(key => delete next[key]);
-      return next;
-    });
+    setState(previous => clearTestDataState(previous, testVariables, credentialFolder, evidences));
+    setEvidences({});
+    setM2mResult(undefined);
+    clearPersistedM2MTokenStatus();
+    setCredentialFolder([]);
+    clearPersistedWalletRun(kind);
+    setRunningId(undefined);
     setErrors({});
   };
 
