@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, canonicalJourneySteps, clearCredentialResultState, clearTestDataState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getLegacyWalletRunStorageKey, getMissingM2MCredentialLabels, getVisualStatus, getWalletRunStorageKey, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, mergePersistedWalletRuns, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, canonicalJourneySteps, clearCredentialResultState, clearTestDataState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getDisplayApiAvailability, getLegacyWalletRunStorageKey, getMissingM2MCredentialLabels, getVisualStatus, getWalletRunStorageKey, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, mergePersistedWalletRuns, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 import { clearPersistedDataprevCredentials, clearPersistedM2MTokenStatus, DATAPREV_CREDENTIALS_STORAGE_KEY, DATAPREV_M2M_TOKEN_STORAGE_KEY, isM2MAuthResultActive, normalizeDataprevCredentials, persistDataprevCredentials, persistM2MTokenStatus, readPersistedDataprevCredentials, readPersistedM2MTokenStatus } from "../client/src/lib/dataprevCredentials";
 
 describe("GovBR Wallet API response panels", () => {
@@ -213,13 +213,14 @@ describe("GovBR Wallet API response panels", () => {
   });
 
   it("identifica credenciais obrigatórias faltantes antes de executar qualquer API", () => {
-    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" })).toEqual([
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" })).toEqual([]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }, true)).toEqual([]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }, false)).toEqual([
       "API URL",
       "API ID / x-api-key",
       "Client ID",
       "Secret ID / Client secret",
     ]);
-    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }, true)).toEqual([]);
 
     expect(getMissingM2MCredentialLabels({ baseUrl: "https://endpoint/token", apiKey: "api-id", clientId: "", clientSecret: "secret-id" })).toEqual(["Client ID"]);
     expect(getMissingM2MCredentialLabels({ baseUrl: "https://endpoint/token", apiKey: "api-id", clientId: "", clientSecret: "secret-id" }, true)).toEqual(["Client ID"]);
@@ -281,6 +282,13 @@ describe("GovBR Wallet API response panels", () => {
     persistM2MTokenStatus(token, storage, issuedAt);
     clearPersistedM2MTokenStatus(storage);
     expect(memory.has(DATAPREV_M2M_TOKEN_STORAGE_KEY)).toBe(false);
+  });
+
+  it("permite gerar o Passo 0 M2M com Secrets do servidor quando não há credenciais temporárias digitadas", () => {
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" })).toEqual([]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }, true)).toEqual([]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }, false)).toEqual(["API URL", "API ID / x-api-key", "Client ID", "Secret ID / Client secret"]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "https://api.example.local", apiKey: "", clientId: "", clientSecret: "" })).toEqual(["API ID / x-api-key", "Client ID", "Secret ID / Client secret"]);
   });
 
   it("documenta no componente que o Passo 0 M2M é gerado manualmente antes das APIs Dataprev", () => {
@@ -385,6 +393,20 @@ describe("GovBR Wallet API response panels", () => {
     expect(canonicalJourneySteps).toHaveLength(17);
     expect(canonicalJourneySteps.map(step => step.id)).toEqual(Array.from({ length: 17 }, (_, index) => index + 1));
     expect(personalScreens.some(screen => screen.actionId === "step2_person_signin")).toBe(true);
+  });
+
+  it("mostra API disponível no guia quando uma entrada parcial possui tela de execução", () => {
+    const executablePartialEntry = canonicalJourneySteps.find(step => step.id === 14)?.entries.find(entry => entry.actionId === "btg_get_balance");
+    const gapEntry = canonicalJourneySteps.find(step => step.id === 16)?.entries.find(entry => entry.actionId === "btg_register_pix_key_gap");
+
+    expect(executablePartialEntry).toBeDefined();
+    expect(getDisplayApiAvailability(executablePartialEntry!, businessScreens)).toBe("available");
+    expect(gapEntry).toBeDefined();
+    expect(getDisplayApiAvailability(gapEntry!, businessScreens)).toBe("gap");
+
+    const html = renderToStaticMarkup(React.createElement(BeginnerTestGuide, { walletKind: "business", screens: businessScreens }));
+    expect(html).toContain("BTG consultar saldo");
+    expect(html).toContain("API disponível");
   });
 
   it("classifica as telas executáveis com subnumeração passo.letra no mockup", () => {

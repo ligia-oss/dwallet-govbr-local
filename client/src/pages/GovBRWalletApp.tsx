@@ -238,6 +238,12 @@ const availabilityClasses: Record<ApiAvailability, string> = {
   "screen-only": "border-slate-200 bg-slate-50 text-slate-700",
 };
 
+export function getDisplayApiAvailability(entry: CanonicalApiEntry, screens: GovScreen[] = []): ApiAvailability {
+  const hasExecutableScreen = getEntryScreens(entry, screens).length > 0;
+  if (hasExecutableScreen && entry.availability === "partial") return "available";
+  return entry.availability;
+}
+
 export const canonicalJourneySteps: CanonicalJourneyStep[] = [
   { id: 1, app: "Business", title: "Empresa cria conta", objective: "Empresa cria sua conta na plataforma DrumWave, incluindo responsável e entidade empresarial.", availability: "partial", entries: [
     { classification: "1.a", actionId: "step1_employee_signup", label: "Criar conta de colaborador Business", availability: "partial", note: "Cadastro inicial do responsável empresarial." },
@@ -1872,7 +1878,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
                       const entryScreens = getEntryScreens(entry, screens);
                       return (
                         <span key={entry.classification} className="block rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                          <span className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="border-blue-200 bg-white font-mono text-blue-900">{entry.classification}</Badge><span className="font-semibold text-slate-800">{entry.label}</span><Badge variant="outline" className={availabilityClasses[entry.availability]}>{entryScreens.length ? "tela no menu" : availabilityLabel[entry.availability]}</Badge></span>
+                          <span className="flex flex-wrap items-center gap-2"><Badge variant="outline" className="border-blue-200 bg-white font-mono text-blue-900">{entry.classification}</Badge><span className="font-semibold text-slate-800">{entry.label}</span><Badge variant="outline" className={availabilityClasses[getDisplayApiAvailability(entry, screens)]}>{entryScreens.length ? availabilityLabel[getDisplayApiAvailability(entry, screens)] : availabilityLabel[entry.availability]}</Badge></span>
                           <span className="mt-1 block text-xs leading-5 text-slate-500">{entry.note}{!entryScreens.length ? " Etapa sem API/tela executável nesta wallet no momento." : ""}</span>
                         </span>
                       );
@@ -1935,7 +1941,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
   );
 }
 
-export function getMissingM2MCredentialLabels(credentials: DataprevCredentialForm, serverCredentialsConfigured = false) {
+export function getMissingM2MCredentialLabels(credentials: DataprevCredentialForm, serverCredentialsConfigured?: boolean) {
   const requiredFields: Array<{ key: keyof DataprevCredentialForm; label: string }> = [
     { key: "baseUrl", label: "API URL" },
     { key: "apiKey", label: "API ID / x-api-key" },
@@ -1944,7 +1950,7 @@ export function getMissingM2MCredentialLabels(credentials: DataprevCredentialFor
   ];
   const typedCredentialPresent = requiredFields.some(field => Boolean(String(credentials[field.key] ?? "").trim()));
 
-  if (!typedCredentialPresent && serverCredentialsConfigured) return [];
+  if (!typedCredentialPresent && serverCredentialsConfigured !== false) return [];
 
   return requiredFields
     .filter(field => !String(credentials[field.key] ?? "").trim())

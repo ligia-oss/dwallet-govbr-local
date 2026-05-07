@@ -339,3 +339,8 @@
 - [x] Ajustar o botão “limpar dados do teste” para resetar respostas sanitizadas das APIs, evidências e tracker/status dos testes compartilhados entre Personal e Business.
 - [x] Atualizar testes automatizados para cobrir limpeza explícita completa dos dados de resposta e do tracker.
 - [x] Executar validações técnicas, revisar checklist e salvar checkpoint da correção de limpeza dos testes.
+
+- [x] Corrigir regressão que fez o Passo 0 M2M parar de funcionar após a alteração de limpeza dos testes.
+- [x] Revisar os rótulos do guia/tracker de testes para que passos com API executável não sejam exibidos como “API parcial”.
+- [x] Atualizar testes automatizados para cobrir funcionamento do Passo 0 M2M após limpeza de dados e classificação correta dos rótulos de API.
+- [x] Executar validações técnicas, revisar checklist e salvar checkpoint da correção de regressão M2M e rótulos de API.
