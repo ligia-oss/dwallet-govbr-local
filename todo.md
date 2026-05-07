@@ -323,3 +323,10 @@
 - [x] Sinalizar explicitamente no menu de navegação quais etapas dos 17 passos ainda não possuem APIs implementadas.
 - [x] Atualizar testes automatizados para impedir regressão no respeito aos 17 passos canônicos, subletras e sinalização de APIs ausentes.
 - [x] Executar validações técnicas e visuais, revisar checklist e salvar checkpoint da correção do mapeamento de 17 passos.
+
+- [x] Investigar o erro no Passo 0 de geração do token M2M e identificar a causa na integração backend/frontend.
+- [x] Corrigir a API de geração de token M2M para retornar token utilizável nos próximos passos da jornada.
+- [x] Atualizar testes automatizados para cobrir sucesso e falha controlada da geração de token M2M.
+- [x] Executar validações técnicas e visuais do Passo 0, revisar checklist e salvar checkpoint da correção M2M.
+
+- [x] Corrigir regressão do Passo 0 M2M para permitir geração do token com Secrets do servidor quando não houver credenciais temporárias digitadas, mantendo bloqueio apenas para conjunto temporário parcial.

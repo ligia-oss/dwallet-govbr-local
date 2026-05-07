@@ -130,7 +130,8 @@ describe("GovBR Wallet API response panels", () => {
     expect(credentialsHtml.indexOf("Credenciais temporárias Dataprev")).toBeLessThan(credentialsHtml.indexOf("Checklist do item recebido via 1Password"));
     expect(credentialsHtml).toContain("0 de 4 preenchidas");
     expect(credentialsHtml).toContain("No 1Password: Base URL ou API URL");
-    expect(credentialsHtml).toContain("Para homologar exatamente com o item recebido via 1Password");
+    expect(credentialsHtml).toContain("Secrets Dataprev já estiverem configurados no servidor");
+    expect(credentialsHtml).toContain("Credenciais detectadas no servidor");
     expect(credentialsHtml).toContain("Para usar credenciais temporárias");
     expect(credentialsHtml).toContain("API URL");
     expect(credentialsHtml).not.toContain("Base URL opcional");
@@ -217,13 +218,16 @@ describe("GovBR Wallet API response panels", () => {
       "Client ID",
       "Secret ID / Client secret",
     ]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" }, true)).toEqual([]);
 
     expect(getMissingM2MCredentialLabels({ baseUrl: "https://endpoint/token", apiKey: "api-id", clientId: "", clientSecret: "secret-id" })).toEqual(["Client ID"]);
+    expect(getMissingM2MCredentialLabels({ baseUrl: "https://endpoint/token", apiKey: "api-id", clientId: "", clientSecret: "secret-id" }, true)).toEqual(["Client ID"]);
     expect(getMissingM2MCredentialLabels({ baseUrl: "", apiKey: " api-id ", clientId: " client-id ", clientSecret: " secret-id " })).toEqual(["API URL"]);
     expect(getMissingM2MCredentialLabels({ baseUrl: " https://endpoint/token ", apiKey: " api-id ", clientId: " client-id ", clientSecret: " secret-id " })).toEqual([]);
 
     expect(buildRequiredApiCredentialsMessage(["API URL", "Client ID"])).toContain("Antes de executar qualquer API");
     expect(buildRequiredApiCredentialsMessage(["API URL", "Client ID"])).toContain("API URL, Client ID");
+    expect(buildRequiredApiCredentialsMessage(["API URL", "Client ID"])).toContain("limpe todos os campos Dataprev");
   });
 
   it("persiste e recarrega as quatro credenciais Dataprev ao alternar páginas na mesma aba", () => {

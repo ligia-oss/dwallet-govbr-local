@@ -1935,13 +1935,16 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
   );
 }
 
-export function getMissingM2MCredentialLabels(credentials: DataprevCredentialForm) {
+export function getMissingM2MCredentialLabels(credentials: DataprevCredentialForm, serverCredentialsConfigured = false) {
   const requiredFields: Array<{ key: keyof DataprevCredentialForm; label: string }> = [
     { key: "baseUrl", label: "API URL" },
     { key: "apiKey", label: "API ID / x-api-key" },
     { key: "clientId", label: "Client ID" },
     { key: "clientSecret", label: "Secret ID / Client secret" },
   ];
+  const typedCredentialPresent = requiredFields.some(field => Boolean(String(credentials[field.key] ?? "").trim()));
+
+  if (!typedCredentialPresent && serverCredentialsConfigured) return [];
 
   return requiredFields
     .filter(field => !String(credentials[field.key] ?? "").trim())
@@ -1949,7 +1952,7 @@ export function getMissingM2MCredentialLabels(credentials: DataprevCredentialFor
 }
 
 export function buildRequiredApiCredentialsMessage(missingCredentials: string[]) {
-  return `Antes de executar qualquer API, preencha na aba Variáveis as quatro credenciais obrigatórias de acesso: ${missingCredentials.join(", ")}. A chamada não foi realizada para evitar autenticação incompleta ou uso de ambiente incorreto.`;
+  return `Antes de executar qualquer API, preencha na aba Variáveis as quatro credenciais temporárias obrigatórias de acesso (${missingCredentials.join(", ")}) ou limpe todos os campos Dataprev para usar somente os Secrets já configurados no servidor. A chamada não foi realizada para evitar autenticação incompleta ou uso de ambiente incorreto.`;
 }
 
 export function buildDataprevCredentialsInput(credentials: DataprevCredentialForm) {
@@ -2001,6 +2004,8 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
   const credentialChecklist = getDataprevCredentialChecklist(credentials);
   const filledCredentials = credentialChecklist.filter(item => item.filled).length;
   const allTypedCredentialsReady = filledCredentials === credentialChecklist.length;
+  const temporaryCredentialsPartial = usingTypedCredentials && !allTypedCredentialsReady;
+  const canGenerateM2M = allTypedCredentialsReady || (Boolean(configured) && !usingTypedCredentials);
   const tokenStatus = m2mResult ?? cachedToken;
   const tokenActive = Boolean(tokenStatus?.active);
   const tokenExpiresAt = tokenStatus?.expiresAt ? new Date(tokenStatus.expiresAt).toLocaleString("pt-BR") : "não gerado";
@@ -2029,7 +2034,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <p className="text-sm leading-6 text-slate-600">Para usar credenciais temporárias, preencha obrigatoriamente API URL/Base URL, API ID / x-api-key, Client ID e Secret ID / Client secret como um conjunto completo recebido no 1Password. </p>
             </div>
             <div className="flex flex-col gap-2 sm:flex-row md:flex-col lg:flex-row" style={{ width: "194px", minHeight: "81px" }}>
-              <Button type="button" onClick={onGenerateM2M} disabled={isGeneratingM2M || !allTypedCredentialsReady} className="bg-[#1351B4] text-white hover:bg-[#0C326F]">
+              <Button type="button" onClick={onGenerateM2M} disabled={isGeneratingM2M || !canGenerateM2M} className="bg-[#1351B4] text-white hover:bg-[#0C326F]">
                 {isGeneratingM2M ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <KeyRound className="mr-2 h-4 w-4" />}
                 {isGeneratingM2M ? <span className="leading-tight">Gerando<br />token</span> : <span className="leading-tight">Gerar M2M<br />token</span>}
               </Button>
@@ -2054,7 +2059,7 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
               <Input id="dataprev-client-secret" type="password" value={credentials.clientSecret} onChange={event => onChange("clientSecret", event.target.value)} placeholder="Cole o Secret ID / client_secret" autoComplete="off" />
             </div>
           </div>
-          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> preencha <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo do Postman. Em seguida, clique em <strong>Gerar M2M token</strong>, que agora é a chamada número 2 da ordem recomendada. Sem token ativo, as APIs Dataprev que exigem autenticação ficam bloqueadas. Esses campos permanecem preenchidos ao alternar entre páginas na mesma aba.</p>
+          <p className="mt-4 rounded-2xl border border-blue-100 bg-white p-4 text-sm leading-6 text-blue-950"><strong>Como testar:</strong> se for usar o item do Postman/1Password, preencha <strong>API URL</strong>, <strong>API ID / x-api-key</strong>, <strong>Client ID</strong> e <strong>Secret ID / Client secret</strong> como conjunto completo. Se os Secrets Dataprev já estiverem configurados no servidor, deixe os quatro campos temporários vazios e clique em <strong>Gerar M2M token</strong>. Sem token ativo, as APIs Dataprev que exigem autenticação ficam bloqueadas. Esses campos permanecem preenchidos ao alternar entre páginas na mesma aba.</p>
           {m2mError ? <Alert className="mt-4 border-amber-200 bg-amber-50 text-amber-950"><ShieldAlert className="h-4 w-4" /><AlertTitle>Falha ao gerar M2M token</AlertTitle><AlertDescription>{m2mError}</AlertDescription></Alert> : null}
           <div className="mt-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-2xl border border-slate-200 bg-white p-4"><p className="text-xs font-bold uppercase tracking-wide text-slate-500">M2M token</p><p className={tokenActive ? "mt-1 font-semibold text-green-700" : "mt-1 font-semibold text-amber-700"}>{tokenActive ? "ativo" : tokenStatus ? "expirado ou inválido" : "não gerado"}</p></div>
@@ -2063,10 +2068,10 @@ export function CredentialsPanel({ baseUrl, configured, btgBaseUrl, btgConfigure
           </div>
         </div>
 
-        <Alert className={allTypedCredentialsReady ? "border-green-200 bg-green-50 text-green-950" : usingTypedCredentials ? "border-blue-200 bg-blue-50 text-blue-950" : configured ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
+        <Alert className={allTypedCredentialsReady || (configured && !usingTypedCredentials) ? "border-green-200 bg-green-50 text-green-950" : temporaryCredentialsPartial ? "border-blue-200 bg-blue-50 text-blue-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
           <ShieldAlert className="h-4 w-4" />
-          <AlertTitle>{allTypedCredentialsReady ? "Credenciais do 1Password prontas para homologação" : usingTypedCredentials ? "Complete o conjunto de credenciais do 1Password" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes para chamadas reais"}</AlertTitle>
-          <AlertDescription>{allTypedCredentialsReady ? "As quatro credenciais temporárias estão preenchidas. Agora gere o M2M token neste bloco antes de executar as APIs Dataprev protegidas. Os segredos continuam fora dos painéis de evidência." : usingTypedCredentials ? "Há campos preenchidos, mas o conjunto só fica seguro e executável quando API URL, API ID / x-api-key, Client ID e Secret ID / Client secret estiverem completos. A aplicação não mistura parcialmente credenciais digitadas com Secrets publicados." : configured ? "A aplicação reconhece variáveis Dataprev no runtime server-side. Para homologar exatamente com o item recebido via 1Password, preencha temporariamente os quatro campos abaixo como conjunto completo e gere o M2M token manualmente." : "Abra o item compartilhado no 1Password e cole API URL/Base URL, x-api-key, Client ID e Client Secret antes de gerar o M2M token e executar chamadas reais."}</AlertDescription>
+          <AlertTitle>{allTypedCredentialsReady ? "Credenciais do 1Password prontas para homologação" : temporaryCredentialsPartial ? "Complete o conjunto de credenciais do 1Password" : configured ? "Credenciais detectadas no servidor" : "Credenciais pendentes para chamadas reais"}</AlertTitle>
+          <AlertDescription>{allTypedCredentialsReady ? "As quatro credenciais temporárias estão preenchidas. Agora gere o M2M token neste bloco antes de executar as APIs Dataprev protegidas. Os segredos continuam fora dos painéis de evidência." : temporaryCredentialsPartial ? "Há campos preenchidos, mas o conjunto só fica seguro e executável quando API URL, API ID / x-api-key, Client ID e Secret ID / Client secret estiverem completos. A aplicação não mistura parcialmente credenciais digitadas com Secrets publicados." : configured ? "A aplicação reconhece variáveis Dataprev no runtime server-side. Você pode deixar os campos temporários vazios e gerar o M2M token com os Secrets do servidor, ou preencher os quatro campos como conjunto completo para homologar exatamente com o item recebido via 1Password." : "Abra o item compartilhado no 1Password e cole API URL/Base URL, x-api-key, Client ID e Client Secret antes de gerar o M2M token e executar chamadas reais."}</AlertDescription>
         </Alert>
 
         <div className="rounded-3xl border border-[#1351B4]/20 bg-[linear-gradient(135deg,#F7FAFF,#EEF5FF)] p-5" aria-label="Checklist 1Password de credenciais Dataprev">
@@ -2401,9 +2406,9 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
 
-    const missingCredentials = getMissingM2MCredentialLabels(dataprevCredentials);
+    const missingCredentials = getMissingM2MCredentialLabels(dataprevCredentials, Boolean(metadata.data?.credentialsConfigured));
     if (missingCredentials.length > 0) {
-      const message = `Antes de executar APIs Dataprev com credenciais temporárias, preencha na aba Variáveis os campos obrigatórios: ${missingCredentials.join(", ")}. A chamada não foi realizada porque esses dados são essenciais para gerar a autenticação técnica.`;
+      const message = `Antes de executar APIs Dataprev com credenciais temporárias, preencha na aba Variáveis os campos obrigatórios: ${missingCredentials.join(", ")}. Se desejar usar os Secrets do servidor, limpe todos os campos temporários Dataprev. A chamada não foi realizada para evitar autenticação incompleta.`;
       setM2mResult(undefined);
       clearPersistedM2MTokenStatus();
       setErrors(previous => ({ ...previous, m2m: message }));
@@ -2437,7 +2442,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       setErrors(previous => ({ ...previous, [active.id]: "Esta tela foi mapeada como experiência visual; não há API externa associada." }));
       return;
     }
-    const missingApiCredentials = getMissingM2MCredentialLabels(dataprevCredentials);
+    const missingApiCredentials = getMissingM2MCredentialLabels(dataprevCredentials, Boolean(metadata.data?.credentialsConfigured));
     if (missingApiCredentials.length > 0) {
       const message = buildRequiredApiCredentialsMessage(missingApiCredentials);
       setErrors(previous => ({ ...previous, [active.id]: message }));
