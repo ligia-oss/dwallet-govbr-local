@@ -2175,7 +2175,8 @@ export function compactRunState(mergedState: RunState): Record<string, string | 
   return Object.fromEntries(Object.entries(mergedState).filter(([, value]) => value !== undefined)) as Record<string, string | number | boolean | null>;
 }
 
-const WALLET_RUN_STORAGE_VERSION = 1;
+const WALLET_RUN_STORAGE_VERSION = 2;
+const LEGACY_WALLET_RUN_STORAGE_VERSION = 1;
 
 type PersistedWalletRun = {
   version: number;
@@ -2186,8 +2187,23 @@ type PersistedWalletRun = {
   reviewedGuideSteps: Record<string, boolean>;
 };
 
-function getWalletRunStorageKey(kind: WalletKind) {
-  return `govbr-wallet-run-state-v${WALLET_RUN_STORAGE_VERSION}-${kind}`;
+export function getWalletRunStorageKey(_kind?: WalletKind) {
+  return `govbr-wallet-run-state-v${WALLET_RUN_STORAGE_VERSION}-shared`;
+}
+
+export function getLegacyWalletRunStorageKey(kind: WalletKind) {
+  return `govbr-wallet-run-state-v${LEGACY_WALLET_RUN_STORAGE_VERSION}-${kind}`;
+}
+
+export function mergePersistedWalletRuns(base: PersistedWalletRun, next: PersistedWalletRun): PersistedWalletRun {
+  return {
+    version: WALLET_RUN_STORAGE_VERSION,
+    state: { ...base.state, ...next.state },
+    evidences: { ...base.evidences, ...next.evidences },
+    credentialFolder: mergeCredentialFolder(base.credentialFolder, next.credentialFolder),
+    m2mResult: next.m2mResult ?? base.m2mResult,
+    reviewedGuideSteps: { ...base.reviewedGuideSteps, ...next.reviewedGuideSteps },
+  };
 }
 
 function emptyPersistedWalletRun(): PersistedWalletRun {
@@ -2200,26 +2216,46 @@ function emptyPersistedWalletRun(): PersistedWalletRun {
   };
 }
 
-function readPersistedWalletRun(kind: WalletKind): PersistedWalletRun {
+function normalizePersistedWalletRun(parsed: Partial<PersistedWalletRun> | null | undefined): PersistedWalletRun {
+  if (!parsed) return emptyPersistedWalletRun();
+
+  return {
+    version: WALLET_RUN_STORAGE_VERSION,
+    state: parsed.state && typeof parsed.state === "object" ? parsed.state : {},
+    evidences: parsed.evidences && typeof parsed.evidences === "object" ? parsed.evidences : {},
+    credentialFolder: Array.isArray(parsed.credentialFolder) ? parsed.credentialFolder : [],
+    m2mResult: parsed.m2mResult,
+    reviewedGuideSteps: parsed.reviewedGuideSteps && typeof parsed.reviewedGuideSteps === "object" ? parsed.reviewedGuideSteps : {},
+  };
+}
+
+function readWalletRunFromStorageKey(key: string, expectedVersion: number): PersistedWalletRun {
   if (typeof window === "undefined") return emptyPersistedWalletRun();
 
   try {
-    const raw = window.localStorage.getItem(getWalletRunStorageKey(kind));
+    const raw = window.localStorage.getItem(key);
     if (!raw) return emptyPersistedWalletRun();
     const parsed = JSON.parse(raw) as Partial<PersistedWalletRun>;
-    if (parsed.version !== WALLET_RUN_STORAGE_VERSION) return emptyPersistedWalletRun();
-
-    return {
-      version: WALLET_RUN_STORAGE_VERSION,
-      state: parsed.state && typeof parsed.state === "object" ? parsed.state : {},
-      evidences: parsed.evidences && typeof parsed.evidences === "object" ? parsed.evidences : {},
-      credentialFolder: Array.isArray(parsed.credentialFolder) ? parsed.credentialFolder : [],
-      m2mResult: parsed.m2mResult,
-      reviewedGuideSteps: parsed.reviewedGuideSteps && typeof parsed.reviewedGuideSteps === "object" ? parsed.reviewedGuideSteps : {},
-    };
+    if (parsed.version !== expectedVersion) return emptyPersistedWalletRun();
+    return normalizePersistedWalletRun(parsed);
   } catch {
     return emptyPersistedWalletRun();
   }
+}
+
+function readPersistedWalletRun(kind: WalletKind): PersistedWalletRun {
+  const shared = readWalletRunFromStorageKey(getWalletRunStorageKey(kind), WALLET_RUN_STORAGE_VERSION);
+  const personalLegacy = readWalletRunFromStorageKey(getLegacyWalletRunStorageKey("personal"), LEGACY_WALLET_RUN_STORAGE_VERSION);
+  const businessLegacy = readWalletRunFromStorageKey(getLegacyWalletRunStorageKey("business"), LEGACY_WALLET_RUN_STORAGE_VERSION);
+  const migrated = mergePersistedWalletRuns(mergePersistedWalletRuns(personalLegacy, businessLegacy), shared);
+
+  if (typeof window !== "undefined" && (Object.keys(personalLegacy.state).length || Object.keys(personalLegacy.evidences).length || Object.keys(businessLegacy.state).length || Object.keys(businessLegacy.evidences).length)) {
+    window.localStorage.setItem(getWalletRunStorageKey(kind), JSON.stringify(migrated));
+    window.localStorage.removeItem(getLegacyWalletRunStorageKey("personal"));
+    window.localStorage.removeItem(getLegacyWalletRunStorageKey("business"));
+  }
+
+  return migrated;
 }
 
 function persistWalletRun(kind: WalletKind, snapshot: PersistedWalletRun) {
@@ -2230,6 +2266,8 @@ function persistWalletRun(kind: WalletKind, snapshot: PersistedWalletRun) {
 function clearPersistedWalletRun(kind: WalletKind) {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(getWalletRunStorageKey(kind));
+  window.localStorage.removeItem(getLegacyWalletRunStorageKey("personal"));
+  window.localStorage.removeItem(getLegacyWalletRunStorageKey("business"));
 }
 
 export function clearCredentialResultState(previous: RunState, credentialItems: CredentialFolderItem[] = [], evidenceMap: Record<string, Evidence> = {}): RunState {

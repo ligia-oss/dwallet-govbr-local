@@ -330,3 +330,8 @@
 - [x] Executar validações técnicas e visuais do Passo 0, revisar checklist e salvar checkpoint da correção M2M.
 
 - [x] Corrigir regressão do Passo 0 M2M para permitir geração do token com Secrets do servidor quando não houver credenciais temporárias digitadas, mantendo bloqueio apenas para conjunto temporário parcial.
+
+- [x] Verificar se status e respostas dos testes somem ao alternar entre Business dWallet e Personal dWallet.
+- [x] Persistir status e respostas dos testes ao trocar de tela, removendo-os somente quando o botão de limpar testes for acionado.
+- [x] Atualizar testes automatizados para cobrir persistência de resultados entre telas e limpeza explícita.
+- [x] Executar validações técnicas, revisar checklist e salvar checkpoint da correção de persistência entre telas.

@@ -3,7 +3,7 @@ import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { BadgeCheck } from "lucide-react";
-import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, canonicalJourneySteps, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getMissingM2MCredentialLabels, getVisualStatus, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
+import { AppEmulatedScreen, BeginnerTestGuide, buildExecuteActionInput, buildRequiredApiCredentialsMessage, btgFutureInfoFields, BtgFutureInfoPanel, businessScreens, canonicalJourneySteps, clearCredentialResultState, compactRunState, CredentialsPanel, CredentialFolderPanel, DirectScreenVariablesPanel, EvidenceBox, getDataprevCredentialChecklist, getLegacyWalletRunStorageKey, getMissingM2MCredentialLabels, getVisualStatus, getWalletRunStorageKey, hasBtgFutureInfo, maskSecretPreview, M2MTokenPanel, mergePersistedWalletRuns, personalScreens, ScreenApiInstructionPanel, TestVariablesPanel, updateRunStateValue, type Evidence, type M2MAuthResult } from "../client/src/pages/GovBRWalletApp";
 import { clearPersistedDataprevCredentials, clearPersistedM2MTokenStatus, DATAPREV_CREDENTIALS_STORAGE_KEY, DATAPREV_M2M_TOKEN_STORAGE_KEY, isM2MAuthResultActive, normalizeDataprevCredentials, persistDataprevCredentials, persistM2MTokenStatus, readPersistedDataprevCredentials, readPersistedM2MTokenStatus } from "../client/src/lib/dataprevCredentials";
 
 describe("GovBR Wallet API response panels", () => {
@@ -459,6 +459,56 @@ describe("GovBR Wallet API response panels", () => {
     );
 
     expect(cleaned).toEqual({ personEmail: "manual@example.com", btgCompanyId: "btg_manual" });
+  });
+
+  it("persists test statuses and API responses in one shared wallet run across Personal and Business screens", () => {
+    expect(getWalletRunStorageKey("personal")).toBe(getWalletRunStorageKey("business"));
+    expect(getLegacyWalletRunStorageKey("personal")).not.toBe(getLegacyWalletRunStorageKey("business"));
+
+    const personalRun = {
+      version: 2,
+      state: { personId: "person_123" },
+      evidences: {
+        step2_person_signup: {
+          actionId: "step2_person_signup",
+          actionTitle: "Criar Personal dWallet",
+          status: "executed",
+          ok: true,
+          message: "Personal criada",
+          responsePreview: "{\"personId\":\"person_123\"}",
+          stateUpdates: { personId: "person_123" },
+          executedAt: "2026-05-05T00:00:00.000Z",
+        },
+      },
+      credentialFolder: [{ key: "personId", value: "person_123", source: "Criar Personal dWallet", savedAt: "2026-05-05T00:00:00.000Z", purpose: "Resposta Personal" }],
+      reviewedGuideSteps: { "cadastro-pessoal": true },
+    };
+    const businessRun = {
+      version: 2,
+      state: { businessId: "biz_123" },
+      evidences: {
+        step1_business_create: {
+          actionId: "step1_business_create",
+          actionTitle: "Criar Business dWallet",
+          status: "executed",
+          ok: true,
+          message: "Business criada",
+          responsePreview: "{\"businessId\":\"biz_123\"}",
+          stateUpdates: { businessId: "biz_123" },
+          executedAt: "2026-05-05T00:01:00.000Z",
+        },
+      },
+      credentialFolder: [{ key: "businessId", value: "biz_123", source: "Criar Business dWallet", savedAt: "2026-05-05T00:01:00.000Z", purpose: "Resposta Business" }],
+      reviewedGuideSteps: { "criar-business": true },
+    };
+
+    const merged = mergePersistedWalletRuns(personalRun, businessRun);
+
+    expect(merged.state).toMatchObject({ personId: "person_123", businessId: "biz_123" });
+    expect(merged.evidences.step2_person_signup?.responsePreview).toContain("person_123");
+    expect(merged.evidences.step1_business_create?.responsePreview).toContain("biz_123");
+    expect(merged.credentialFolder.map(item => item.key)).toEqual(expect.arrayContaining(["personId", "businessId"]));
+    expect(merged.reviewedGuideSteps).toMatchObject({ "cadastro-pessoal": true, "criar-business": true });
   });
 
   it("renderiza o guia Business com os 17 passos canônicos e respostas empresariais subnumeradas", () => {
