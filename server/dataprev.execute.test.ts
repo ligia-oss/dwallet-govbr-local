@@ -182,9 +182,9 @@ describe("execução Dataprev", () => {
     expect(evidence.message).toContain("publicado");
   });
 
-  it("bloqueia API protegida por M2M quando o token explícito ainda não foi gerado", async () => {
+  it("tenta regenerar o token M2M antes de executar API protegida quando não há token ativo", async () => {
     const caller = appRouter.createCaller(ctx);
-    globalThis.fetch = vi.fn() as any;
+    globalThis.fetch = vi.fn(async () => jsonResponse(503, { error: "auth_backend_unavailable" })) as any;
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step10_commercial_dsps",
@@ -199,11 +199,15 @@ describe("execução Dataprev", () => {
 
     expect(evidence.status).toBe("failed");
     expect(evidence.ok).toBe(false);
-    expect(evidence.httpStatus).toBeUndefined();
-    expect(evidence.message).toContain("M2M token ativo obrigatório");
+    expect(evidence.httpStatus).toBe(503);
+    expect(evidence.message).toContain("Falha ao gerar M2M token");
     expect(evidence.responseBody).toEqual(expect.objectContaining({ etapa: "autenticacao_tecnica_m2m" }));
-    expect(JSON.stringify(evidence)).not.toContain("api-key-teste");
-    expect(globalThis.fetch).not.toHaveBeenCalled();
+    expect(JSON.stringify(evidence)).not.toContain("api-key-sem-token");
+    expect(globalThis.fetch).toHaveBeenCalledTimes(1);
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      "https://sem-token.test.local/v1/auth/token/iam/authn/services/oauth2/token",
+      expect.objectContaining({ method: "POST", headers: expect.objectContaining({ "x-api-key": "api-key-sem-token" }) }),
+    );
   });
 
   it("executa a autenticação técnica M2M, armazena o token em cache e retorna apenas metadados sanitizados", async () => {

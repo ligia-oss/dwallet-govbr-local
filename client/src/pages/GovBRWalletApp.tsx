@@ -77,6 +77,10 @@ export type Evidence = {
   message?: string;
   missingReason?: string;
   durationMs?: number;
+  m2mTokenUsed?: boolean;
+  m2mTokenSource?: "cache" | "refreshed" | "explicit" | "none" | string;
+  m2mTokenHandle?: string;
+  m2mTokenExpiresAt?: string;
   executedAt: string;
 };
 
@@ -1604,8 +1608,25 @@ export function EvidenceBox({ evidence, status, actionId }: { evidence?: Evidenc
       <div className="flex flex-wrap items-center gap-2">
         <Badge className={evidence.ok ? "bg-green-700" : "bg-red-700"}>{evidence.ok ? "Resposta recebida" : evidence.status === "not_executable" ? "API ausente" : "Resposta com atenção"}</Badge>
         <Badge variant="outline">{evidence.httpStatus ? `HTTP ${evidence.httpStatus}` : statusLabel[status]}</Badge>
+        {evidence.m2mTokenUsed ? <Badge variant="outline" className="border-green-200 bg-green-50 text-green-900">M2M Bearer usado</Badge> : null}
         <span className="text-xs text-slate-500">{new Date(evidence.executedAt).toLocaleString("pt-BR")}</span>
       </div>
+      {evidence.m2mTokenUsed ? (
+        <div className="rounded-xl border border-green-200 bg-green-50 p-3 text-sm text-green-950">
+          <div className="flex items-start gap-2">
+            <KeyRound className="mt-0.5 h-4 w-4 shrink-0" />
+            <div className="space-y-1">
+              <p className="font-bold">Token M2M usado nesta chamada</p>
+              <p className="text-xs leading-5">A requisição foi enviada com <strong>Authorization: Bearer</strong> no servidor. O valor real do token permanece redigido; apenas metadados seguros são exibidos.</p>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Badge variant="outline" className="border-green-300 bg-white text-green-900">origem: {evidence.m2mTokenSource || "servidor"}</Badge>
+                {evidence.m2mTokenHandle ? <Badge variant="outline" className="border-green-300 bg-white font-mono text-green-900">handle: {evidence.m2mTokenHandle}</Badge> : null}
+                {evidence.m2mTokenExpiresAt ? <Badge variant="outline" className="border-green-300 bg-white text-green-900">expira: {new Date(evidence.m2mTokenExpiresAt).toLocaleString("pt-BR")}</Badge> : null}
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : null}
       <Alert className={evidence.ok ? "border-green-200 bg-green-50 text-green-950" : "border-amber-200 bg-amber-50 text-amber-950"}>
         <ShieldCheck className="h-4 w-4" />
         <AlertTitle>Resultado utilizado pelo aplicativo</AlertTitle>
@@ -2514,11 +2535,10 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       return next;
     });
     try {
-      if (!active.actionId.startsWith("btg_") && !isM2MAuthResultActive(m2mResult)) {
+      const hasKnownActiveM2M = Boolean(isM2MAuthResultActive(m2mResult) || metadata.data?.m2mToken?.active);
+      if (!active.actionId.startsWith("btg_") && !hasKnownActiveM2M) {
         clearPersistedM2MTokenStatus();
         setM2mResult(undefined);
-        setErrors(previous => ({ ...previous, [active.id]: "Gere um token M2M válido na aba Variáveis antes de executar esta API. O botão Gerar M2M token é a chamada número 2 da ordem recomendada e o token será usado como Authorization Bearer enquanto não expirar." }));
-        return;
       }
 
       const actionIdToRun = active.id === "decisao-solicitacao" && String(mergedState.dataRequestDecision || "accepted") === "rejected" ? "step7_reject_data_request" : active.actionId;

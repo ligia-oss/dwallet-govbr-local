@@ -52,6 +52,10 @@ type Evidence = {
   stateUpdates?: RunState;
   message?: string;
   missingReason?: string;
+  m2mTokenUsed?: boolean;
+  m2mTokenSource?: "cached" | "refreshed";
+  m2mTokenHandle?: string;
+  m2mTokenExpiresAt?: string;
   executedAt: string;
 };
 
@@ -347,12 +351,24 @@ async function requestM2MToken(forceRefresh = false, credentials?: DataprevCrede
   return { token: data.access_token, expiresAt, handle, reused: false };
 }
 
-function getActiveM2MToken(credentials?: DataprevCredentialsInput) {
+async function acquireM2MTokenForAction(credentials?: DataprevCredentialsInput) {
   clearExpiredM2MCache();
-  if (!m2mCache || m2mCache.credentialScope !== m2mCredentialScope(credentials)) {
-    throw new Error("M2M_TOKEN_REQUIRED: gere um M2M token ativo na aba Variáveis antes de executar esta API Dataprev.");
+  if (m2mCache && m2mCache.credentialScope === m2mCredentialScope(credentials)) {
+    return {
+      token: m2mCache.token,
+      source: "cached" as const,
+      handle: m2mCache.handle,
+      expiresAt: m2mCache.expiresAt,
+    };
   }
-  return m2mCache.token;
+
+  const refreshed = await requestM2MToken(false, credentials);
+  return {
+    token: refreshed.token,
+    source: "refreshed" as const,
+    handle: refreshed.handle,
+    expiresAt: refreshed.expiresAt,
+  };
 }
 
 async function authenticateM2MExplicitly(credentials?: DataprevCredentialsInput): Promise<M2MAuthResult> {
@@ -901,8 +917,18 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   }
 
   let m2m: string | undefined;
+  let m2mUsage: Pick<Evidence, "m2mTokenUsed" | "m2mTokenSource" | "m2mTokenHandle" | "m2mTokenExpiresAt"> = {};
   try {
-    m2m = action.requiresM2M ? getActiveM2MToken(credentials) : undefined;
+    if (action.requiresM2M) {
+      const tokenInfo = await acquireM2MTokenForAction(credentials);
+      m2m = tokenInfo.token;
+      m2mUsage = {
+        m2mTokenUsed: true,
+        m2mTokenSource: tokenInfo.source,
+        m2mTokenHandle: tokenInfo.handle,
+        m2mTokenExpiresAt: new Date(tokenInfo.expiresAt).toISOString(),
+      };
+    }
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha desconhecida ao obter token M2M.";
     const statusMatch = message.match(/HTTP\s+(\d+)/i);
@@ -916,9 +942,9 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
       httpStatus: status,
       ok: false,
       requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
-      responseBody: { etapa: "autenticacao_tecnica_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Gere um M2M token ativo na aba Variáveis antes de executar esta API. O token salvo foi removido se expirou ou se pertence a outro conjunto de credenciais.", diagnostics: credentialDiagnostics(credentials) },
+      responseBody: { etapa: "autenticacao_tecnica_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter um token M2M ativo com as credenciais informadas. Gere novamente o token na aba Variáveis ou revise Base URL, x-api-key, client_id e client_secret.", diagnostics: credentialDiagnostics(credentials) },
       stateUpdates: {},
-      message: status ? authFailureMessage(status, "m2m") : "M2M token ativo obrigatório antes desta chamada Dataprev.",
+      message: status ? `Falha ao gerar M2M token automaticamente antes desta chamada Dataprev. ${authFailureMessage(status, "m2m")}` : "Falha ao gerar M2M token automaticamente antes desta chamada Dataprev. Não foi possível obter um token M2M ativo com as credenciais informadas.",
       executedAt,
     };
   }
@@ -977,6 +1003,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
     responseBody: sanitizeDataprevEvidence(responseBody, 0, sensitiveValues(env(credentials))),
     stateUpdates: sanitizeDataprevEvidence(stateUpdates, 0, sensitiveValues(env(credentials))) as RunState,
     message: ok ? "Chamada executada dentro da faixa esperada." : authFailureMessage(response.status, "api"),
+    ...m2mUsage,
     executedAt,
   };
 }

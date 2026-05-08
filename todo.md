@@ -350,3 +350,9 @@
 - [x] Investigar a falha de execução do Passo 1 após geração bem-sucedida do token M2M no Passo 0.
 - [x] Corrigir contrato, headers, token ou variáveis do Passo 1 para permitir continuidade do teste após o Passo 0.
 - [x] Atualizar testes automatizados para cobrir Passo 0 bem-sucedido seguido de execução do Passo 1.
+
+- [x] Investigar por que o Passo 1 voltou a falhar após sucesso do Passo 0 usando o estado e os logs atuais.
+- [x] Corrigir definitivamente a propagação do token M2M, headers e estado persistido entre Passo 0 e Passo 1.
+- [x] Adicionar indicador visual de “token M2M usado nesta chamada” nas evidências das APIs aplicáveis.
+- [x] Expandir testes automatizados para cobrir a jornada completa dos passos e distinguir falha de integração externa de falha de código.
+- [x] Executar validação final com testes, build, status e revisão do checklist antes de salvar nova versão.

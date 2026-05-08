@@ -308,10 +308,42 @@ describe("GovBR Wallet API response panels", () => {
 
     expect(isM2MAuthResultActive(activeResult, Date.parse("2026-05-06T19:00:00.000Z"))).toBe(true);
     expect(source).toContain("onGenerateM2M={() => void runM2MAuthentication(true)}");
-    expect(source).toContain("Gere um token M2M válido na aba Variáveis antes de executar esta API");
+    expect(source).toContain("hasKnownActiveM2M");
+    expect(source).toContain("metadata.data?.m2mToken?.active");
+    expect(source).not.toContain("Gere um token M2M válido na aba Variáveis antes de executar esta API");
     expect(source).not.toContain("const authResult = await runM2MAuthentication();");
     expect(source).toContain("Gerar M2M token");
-    expect(source).toContain("Sem token ativo, as demais APIs Dataprev ficam bloqueadas");
+    expect(source).toContain("M2M Bearer usado");
+  });
+
+  it("renderiza indicador visual seguro quando uma evidência informa uso de Authorization Bearer M2M", () => {
+    const evidence: Evidence = {
+      actionId: "step1_create_business_collaborator",
+      actionTitle: "Passo 1 — Criar colaborador Business",
+      status: "executed",
+      ok: true,
+      method: "POST",
+      url: "https://api.example.local/v1/auth/token/iam/idp/users",
+      httpStatus: 201,
+      requestBody: { email: "operador@example.com", headers: { Authorization: "<REDACTED>" } },
+      responseBody: { id: "user_123" },
+      stateUpdates: { businessCollaboratorId: "user_123" },
+      m2mTokenUsed: true,
+      m2mTokenSource: "refreshed",
+      m2mTokenHandle: "m2m_abc123",
+      m2mTokenExpiresAt: "2026-05-06T20:00:00.000Z",
+      message: "Chamada executada dentro da faixa esperada.",
+      executedAt: "2026-05-06T18:00:00.000Z",
+    };
+
+    const html = renderToStaticMarkup(React.createElement(EvidenceBox, { evidence, status: "done", actionId: evidence.actionId }));
+
+    expect(html).toContain("M2M Bearer usado");
+    expect(html).toContain("Token M2M usado nesta chamada");
+    expect(html).toContain("Authorization: Bearer");
+    expect(html).toContain("origem: refreshed");
+    expect(html).toContain("m2m_abc123");
+    expect(html).not.toContain("Bearer eyJ");
   });
 
   it("renders generated API outputs in the variables folder for reuse between steps", () => {
