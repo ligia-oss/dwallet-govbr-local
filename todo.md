@@ -356,3 +356,7 @@
 - [x] Adicionar indicador visual de “token M2M usado nesta chamada” nas evidências das APIs aplicáveis.
 - [x] Expandir testes automatizados para cobrir a jornada completa dos passos e distinguir falha de integração externa de falha de código.
 - [x] Executar validação final com testes, build, status e revisão do checklist antes de salvar nova versão.
+
+- [x] Reclassificar passos/APIs considerando OTP manual como requisito funcional de segurança, não como indisponibilidade ou parcialidade.
+- [x] Alterar somente metadados de classificação e textos do front que exibem disponibilidade, sem modificar contratos, payloads ou execução das APIs.
+- [x] Atualizar testes de renderização/classificação para refletir a nova premissa e validar que o funcionamento da aplicação não foi afetado.

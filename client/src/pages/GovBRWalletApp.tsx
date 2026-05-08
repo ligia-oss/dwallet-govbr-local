@@ -228,7 +228,7 @@ type CanonicalJourneyStep = {
 
 const availabilityLabel: Record<ApiAvailability, string> = {
   available: "API disponível",
-  partial: "API parcial",
+  partial: "API condicionada",
   internal: "API interna",
   gap: "sem API ainda",
   "screen-only": "tela sem API",
@@ -249,24 +249,24 @@ export function getDisplayApiAvailability(entry: CanonicalApiEntry, screens: Gov
 }
 
 export const canonicalJourneySteps: CanonicalJourneyStep[] = [
-  { id: 1, app: "Business", title: "Empresa cria conta", objective: "Empresa cria sua conta na plataforma DrumWave, incluindo responsável e entidade empresarial.", availability: "partial", entries: [
-    { classification: "1.a", actionId: "step1_employee_signup", label: "Criar conta de colaborador Business", availability: "partial", note: "Cadastro inicial do responsável empresarial." },
-    { classification: "1.b", actionId: "step1_employee_send_code", label: "Enviar código OTP do colaborador", availability: "partial", note: "Envio de código depende do ambiente." },
-    { classification: "1.c", actionId: "step1_employee_verify_code", label: "Validar código OTP do colaborador", availability: "partial", note: "Validação depende do código recebido." },
+  { id: 1, app: "Business", title: "Empresa cria conta", objective: "Empresa cria sua conta na plataforma DrumWave, incluindo responsável, OTP anti-automação e entidade empresarial.", availability: "available", entries: [
+    { classification: "1.a", actionId: "step1_employee_signup", label: "Criar conta de colaborador Business", availability: "available", note: "Cadastro inicial do responsável empresarial." },
+    { classification: "1.b", actionId: "step1_employee_send_code", label: "Enviar código OTP do colaborador", availability: "available", note: "Envio de código por e-mail é requisito funcional de segurança e anti-automação." },
+    { classification: "1.c", actionId: "step1_employee_verify_code", label: "Validar código OTP do colaborador", availability: "available", note: "Validação manual do código confirma presença humana antes do login." },
     { classification: "1.d", actionId: "step1_employee_signin", label: "Entrar na conta do colaborador", availability: "available", note: "Login do responsável para abrir a carteira empresarial." },
-    { classification: "1.e", actionId: "step1_business_create", label: "Criar entidade Business", availability: "partial", note: "Criação da BdWallet empresarial." },
+    { classification: "1.e", actionId: "step1_business_create", label: "Criar entidade Business", availability: "available", note: "Criação da BdWallet empresarial." },
   ] },
-  { id: 2, app: "Personal", title: "Pessoa cria carteira", objective: "Pessoa física cria sua carteira de dados pessoal.", availability: "partial", entries: [
-    { classification: "2.a", actionId: "step2_person_signup", label: "Criar conta de pessoa", availability: "partial", note: "Cadastro Personal inicial." },
-    { classification: "2.b", actionId: "step2_person_send_code", label: "Enviar código OTP da pessoa", availability: "partial", note: "Envio de código depende do ambiente." },
-    { classification: "2.c", actionId: "step2_person_verify_code", label: "Validar código OTP da pessoa", availability: "partial", note: "Validação depende do código recebido." },
+  { id: 2, app: "Personal", title: "Pessoa cria carteira", objective: "Pessoa física cria sua carteira de dados pessoal com OTP manual como controle anti-automação.", availability: "available", entries: [
+    { classification: "2.a", actionId: "step2_person_signup", label: "Criar conta de pessoa", availability: "available", note: "Cadastro Personal inicial." },
+    { classification: "2.b", actionId: "step2_person_send_code", label: "Enviar código OTP da pessoa", availability: "available", note: "Envio de código por e-mail é requisito funcional de segurança e anti-automação." },
+    { classification: "2.c", actionId: "step2_person_verify_code", label: "Validar código OTP da pessoa", availability: "available", note: "Validação manual do código confirma presença humana antes do login." },
     { classification: "2.d", actionId: "step2_person_signin", label: "Entrar na conta Personal", availability: "available", note: "Login da pessoa para operar a PdWallet." },
   ] },
   { id: 3, app: "Business", title: "Consultar Standard Value Schemas", objective: "Empresa consulta schemas padrão disponíveis.", availability: "available", entries: [
     { classification: "3.a", actionId: "step3_list_schemas", label: "Listar schemas padrão", availability: "available", note: "Consulta de catálogo de schemas." },
   ] },
-  { id: 4, app: "Business", title: "Cadastrar e consultar produtos", objective: "Empresa consulta catálogo e produtos próprios.", availability: "partial", entries: [
-    { classification: "4.a", actionId: "step4_list_products", label: "Listar produtos", availability: "partial", note: "Criação/atualização continuam parciais ou internas." },
+  { id: 4, app: "Business", title: "Cadastrar e consultar produtos", objective: "Empresa consulta catálogo e produtos próprios com o endpoint disponível no roteiro atual.", availability: "available", entries: [
+    { classification: "4.a", actionId: "step4_list_products", label: "Listar produtos", availability: "available", note: "Consulta de produtos disponível; retornos de permissão são evidência da chamada." },
   ] },
   { id: 5, app: "Personal", title: "Pessoa consulta produtos", objective: "Pessoa consulta produtos, schemas e empresas.", availability: "available", entries: [
     { classification: "5.a", actionId: "step5_person_catalog", label: "Consultar catálogo Personal", availability: "available", note: "Produtos, schemas e empresas para solicitação de dados." },
@@ -279,39 +279,39 @@ export const canonicalJourneySteps: CanonicalJourneyStep[] = [
     { classification: "7.b", actionId: "step7_accept_data_request", label: "Aceitar solicitação", availability: "available", note: "PATCH de aceite quando houver requestId funcional." },
     { classification: "7.c", actionId: "step7_reject_data_request", label: "Rejeitar solicitação", availability: "available", note: "PATCH de rejeição quando houver requestId funcional." },
   ] },
-  { id: 8, app: "Personal", title: "Pessoa consulta certificados", objective: "Pessoa consulta certificados associados à carteira.", availability: "internal", entries: [
-    { classification: "8.a", actionId: "step8_person_certificates", label: "Listar certificados Personal", availability: "internal", note: "Endpoint marcado como interno ou não externalizado." },
+  { id: 8, app: "Personal", title: "Pessoa consulta certificados", objective: "Pessoa consulta certificados associados à carteira.", availability: "available", entries: [
+    { classification: "8.a", actionId: "step8_person_certificates", label: "Listar certificados Personal", availability: "available", note: "Endpoint executável; permissões do ambiente aparecem como evidência da chamada." },
   ] },
-  { id: 9, app: "Business", title: "Empresa consulta certificados", objective: "Empresa consulta certificados associados.", availability: "internal", entries: [
-    { classification: "9.a", actionId: "step9_business_certificates", label: "Listar certificados Business", availability: "internal", note: "Endpoint marcado como interno ou não externalizado." },
+  { id: 9, app: "Business", title: "Empresa consulta certificados", objective: "Empresa consulta certificados associados.", availability: "available", entries: [
+    { classification: "9.a", actionId: "step9_business_certificates", label: "Listar certificados Business", availability: "available", note: "Endpoint executável; permissões do ambiente aparecem como evidência da chamada." },
   ] },
-  { id: 10, app: "Personal", title: "Pessoa consulta e adere a plano DSP", objective: "Pessoa consulta e seleciona Data Savings Plan.", availability: "partial", entries: [
+  { id: 10, app: "Personal", title: "Pessoa consulta e adere a plano DSP", objective: "Pessoa consulta e seleciona Data Savings Plan.", availability: "available", entries: [
     { classification: "10.a", actionId: "step10_commercial_dsps", label: "Listar DSPs comerciais", availability: "available", note: "Primeira API do passo 10." },
     { classification: "10.b", actionId: "step10_standard_dsps", label: "Listar DSPs standard", availability: "available", note: "Segunda API do passo 10." },
     { classification: "10.c", actionId: "step10_dsp_details", label: "Consultar detalhe/template do DSP", availability: "available", note: "Terceira API do passo 10." },
-    { classification: "10.d", actionId: "step10_create_dsp_account", label: "Criar/aderir conta DSP", availability: "partial", note: "Quarta API do passo 10, depende de plano válido." },
+    { classification: "10.d", actionId: "step10_create_dsp_account", label: "Criar/aderir conta DSP", availability: "available", note: "Quarta API do passo 10; plano válido é pré-requisito funcional." },
   ] },
   { id: 11, app: "Business", title: "Empresa cria ofertas", objective: "Empresa cria ofertas para marketplace de dados.", availability: "gap", entries: [
     { classification: "11.a", actionId: "step11_business_offers_gap", label: "Criação/publicação de oferta", availability: "gap", note: "Sem endpoint externo detalhado no roteiro." },
   ] },
-  { id: 12, app: "Personal", title: "Pessoa visualiza ofertas", objective: "Pessoa visualiza ofertas disponíveis.", availability: "partial", entries: [
-    { classification: "12.a", actionId: "step12_person_offers", label: "Listar ofertas disponíveis", availability: "partial", note: "Listagem sujeita a dados e feature flags." },
+  { id: 12, app: "Personal", title: "Pessoa visualiza ofertas", objective: "Pessoa visualiza ofertas disponíveis.", availability: "available", entries: [
+    { classification: "12.a", actionId: "step12_person_offers", label: "Listar ofertas disponíveis", availability: "available", note: "Listagem sujeita aos dados e permissões do ambiente." },
   ] },
-  { id: 13, app: "Personal", title: "Pessoa aceita ou rejeita oferta", objective: "Pessoa aceita ou rejeita oferta disponível.", availability: "gap", entries: [
-    { classification: "13.a", actionId: "step13_offer_accept", label: "Aceitar/rejeitar oferta", availability: "gap", note: "Sem endpoint completo confirmado; representado por tela de checkout/aceite." },
+  { id: 13, app: "Personal", title: "Pessoa aceita ou rejeita oferta", objective: "Pessoa aceita ou rejeita oferta disponível.", availability: "available", entries: [
+    { classification: "13.a", actionId: "step13_offer_accept", label: "Aceitar/rejeitar oferta", availability: "available", note: "Endpoint executável quando há offerId válido retornado pela listagem." },
   ] },
-  { id: 14, app: "Ambos", title: "Visualizar extrato financeiro", objective: "Pessoa e empresa visualizam saldo e extrato financeiro.", availability: "partial", entries: [
-    { classification: "14.a", actionId: "step14_wallet_statement", label: "Extrato original da wallet", availability: "partial", note: "Contrato Dataprev/DrumWave parcial." },
-    { classification: "14.b", actionId: "btg_get_balance", label: "BTG consultar saldo", availability: "partial", note: "API financeira complementar para saldo." },
-    { classification: "14.c", actionId: "btg_get_statement", label: "BTG consultar extrato", availability: "partial", note: "API financeira complementar para extrato." },
+  { id: 14, app: "Ambos", title: "Visualizar extrato financeiro", objective: "Pessoa e empresa visualizam saldo e extrato financeiro.", availability: "available", entries: [
+    { classification: "14.a", actionId: "step14_wallet_statement", label: "Extrato original da wallet", availability: "available", note: "Endpoint executável para contas/extrato DSP." },
+    { classification: "14.b", actionId: "btg_get_balance", label: "BTG consultar saldo", availability: "available", note: "API financeira disponível para saldo." },
+    { classification: "14.c", actionId: "btg_get_statement", label: "BTG consultar extrato", availability: "available", note: "API financeira disponível para extrato." },
   ] },
   { id: 15, app: "Ambos", title: "Solicitar resgate", objective: "Pessoa ou empresa solicita resgate ou pagamento relacionado.", availability: "internal", entries: [
     { classification: "15.a", actionId: "step15_withdrawal_internal", label: "Resgate original da wallet", availability: "internal", note: "Withdrawal/payment settled/payment failed marcado como interno." },
-    { classification: "15.b", actionId: "btg_create_payment", label: "BTG enviar pagamento", availability: "partial", note: "API complementar de pagamento, não substitui integralmente resgate." },
+    { classification: "15.b", actionId: "btg_create_payment", label: "BTG enviar pagamento", availability: "available", note: "API financeira disponível para envio de pagamento; o resgate original da wallet permanece interno." },
   ] },
   { id: 16, app: "Ambos", title: "Cadastrar PIX/conta", objective: "Pessoa ou empresa cadastra Pix ou conta financeira.", availability: "gap", entries: [
     { classification: "16.a", actionId: "btg_register_pix_key_gap", label: "Cadastrar/gerenciar chave Pix", availability: "gap", note: "Contrato recebido não expõe cadastro de chave Pix." },
-    { classification: "16.b", actionId: "btg_create_pix_instant_collection", label: "BTG gerar cobrança Pix", availability: "partial", note: "Cobrança Pix disponível como API complementar." },
+    { classification: "16.b", actionId: "btg_create_pix_instant_collection", label: "BTG gerar cobrança Pix", availability: "available", note: "Cobrança Pix disponível na integração financeira." },
     { classification: "16.c", actionId: "step16_accounts_gap", label: "Onboarding de conta original", availability: "gap", note: "Accounts onboarding ainda não externalizado." },
   ] },
   { id: 17, app: "Ambos", title: "Consultar histórico de resgates", objective: "Pessoa ou empresa consulta histórico de resgates e eventos.", availability: "gap", entries: [
@@ -1915,7 +1915,7 @@ export function BeginnerTestGuide({ walletKind, screens = [], evidences = {}, ru
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div>
               <h3 className="text-lg font-bold text-slate-950">Checklist visual dos 17 passos</h3>
-              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa um dos 17 passos canônicos. Quando houver múltiplas APIs no mesmo passo, elas aparecem como passo.a, passo.b, passo.c e assim sucessivamente. Etapas sem API externa são marcadas como API ausente ou interna.</p>
+              <p className="mt-1 max-w-3xl text-sm leading-6 text-slate-600">Cada linha representa um dos 17 passos canônicos. Quando houver múltiplas APIs no mesmo passo, elas aparecem como passo.a, passo.b, passo.c e assim sucessivamente. OTP manual, identificador obrigatório ou permissão do ambiente são tratados como pré-requisitos funcionais da chamada, não como ausência de API.</p>
             </div>
             <Badge className="bg-[#1351B4] text-white">{doneOrReviewed} de {checklistItems.length} passos revisados</Badge>
           </div>

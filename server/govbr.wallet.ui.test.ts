@@ -1288,4 +1288,16 @@ describe("GovBR Wallet API response panels", () => {
     expect(getVisualStatus(executableScreen as never, { ok: true, status: "executed" } as Evidence, undefined)).toBe("done");
     expect(getVisualStatus(executableScreen as never, { ok: false, status: "failed" } as Evidence, undefined)).toBe("failed");
   });
+
+  it("classifica OTP manual e endpoints executáveis como APIs disponíveis, não como parciais", () => {
+    const step2 = canonicalJourneySteps.find(step => step.id === 2);
+    const step14 = canonicalJourneySteps.find(step => step.id === 14);
+
+    expect(step2?.availability).toBe("available");
+    expect(step2?.objective).toContain("OTP manual");
+    expect(step2?.entries.map(entry => entry.availability)).toEqual(["available", "available", "available", "available"]);
+    expect(step2?.entries.find(entry => entry.actionId === "step2_person_send_code")?.note).toContain("requisito funcional de segurança");
+    expect(step14?.availability).toBe("available");
+    expect(step14?.entries.every(entry => getDisplayApiAvailability(entry, []) === "available")).toBe(true);
+  });
 });

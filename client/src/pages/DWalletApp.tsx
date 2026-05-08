@@ -49,8 +49,8 @@ const statusText: Record<VisualStatus, string> = {
 
 const apiStatusText = {
   external: "API externa",
-  partial: "API parcial",
-  manual: "Ação manual",
+  partial: "API condicionada",
+  manual: "API com OTP manual",
   internal: "API interna",
   gap: "API faltante",
 };
@@ -61,9 +61,9 @@ const personalScreens: ScreenConfig[] = [
   { id: "carteira", title: "Minha carteira", subtitle: "Consulta dados pessoais, certificados e produtos disponíveis para solicitação de dados.", actionId: "step5_person_catalog", apiStatus: "external", fields: [] },
   { id: "solicitacoes", title: "Solicitar dados", subtitle: "Envia data request para a empresa criada na Business dWallet.", actionId: "step6_create_data_request", apiStatus: "external", fields: [{ key: "businessId", label: "Business ID", placeholder: "Gerado no cadastro empresarial", required: true }] },
   { id: "dsp", title: "Planos DSP", subtitle: "Lista planos comerciais e cria uma conta DSP quando disponível.", actionId: "step10_commercial_dsps", apiStatus: "external", fields: [] },
-  { id: "ofertas", title: "Ofertas e aceite", subtitle: "Visualiza ofertas retornadas pela API e tenta registrar aceite quando há offerId utilizável.", actionId: "step12_person_offers", apiStatus: "partial", fields: [{ key: "offerId", label: "Offer ID", placeholder: "Preenchido pelo passo 12 quando disponível", required: true }] },
+  { id: "ofertas", title: "Ofertas e aceite", subtitle: "Visualiza ofertas retornadas pela API e tenta registrar aceite quando há offerId utilizável.", actionId: "step12_person_offers", apiStatus: "external", fields: [{ key: "offerId", label: "Offer ID", placeholder: "Preenchido pelo passo 12 quando disponível", required: true }] },
   { id: "checkout", title: "Carrinho e checkout", subtitle: "Tela operacional para evidenciar a lacuna de criação externa de ofertas/carrinho.", actionId: "step11_business_offers_gap", apiStatus: "gap", fields: [] },
-  { id: "extrato", title: "Extrato", subtitle: "Consulta extrato financeiro parcial por contas DSP conhecidas.", actionId: "step14_wallet_statement", apiStatus: "partial", fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Gerada na adesão ao DSP", required: true }] },
+  { id: "extrato", title: "Extrato", subtitle: "Consulta extrato financeiro por contas DSP conhecidas.", actionId: "step14_wallet_statement", apiStatus: "external", fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Gerada na adesão ao DSP", required: true }] },
   { id: "resgate", title: "Resgate", subtitle: "Registra que o resgate depende de APIs internas, não externalizadas para a sandbox atual.", actionId: "step15_withdrawal_internal", apiStatus: "internal", fields: [] },
   { id: "pix", title: "PIX e conta bancária", subtitle: "Registra ausência de API externa para cadastro de chave PIX ou conta bancária.", actionId: "step16_accounts_gap", apiStatus: "gap", fields: [] },
   { id: "historico", title: "Histórico de resgates", subtitle: "Registra ausência de endpoint externo para histórico de resgates.", actionId: "step17_history_gap", apiStatus: "gap", fields: [] },
@@ -77,9 +77,9 @@ const businessScreens: ScreenConfig[] = [
   { id: "produtos", title: "Produtos e catálogo", subtitle: "Consulta produtos existentes e cria produto de marketplace quando há permissão.", actionId: "step4_list_products", apiStatus: "external", fields: [{ key: "businessId", label: "Business ID", placeholder: "Gerado no cadastro empresarial", required: true }] },
   { id: "planos", title: "Planos comerciais", subtitle: "Consulta planos DSP aplicáveis para a operação financeira da empresa e para a etapa de adesão da pessoa.", actionId: "step10_commercial_dsps", apiStatus: "external", fields: [] },
   { id: "solicitacoes", title: "Solicitações de dados", subtitle: "Lista e aceita solicitações recebidas da Personal dWallet.", actionId: "step7_list_business_requests", apiStatus: "external", fields: [{ key: "businessId", label: "Business ID", placeholder: "Gerado no cadastro empresarial", required: true }] },
-  { id: "certificados", title: "Certificados empresariais", subtitle: "Consulta certificados associados à empresa, quando autorizados pela sandbox.", actionId: "step9_business_certificates", apiStatus: "partial", fields: [] },
+  { id: "certificados", title: "Certificados empresariais", subtitle: "Consulta certificados associados à empresa, quando autorizados pela sandbox.", actionId: "step9_business_certificates", apiStatus: "external", fields: [] },
   { id: "ofertas", title: "Ofertas comerciais", subtitle: "Mostra lacuna de endpoint externo para criação/publicação de ofertas.", actionId: "step11_business_offers_gap", apiStatus: "gap", fields: [] },
-  { id: "checkout", title: "Carrinho e checkout Business", subtitle: "Tela operacional para acompanhamento financeiro quando houver APIs externalizadas.", actionId: "step14_wallet_statement", apiStatus: "partial", fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Conta DSP conhecida", required: true }] },
+  { id: "checkout", title: "Carrinho e checkout Business", subtitle: "Tela operacional para acompanhamento financeiro com endpoint de contas DSP executável.", actionId: "step14_wallet_statement", apiStatus: "external", fields: [{ key: "dspAccountId", label: "Conta DSP", placeholder: "Conta DSP conhecida", required: true }] },
   { id: "operacoes", title: "Acompanhamento de operações", subtitle: "Registra resgates, contas e histórico como dependências de APIs internas ou faltantes.", actionId: "step17_history_gap", apiStatus: "gap", fields: [] },
 ];
 
