@@ -430,8 +430,9 @@ const actions: JourneyAction[] = [
     method: "POST",
     path: "/v1/dwallet/employee/signup",
     status: "external",
+    requiresM2M: true,
     includeRegion: true,
-    description: "Cria o usuário colaborador que representa a empresa na jornada Business dWallet.",
+    description: "Cria o usuário colaborador que representa a empresa na jornada Business dWallet usando o token M2M já gerado no Passo 0.",
     buildBody: state => ({ email: state.employeeEmail, password: state.employeePassword || DEFAULT_PASSWORD, firstName: state.employeeFirstName || "Maria", lastName: state.employeeLastName || "Silva", phoneNumber: state.employeePhone || "+5511999990001", address: { state: state.businessState || "SP" } }),
   },
   {
@@ -496,8 +497,9 @@ const actions: JourneyAction[] = [
     method: "POST",
     path: "/v1/dwallet/person/signup",
     status: "external",
+    requiresM2M: true,
     includeRegion: true,
-    description: "Cria a conta da pessoa física que será usada nos passos da Personal dWallet.",
+    description: "Cria a conta da pessoa física que será usada nos passos da Personal dWallet usando o token M2M já gerado no Passo 0.",
     buildBody: state => ({ email: state.personEmail, password: state.personPassword || DEFAULT_PASSWORD, firstName: state.personFirstName || "João", lastName: state.personLastName || "Santos", phoneNumber: state.personPhone || "+5511999990002", address: { state: state.personState || "SP" } }),
   },
   {

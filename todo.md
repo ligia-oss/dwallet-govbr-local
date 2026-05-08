@@ -347,3 +347,6 @@
 - [x] Corrigir bloqueio indevido dos passos seguintes após criar e entrar na BdW/PdW quando todas as variáveis necessárias estão presentes.
 - [x] Atualizar testes automatizados para cobrir criação/entrada na wallet e desbloqueio das APIs subsequentes.
 
+- [x] Investigar a falha de execução do Passo 1 após geração bem-sucedida do token M2M no Passo 0.
+- [x] Corrigir contrato, headers, token ou variáveis do Passo 1 para permitir continuidade do teste após o Passo 0.
+- [x] Atualizar testes automatizados para cobrir Passo 0 bem-sucedido seguido de execução do Passo 1.

@@ -32,9 +32,17 @@ describe("execução Dataprev", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("executa uma ação externa com sucesso e sanitiza cabeçalhos sensíveis", async () => {
+  it("executa o Passo 1 após Passo 0 bem-sucedido usando o token M2M no header Authorization", async () => {
     const caller = appRouter.createCaller(ctx);
-    globalThis.fetch = vi.fn(async () => jsonResponse(201, { id: "employee-1", tokens: { accessToken: "eyJabc.def.ghi" } })) as any;
+    const calls: Array<{ url: string; headers: Record<string, string> }> = [];
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      calls.push({ url, headers: init?.headers as Record<string, string> });
+      if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "eyJpasso0.m2m.jwt", expires_in: 3600 });
+      return jsonResponse(201, { id: "employee-1", tokens: { accessToken: "eyJabc.def.ghi" } });
+    }) as any;
+
+    await caller.dataprev.authenticateM2M();
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step1_employee_signup",
@@ -44,6 +52,8 @@ describe("execução Dataprev", () => {
     expect(evidence.status).toBe("executed");
     expect(evidence.ok).toBe(true);
     expect(evidence.httpStatus).toBe(201);
+    expect(calls[1].url).toBe("https://sandbox.test.local/v1/dwallet/employee/signup");
+    expect(calls[1].headers.Authorization).toBe("Bearer eyJpasso0.m2m.jwt");
     expect(evidence.requestHeaders?.["x-api-key"]).toBe("<REDACTED>");
     expect(JSON.stringify(evidence.responseBody)).not.toContain("eyJabc.def.ghi");
   });
@@ -51,10 +61,14 @@ describe("execução Dataprev", () => {
   it("usa variáveis editáveis no cadastro Personal e redige senha na evidência", async () => {
     const caller = appRouter.createCaller(ctx);
     let capturedBody: any;
-    globalThis.fetch = vi.fn(async (_input: RequestInfo | URL, init?: RequestInit) => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const url = String(input);
+      if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "eyJperson.signup.m2m", expires_in: 3600 });
       capturedBody = JSON.parse(String(init?.body));
       return jsonResponse(201, { id: "person-1" });
     }) as any;
+
+    await caller.dataprev.authenticateM2M();
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step2_person_signup",
@@ -127,7 +141,13 @@ describe("execução Dataprev", () => {
 
   it("preserva evidência de falha quando a API responde fora da faixa esperada", async () => {
     const caller = appRouter.createCaller(ctx);
-    globalThis.fetch = vi.fn(async () => jsonResponse(500, { error: "sandbox indisponível" })) as any;
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "eyJm2m.failure.path", expires_in: 3600 });
+      return jsonResponse(500, { error: "sandbox indisponível" });
+    }) as any;
+
+    await caller.dataprev.authenticateM2M();
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step1_employee_signup",
@@ -142,7 +162,13 @@ describe("execução Dataprev", () => {
 
   it("explica Forbidden em cadastro como provável divergência de DATAPREV_API_KEY", async () => {
     const caller = appRouter.createCaller(ctx);
-    globalThis.fetch = vi.fn(async () => jsonResponse(403, { message: "Forbidden" })) as any;
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/oauth2/token")) return jsonResponse(200, { access_token: "eyJm2m.forbidden.path", expires_in: 3600 });
+      return jsonResponse(403, { message: "Forbidden" });
+    }) as any;
+
+    await caller.dataprev.authenticateM2M();
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step2_person_signup",
