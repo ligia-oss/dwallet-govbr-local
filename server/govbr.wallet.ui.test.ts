@@ -201,7 +201,10 @@ describe("GovBR Wallet API response panels", () => {
     expect(source).toContain("Adicionar variáveis");
     expect(source).toContain("/business-govbr?tab=variaveis");
     expect(source).toContain("IDs de dWallet®");
-    expect(source).toContain("style={{ height: \"54px\" }}");
+    expect(source).toContain("style={{ height: \"75px\" }}");
+    expect(source).toContain("style={{ height: \"72px\" }}");
+    expect(source).toContain("Experiência empresarial com mockup de celular, onboarding e carteira de negócios</CardDescription>");
+    expect(source).toContain("Experiência da pessoa física com mockup de celular, telas montadas e evidências sanitizadas</CardDescription>");
     expect(source.indexOf("Business dWallet GovBR")).toBeLessThan(source.indexOf("Personal dWallet GovBR"));
   });
 

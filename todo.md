@@ -360,3 +360,7 @@
 - [x] Reclassificar passos/APIs considerando OTP manual como requisito funcional de segurança, não como indisponibilidade ou parcialidade.
 - [x] Alterar somente metadados de classificação e textos do front que exibem disponibilidade, sem modificar contratos, payloads ou execução das APIs.
 - [x] Atualizar testes de renderização/classificação para refletir a nova premissa e validar que o funcionamento da aplicação não foi afetado.
+
+- [x] Verificar as edições visuais aplicadas em `client/src/pages/Home.tsx`, incluindo alturas ajustadas e remoção de pontos finais nos textos dos cards.
+- [x] Executar validações técnicas proporcionais após as edições visuais da Home para confirmar ausência de regressões.
+- [x] Salvar checkpoint da versão com as edições visuais verificadas.

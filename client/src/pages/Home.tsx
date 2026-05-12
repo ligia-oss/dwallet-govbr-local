@@ -65,12 +65,12 @@ export default function Home() {
 
         <div className="grid gap-5 lg:grid-cols-2">
           <Card className="overflow-hidden border-[#168821]/30 bg-white shadow-sm">
-            <CardHeader className="govbr-hero-business text-white" style={{ height: "54px" }}>
+            <CardHeader className="govbr-hero-business text-white" style={{ height: "75px" }}>
               <div className="flex items-center gap-3">
                 <Building2 className="h-6 w-6 text-[#FFCD07]" />
                 <div style={{ marginTop: "11px" }}>
                   <CardTitle>Business dWallet GovBR</CardTitle>
-                  <CardDescription className="text-blue-50">Experiência empresarial com mockup de celular, onboarding e carteira de negócios.</CardDescription>
+                  <CardDescription className="text-blue-50">Experiência empresarial com mockup de celular, onboarding e carteira de negócios</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -81,12 +81,12 @@ export default function Home() {
           </Card>
 
           <Card className="overflow-hidden border-[#1351B4]/30 bg-white shadow-sm">
-            <CardHeader className="govbr-hero-personal text-white" style={{ height: "54px" }}>
+            <CardHeader className="govbr-hero-personal text-white" style={{ height: "72px" }}>
               <div className="flex items-center gap-3">
                 <Smartphone className="h-6 w-6 text-[#FFCD07]" />
-                <div style={{ paddingTop: "10px" }}>
+                <div style={{ paddingTop: "10px", height: "61px" }}>
                   <CardTitle>Personal dWallet GovBR</CardTitle>
-                  <CardDescription className="text-blue-50">Experiência da pessoa física com mockup de celular, telas montadas e evidências sanitizadas.</CardDescription>
+                  <CardDescription className="text-blue-50">Experiência da pessoa física com mockup de celular, telas montadas e evidências sanitizadas</CardDescription>
                 </div>
               </div>
             </CardHeader>
