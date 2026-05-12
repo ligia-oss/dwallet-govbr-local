@@ -2328,6 +2328,7 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const executeAction = trpc.dataprev.executeAction.useMutation();
   const executeBtgAction = trpc.btg.executeAction.useMutation();
   const authenticateM2M = trpc.dataprev.authenticateM2M.useMutation();
+  const clearM2MTokenMutation = trpc.dataprev.clearM2MToken.useMutation();
   const requestedTab = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("tab") : null;
   const initialTab = requestedTab === "variaveis" || requestedTab === "credenciais" ? "variaveis" : "tela";
   const persistedRun = useMemo(() => readPersistedWalletRun(kind), [kind]);
@@ -2419,6 +2420,8 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   };
 
   const clearDataprevCredentials = () => {
+    // Limpar token do servidor e banco de dados
+    clearM2MTokenMutation.mutate({ credentials: buildDataprevCredentialsInput(dataprevCredentials) });
     clearPersistedDataprevCredentials();
     clearPersistedM2MTokenStatus();
     setDataprevCredentials({ ...EMPTY_DATAPREV_CREDENTIALS });
@@ -2430,6 +2433,8 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
       delete next.m2mActive;
       return next;
     });
+    // Refetch metadata para refletir o estado limpo
+    void metadata.refetch();
   };
 
   const updateBtgFutureInfo = (key: BtgFutureInfoKey, value: string) => {

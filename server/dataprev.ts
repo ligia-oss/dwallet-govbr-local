@@ -1,5 +1,6 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { z } from "zod";
+import { deleteM2MToken, loadM2MToken, upsertM2MToken } from "./db";
 import { publicProcedure, router } from "./_core/trpc";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -320,8 +321,24 @@ async function requestM2MToken(forceRefresh = false, credentials?: DataprevCrede
     throw new Error("Credenciais DATAPREV_* não estão configuradas no servidor.");
   }
   const isVitest = Boolean(process.env.VITEST) || process.env.NODE_ENV === "test";
-  if (!forceRefresh && !isVitest && hasActiveM2MCache(credentials) && m2mCache) return { token: m2mCache.token, expiresAt: m2mCache.expiresAt, handle: m2mCache.handle, reused: true };
+  const scope = m2mCredentialScope(credentials);
 
+  // 1. Verificar cache em memória (mais rápido)
+  if (!forceRefresh && !isVitest && hasActiveM2MCache(credentials) && m2mCache) {
+    return { token: m2mCache.token, expiresAt: m2mCache.expiresAt, handle: m2mCache.handle, reused: true };
+  }
+
+  // 2. Verificar cache no banco de dados (persiste entre reinicializações)
+  if (!forceRefresh && !isVitest) {
+    const dbCached = await loadM2MToken(scope);
+    if (dbCached) {
+      const expiresAtMs = dbCached.expiresAt.getTime();
+      m2mCache = { token: dbCached.token, expiresAt: expiresAtMs, handle: dbCached.tokenHandle, credentialScope: scope };
+      return { token: dbCached.token, expiresAt: expiresAtMs, handle: dbCached.tokenHandle, reused: true };
+    }
+  }
+
+  // 3. Buscar novo token na API
   const response = await fetch(m2mAuthUrl(credentials), {
     method: "POST",
     headers: {
@@ -340,13 +357,14 @@ async function requestM2MToken(forceRefresh = false, credentials?: DataprevCrede
   }
   const expiresAt = Date.now() + Number(data.expires_in || 3600) * 1000;
   const handle = randomUUID();
+
   if (!isVitest || forceRefresh) {
-    m2mCache = {
-      token: data.access_token,
-      expiresAt,
-      handle,
-      credentialScope: m2mCredentialScope(credentials),
-    };
+    // Atualizar cache em memória
+    m2mCache = { token: data.access_token, expiresAt, handle, credentialScope: scope };
+    // Persistir no banco de dados (não bloqueia a resposta)
+    upsertM2MToken({ credentialScope: scope, tokenHandle: handle, token: data.access_token, expiresAt: new Date(expiresAt) }).catch(err =>
+      console.error("[M2M] Falha ao persistir token no banco:", err)
+    );
   }
   return { token: data.access_token, expiresAt, handle, reused: false };
 }
@@ -1009,18 +1027,30 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
 }
 
 export const dataprevRouter = router({
-  metadata: publicProcedure.query(() => ({
-    credentialsConfigured: Boolean(env().baseUrl && env().apiKey && env().clientId && env().clientSecret),
-    baseUrl: env().baseUrl,
-    m2mToken: m2mCache ? {
-      tokenHandle: m2mCache.handle,
-      expiresAt: new Date(m2mCache.expiresAt).toISOString(),
-      active: m2mCache.expiresAt > Date.now() + 60_000,
-      expiresInSeconds: Math.max(0, Math.floor((m2mCache.expiresAt - Date.now()) / 1000)),
-    } : (clearExpiredM2MCache(), null),
-    initialState: initialState(),
-    steps: classifyJourneySteps(steps),
-  })),
+  metadata: publicProcedure.query(async () => {
+    clearExpiredM2MCache();
+    // Se não há cache em memória, tentar carregar do banco de dados
+    if (!m2mCache) {
+      const scope = m2mCredentialScope(undefined);
+      const dbCached = await loadM2MToken(scope);
+      if (dbCached) {
+        const expiresAtMs = dbCached.expiresAt.getTime();
+        m2mCache = { token: dbCached.token, expiresAt: expiresAtMs, handle: dbCached.tokenHandle, credentialScope: scope };
+      }
+    }
+    return {
+      credentialsConfigured: Boolean(env().baseUrl && env().apiKey && env().clientId && env().clientSecret),
+      baseUrl: env().baseUrl,
+      m2mToken: m2mCache ? {
+        tokenHandle: m2mCache.handle,
+        expiresAt: new Date(m2mCache.expiresAt).toISOString(),
+        active: m2mCache.expiresAt > Date.now() + 60_000,
+        expiresInSeconds: Math.max(0, Math.floor((m2mCache.expiresAt - Date.now()) / 1000)),
+      } : null,
+      initialState: initialState(),
+      steps: classifyJourneySteps(steps),
+    };
+  }),
   authenticateM2M: publicProcedure
     .input(z.object({ credentials: credentialsInputSchema }).optional())
     .mutation(async ({ input }) => authenticateM2MExplicitly(input?.credentials)),
@@ -1030,6 +1060,18 @@ export const dataprevRouter = router({
       const action = actions.find(item => item.id === input.actionId);
       if (!action) throw new Error(`Ação não mapeada: ${input.actionId}`);
       return execute(action, (input.state || {}) as RunState, input.credentials);
+    }),
+  clearM2MToken: publicProcedure
+    .input(z.object({ credentials: credentialsInputSchema }).optional())
+    .mutation(async ({ input }) => {
+      const scope = m2mCredentialScope(input?.credentials);
+      m2mCache = null;
+      await deleteM2MToken(scope);
+      // Também limpar o escopo padrão (Secrets do servidor) se credenciais temporárias foram usadas
+      if (scope !== m2mCredentialScope(undefined)) {
+        await deleteM2MToken(m2mCredentialScope(undefined));
+      }
+      return { ok: true, message: "Token M2M removido do servidor e do banco de dados." };
     }),
 });
 

@@ -26,3 +26,21 @@ export type User = typeof users.$inferSelect;
 export type InsertUser = typeof users.$inferInsert;
 
 // TODO: Add your tables here
+
+/**
+ * Cache persistente do token M2M Dataprev.
+ * Sobrevive a reinicializações do servidor Express/Node.
+ * Apenas um registro por escopo de credencial (credentialScope = SHA256 das credenciais).
+ */
+export const m2mTokenCache = mysqlTable("m2mTokenCache", {
+  id: int("id").autoincrement().primaryKey(),
+  credentialScope: varchar("credentialScope", { length: 64 }).notNull().unique(),
+  tokenHandle: varchar("tokenHandle", { length: 64 }).notNull(),
+  encryptedToken: text("encryptedToken").notNull(),
+  expiresAt: timestamp("expiresAt").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+  updatedAt: timestamp("updatedAt").defaultNow().onUpdateNow().notNull(),
+});
+
+export type M2MTokenCache = typeof m2mTokenCache.$inferSelect;
+export type InsertM2MTokenCache = typeof m2mTokenCache.$inferInsert;

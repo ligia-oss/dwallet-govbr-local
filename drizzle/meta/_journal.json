@@ -8,6 +8,13 @@
       "when": 1777936897661,
       "tag": "0000_powerful_raider",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1778618242642,
+      "tag": "0001_bitter_omega_red",
+      "breakpoints": true
     }
   ]
 }

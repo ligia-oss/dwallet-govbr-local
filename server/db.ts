@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, users } from "../drizzle/schema";
+import { InsertUser, m2mTokenCache, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -90,3 +90,79 @@ export async function getUserByOpenId(openId: string) {
 }
 
 // TODO: add feature queries here as your schema grows.
+
+/**
+ * Persiste o token M2M no banco de dados para sobreviver a reinicializações do servidor.
+ * O token é armazenado como texto plano (já é um JWT opaco; o banco não é exposto publicamente).
+ */
+export async function upsertM2MToken(params: {
+  credentialScope: string;
+  tokenHandle: string;
+  token: string;
+  expiresAt: Date;
+}): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot persist M2M token: database not available");
+    return;
+  }
+  try {
+    await db
+      .insert(m2mTokenCache)
+      .values({
+        credentialScope: params.credentialScope,
+        tokenHandle: params.tokenHandle,
+        encryptedToken: params.token,
+        expiresAt: params.expiresAt,
+      })
+      .onDuplicateKeyUpdate({
+        set: {
+          tokenHandle: params.tokenHandle,
+          encryptedToken: params.token,
+          expiresAt: params.expiresAt,
+        },
+      });
+  } catch (error) {
+    console.error("[Database] Failed to persist M2M token:", error);
+  }
+}
+
+/**
+ * Carrega o token M2M do banco de dados se ainda estiver válido (expiração > agora + 60s).
+ */
+export async function loadM2MToken(credentialScope: string): Promise<{ token: string; tokenHandle: string; expiresAt: Date } | null> {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const rows = await db
+      .select()
+      .from(m2mTokenCache)
+      .where(eq(m2mTokenCache.credentialScope, credentialScope))
+      .limit(1);
+    if (!rows.length) return null;
+    const row = rows[0];
+    const expiresAt = new Date(row.expiresAt);
+    // Considera inválido se expira em menos de 60 segundos
+    if (expiresAt.getTime() <= Date.now() + 60_000) {
+      await db.delete(m2mTokenCache).where(eq(m2mTokenCache.credentialScope, credentialScope));
+      return null;
+    }
+    return { token: row.encryptedToken, tokenHandle: row.tokenHandle, expiresAt };
+  } catch (error) {
+    console.error("[Database] Failed to load M2M token:", error);
+    return null;
+  }
+}
+
+/**
+ * Remove o token M2M do banco de dados para um dado escopo de credencial.
+ */
+export async function deleteM2MToken(credentialScope: string): Promise<void> {
+  const db = await getDb();
+  if (!db) return;
+  try {
+    await db.delete(m2mTokenCache).where(eq(m2mTokenCache.credentialScope, credentialScope));
+  } catch (error) {
+    console.error("[Database] Failed to delete M2M token:", error);
+  }
+}

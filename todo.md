@@ -364,3 +364,20 @@
 - [x] Verificar as edições visuais aplicadas em `client/src/pages/Home.tsx`, incluindo alturas ajustadas e remoção de pontos finais nos textos dos cards.
 - [x] Executar validações técnicas proporcionais após as edições visuais da Home para confirmar ausência de regressões.
 - [x] Salvar checkpoint da versão com as edições visuais verificadas.
+
+- [ ] Diagnosticar falha do Passo 0 (geração do token M2M): causa raiz no backend e no frontend.
+- [ ] Diagnosticar por que alterações de layout afetam execução de APIs (vazamento de estado entre componentes).
+- [ ] Corrigir armazenamento persistente do token M2M no servidor com expiração dinâmica baseada no retorno da API.
+- [ ] Garantir que o token M2M seja reutilizado em todas as chamadas protegidas enquanto válido e renovado automaticamente ao expirar.
+- [ ] Isolar estado de execução de APIs do estado de layout para evitar regressões cruzadas ao editar componentes visuais.
+- [ ] Executar e validar todos os passos da jornada com testes automatizados após as correções.
+- [ ] Salvar checkpoint da versão validada e disponibilizar para publicação.
+
+- [x] Diagnosticar causa raiz da falha do Passo 0: token M2M em memória era perdido a cada reinicialização do servidor Node (tsx watch).
+- [x] Implementar persistência do token M2M no banco de dados MySQL via tabela `m2mTokenCache` para sobreviver a reinicializações do servidor.
+- [x] Atualizar `requestM2MToken` para verificar banco de dados como fallback quando cache em memória está vazio.
+- [x] Atualizar procedimento `metadata` para carregar token do banco de dados quando cache em memória está vazio.
+- [x] Adicionar procedimento `clearM2MToken` ao router para limpar token do banco de dados e da memória ao mesmo tempo.
+- [x] Atualizar frontend para chamar `clearM2MToken` do servidor ao limpar credenciais Dataprev.
+- [x] Criar testes Vitest para persistência do token M2M: upsert, load, delete e fluxo completo.
+- [x] Executar todos os 81 testes automatizados e confirmar que todos passam.
