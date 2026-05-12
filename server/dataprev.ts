@@ -353,7 +353,13 @@ async function requestM2MToken(forceRefresh = false, credentials?: DataprevCrede
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || typeof data.access_token !== "string") {
-    throw new Error(`Falha ao obter token M2M: HTTP ${response.status}`);
+    // Preservar o responseBody real para diagnóstico
+    const apiErrorBody = JSON.stringify(data) !== "{}" ? data : undefined;
+    const apiErrorMsg = apiErrorBody ? ` — resposta da API: ${JSON.stringify(apiErrorBody)}` : "";
+    const err = new Error(`Falha ao obter token M2M: HTTP ${response.status}${apiErrorMsg}`);
+    (err as Error & { apiResponseBody?: unknown; httpStatus?: number }).apiResponseBody = apiErrorBody;
+    (err as Error & { apiResponseBody?: unknown; httpStatus?: number }).httpStatus = response.status;
+    throw err;
   }
   const expiresAt = Date.now() + Number(data.expires_in || 3600) * 1000;
   const handle = randomUUID();
@@ -420,6 +426,7 @@ async function authenticateM2MExplicitly(credentials?: DataprevCredentialsInput)
     const message = error instanceof Error ? error.message : "Falha desconhecida ao obter token M2M.";
     const statusMatch = message.match(/HTTP\s+(\d+)/i);
     const status = statusMatch ? Number(statusMatch[1]) : undefined;
+    const apiResponseBody = (error as Error & { apiResponseBody?: unknown }).apiResponseBody;
     return {
       status: "failed",
       ok: false,
@@ -429,7 +436,7 @@ async function authenticateM2MExplicitly(credentials?: DataprevCredentialsInput)
       active: false,
       requestHeaders: sanitizeDataprevEvidence(headers({ content: true }, credentials), 0, sensitiveValues(env(credentials))) as Record<string, string>,
       requestBody: sanitizeDataprevEvidence(requestBody, 0, sensitiveValues(env(credentials))) as JsonValue,
-      responseBody: { etapa: "autenticacao_tecnica_m2m", erro: message, diagnostico: status ? authFailureMessage(status, "m2m") : "Não foi possível obter token M2M no servidor.", diagnostics },
+      responseBody: sanitizeDataprevEvidence({ etapa: "autenticacao_tecnica_m2m", erro: message, respostaApi: apiResponseBody, diagnostico: status ? authFailureMessage(status, "m2m") : "N\u00e3o foi poss\u00edvel obter token M2M no servidor.", diagnostics }, 0, sensitiveValues(env(credentials))),
       message: status ? authFailureMessage(status, "m2m") : message,
       executedAt,
     };
@@ -450,7 +457,10 @@ function headers(options: { m2m?: string; userToken?: string; region?: boolean; 
 function authFailureMessage(status: number, context: "m2m" | "api") {
   if (status !== 401 && status !== 403) return "A API respondeu fora da faixa esperada; a resposta foi preservada como evidência.";
   if (context === "m2m") {
-    return "A sandbox recusou a geração explícita do M2M token. Se o Postman funciona, preencha todos os campos temporários da aba Variáveis com o mesmo API URL, x-api-key, client_id e client_secret e clique em Gerar M2M token, ou atualize os Secrets publicados e publique novamente. Quando local funciona e publicado retorna 403, a causa provável é x-api-key/client_secret divergente, expirado ou sem permissão no runtime publicado.";
+    if (status === 403) {
+      return "HTTP 403 Forbidden: a API Dataprev recusou a autenticação M2M. Causas prováveis: (1) as credenciais DATAPREV_API_KEY / DATAPREV_CLIENT_ID / DATAPREV_CLIENT_SECRET configuradas nos Secrets do projeto publicado estão diferentes das que funcionam localmente \u2014 verifique e atualize os Secrets e republique; (2) o IP do servidor publicado não está na allowlist da API DrumWave/Dataprev \u2014 solicite ao time DrumWave que adicione o IP do servidor publicado; (3) as credenciais expiraram ou foram revogadas. Verifique o campo \u2018respostaApi\u2019 no responseBody para a mensagem exata retornada pela API.";
+    }
+    return "HTTP 401 Unauthorized: credenciais inválidas ou expiradas. Preencha os quatro campos temporários (API URL, x-api-key, Client ID, Client secret) com o conjunto completo do 1Password e clique em Gerar M2M token, ou atualize os Secrets publicados e republique.";
   }
   return "A sandbox recusou a chamada com Forbidden/Unauthorized. Para cadastro Personal/Business, isso normalmente indica DATAPREV_API_KEY inválida, divergente entre local e publicado, expirada ou sem permissão para a base configurada.";
 }

@@ -365,13 +365,13 @@
 - [x] Executar validações técnicas proporcionais após as edições visuais da Home para confirmar ausência de regressões.
 - [x] Salvar checkpoint da versão com as edições visuais verificadas.
 
-- [ ] Diagnosticar falha do Passo 0 (geração do token M2M): causa raiz no backend e no frontend.
-- [ ] Diagnosticar por que alterações de layout afetam execução de APIs (vazamento de estado entre componentes).
-- [ ] Corrigir armazenamento persistente do token M2M no servidor com expiração dinâmica baseada no retorno da API.
-- [ ] Garantir que o token M2M seja reutilizado em todas as chamadas protegidas enquanto válido e renovado automaticamente ao expirar.
-- [ ] Isolar estado de execução de APIs do estado de layout para evitar regressões cruzadas ao editar componentes visuais.
-- [ ] Executar e validar todos os passos da jornada com testes automatizados após as correções.
-- [ ] Salvar checkpoint da versão validada e disponibilizar para publicação.
+- [x] Diagnosticar falha do Passo 0 (geração do token M2M): causa raiz no backend e no frontend.
+- [x] Diagnosticar por que alterações de layout afetam execução de APIs (vazamento de estado entre componentes).
+- [x] Corrigir armazenamento persistente do token M2M no servidor com expiração dinâmica baseada no retorno da API.
+- [x] Garantir que o token M2M seja reutilizado em todas as chamadas protegidas enquanto válido e renovado automaticamente ao expirar.
+- [x] Isolar estado de execução de APIs do estado de layout para evitar regressões cruzadas ao editar componentes visuais.
+- [x] Executar e validar todos os passos da jornada com testes automatizados após as correções.
+- [x] Salvar checkpoint da versão validada e disponibilizar para publicação.
 
 - [x] Diagnosticar causa raiz da falha do Passo 0: token M2M em memória era perdido a cada reinicialização do servidor Node (tsx watch).
 - [x] Implementar persistência do token M2M no banco de dados MySQL via tabela `m2mTokenCache` para sobreviver a reinicializações do servidor.
@@ -381,3 +381,15 @@
 - [x] Atualizar frontend para chamar `clearM2MToken` do servidor ao limpar credenciais Dataprev.
 - [x] Criar testes Vitest para persistência do token M2M: upsert, load, delete e fluxo completo.
 - [x] Executar todos os 81 testes automatizados e confirmar que todos passam.
+
+- [x] Testar o Passo 0 M2M diretamente no servidor local e no ambiente publicado, capturando logs reais de erro.
+- [x] Identificar a causa raiz definitiva da falha do Passo 0 M2M com evidência de log ou resposta da API.
+- [x] Corrigir a causa raiz identificada no backend e/ou frontend.
+- [x] Validar a correção com testes automatizados e verificação visual.
+- [x] Salvar checkpoint e disponibilizar nova versão para publicação.
+
+- [x] Testar Passo 0 no ambiente publicado via console do navegador e capturar resposta real da API Dataprev (HTTP 403 Forbidden)
+- [x] Confirmar que o servidor local funciona (teste dataprev.secrets.test.ts passou em 2.3s) e que o 403 é exclusivo do ambiente publicado
+- [x] Preservar responseBody real da API Dataprev no erro (campo respostaApi) para diagnóstico no frontend
+- [x] Melhorar mensagem de erro 403 M2M com 3 causas prováveis: credenciais divergentes nos Secrets, IP não autorizado, credenciais expiradas
+- [x] Validar com 81 testes passando, TypeScript sem erros e build de produção concluído
