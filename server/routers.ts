@@ -6,6 +6,18 @@ import { dataprevRouter } from "./dataprev";
 import { btgRouter } from "./btg";
 
 export const appRouter = router({
+  // Endpoint de diagnóstico: retorna o IP de saída do servidor (útil para configurar allowlist)
+  diagnostics: router({
+    egressIp: publicProcedure.query(async () => {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json', { signal: AbortSignal.timeout(5000) });
+        const data = await res.json() as { ip: string };
+        return { ip: data.ip, note: 'Este é o IP de saída do servidor. Use-o para configurar a allowlist da API Dataprev/DrumWave.' };
+      } catch {
+        return { ip: null, note: 'Não foi possível determinar o IP de saída.' };
+      }
+    }),
+  }),
     // if you need to use socket.io, read and register route in server/_core/index.ts, all api should start with '/api/' so that the gateway can route correctly
   system: systemRouter,
   dataprev: dataprevRouter,

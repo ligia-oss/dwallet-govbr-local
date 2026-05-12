@@ -393,3 +393,7 @@
 - [x] Preservar responseBody real da API Dataprev no erro (campo respostaApi) para diagnóstico no frontend
 - [x] Melhorar mensagem de erro 403 M2M com 3 causas prováveis: credenciais divergentes nos Secrets, IP não autorizado, credenciais expiradas
 - [x] Validar com 81 testes passando, TypeScript sem erros e build de produção concluído
+
+- [x] Comparar diferenças entre pré-visualização e publicado: Secrets, variáveis de ambiente, URL da API, comportamento do servidor
+- [x] Identificar se o problema é de Secrets divergentes, variável de ambiente ausente ou outra causa no runtime publicado
+- [x] Corrigir a causa raiz e validar no ambiente publicado
