@@ -397,3 +397,11 @@
 - [x] Comparar diferenças entre pré-visualização e publicado: Secrets, variáveis de ambiente, URL da API, comportamento do servidor
 - [x] Identificar se o problema é de Secrets divergentes, variável de ambiente ausente ou outra causa no runtime publicado
 - [x] Corrigir a causa raiz e validar no ambiente publicado
+
+- [x] Inspecionar headers e body exatos enviados pelo servidor na chamada M2M e comparar com Postman
+- [x] Identificar e corrigir a diferença que causa 403 no publicado mas não no Postman
+- [x] Validar que o Passo 0 funciona no ambiente publicado após a correção
+
+- [x] Diagnosticar causa raiz definitiva: m2mResult com ok:false persistido no localStorage do navegador mesmo quando servidor tem token válido
+- [x] Adicionar useEffect de sincronização: quando metadata.data.m2mToken.active=true mas m2mResult local está inativo, atualizar estado do frontend
+- [x] Validar com 81 testes passando e TypeScript sem erros

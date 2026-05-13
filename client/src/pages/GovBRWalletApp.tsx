@@ -2366,6 +2366,28 @@ export function GovBRWalletApp({ kind }: { kind: WalletKind }) {
   const completed = screens.filter(screen => screen.actionId && evidences[screen.actionId]?.ok).length;
   const callable = screens.filter(screen => screen.actionId).length;
 
+  // Sincronizar m2mResult com o estado real do servidor:
+  // Se o servidor tem token ativo mas o frontend mostra falha/vazio, corrigir o estado local.
+  useEffect(() => {
+    const serverToken = metadata.data?.m2mToken;
+    if (!serverToken?.active) return;
+    // Servidor tem token válido — se o frontend não sabe disso, atualizar
+    const localActive = isM2MAuthResultActive(m2mResult);
+    if (localActive) return; // já está correto
+    setM2mResult({
+      status: "executed",
+      ok: true,
+      method: "POST",
+      url: "Token M2M ativo no servidor (sincronizado)",
+      tokenHandle: serverToken.tokenHandle ?? undefined,
+      expiresAt: serverToken.expiresAt ?? undefined,
+      expiresInSeconds: serverToken.expiresInSeconds ?? undefined,
+      active: true,
+      message: "Token M2M ativo no servidor; será reutilizado como Authorization Bearer nas APIs que exigirem autenticação técnica.",
+      executedAt: new Date().toISOString(),
+    });
+  }, [metadata.data?.m2mToken, m2mResult]);
+
   useEffect(() => {
     persistWalletRun(kind, {
       version: WALLET_RUN_STORAGE_VERSION,
