@@ -40,11 +40,15 @@ vi.mock("./db", async () => {
 });
 
 describe("Persistência do token M2M no banco de dados", () => {
+  const originalProxyUrl = process.env.DATAPREV_PROXY_URL;
+
   beforeEach(async () => {
     process.env.DATAPREV_BASE_URL = "https://sandbox.test.local";
     process.env.DATAPREV_API_KEY = "api-key-teste";
     process.env.DATAPREV_CLIENT_ID = "client-id-teste";
     process.env.DATAPREV_CLIENT_SECRET = "client-secret-teste";
+    // Garantir que o proxy não interfere nos testes unitários
+    delete process.env.DATAPREV_PROXY_URL;
     globalThis.fetch = originalFetch;
     vi.clearAllMocks();
     // Reconfigurar mocks do db após clearAllMocks para garantir que retornem Promises
@@ -57,6 +61,11 @@ describe("Persistência do token M2M no banco de dados", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
+    if (originalProxyUrl !== undefined) {
+      process.env.DATAPREV_PROXY_URL = originalProxyUrl;
+    } else {
+      delete process.env.DATAPREV_PROXY_URL;
+    }
   });
 
   it("authenticateM2M chama upsertM2MToken para persistir o token", async () => {
@@ -205,11 +214,15 @@ describe("Persistência do token M2M no banco de dados", () => {
 });
 
 describe("Fluxo completo: gerar, verificar e limpar token M2M", () => {
+  const originalProxyUrl2 = process.env.DATAPREV_PROXY_URL;
+
   beforeEach(async () => {
     process.env.DATAPREV_BASE_URL = "https://sandbox.test.local";
     process.env.DATAPREV_API_KEY = "api-key-teste";
     process.env.DATAPREV_CLIENT_ID = "client-id-teste";
     process.env.DATAPREV_CLIENT_SECRET = "client-secret-teste";
+    // Garantir que o proxy não interfere nos testes unitários
+    delete process.env.DATAPREV_PROXY_URL;
     globalThis.fetch = originalFetch;
     vi.clearAllMocks();
     // Reconfigurar mocks do db após clearAllMocks para garantir que retornem Promises
@@ -222,6 +235,11 @@ describe("Fluxo completo: gerar, verificar e limpar token M2M", () => {
   afterEach(() => {
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
+    if (originalProxyUrl2 !== undefined) {
+      process.env.DATAPREV_PROXY_URL = originalProxyUrl2;
+    } else {
+      delete process.env.DATAPREV_PROXY_URL;
+    }
   });
 
   it("gera token com expiração correta, persiste no banco e limpa corretamente", async () => {

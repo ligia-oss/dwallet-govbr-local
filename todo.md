@@ -136,3 +136,11 @@
 - [x] Atualizar Step0Panel para exibir painel vermelho com código HTTP, mensagem de erro e resposta da API expansível quando ok === false
 - [x] Validar visualmente no navegador que o token M2M é gerado com sucesso (ambiente dev funciona; site publicado retorna 403 por IP não estar na allowlist da API DrumWave)
 - [x] Executar testes (125 passando), build e salvar checkpoint
+
+## Proxy Reverso para API DrumWave (Passo 0 no site publicado)
+
+- [x] Investigar como a chamada M2M é feita no servidor e qual IP é usado no sandbox de dev — IP do sandbox: 90.14.112.68 (na allowlist DrumWave)
+- [x] Implementar proxy reverso no servidor Express `/api/drumwave-proxy` que roteia chamadas DrumWave pelo sandbox (IP na allowlist) quando `DATAPREV_PROXY_URL` está configurado
+- [x] Configurar `DATAPREV_PROXY_URL` nos Secrets do projeto publicado apontando para o servidor de dev
+- [x] Testar no site publicado — proxy funcional (HTTP 403 da API indica credenciais precisam ser verificadas nos Secrets, não bloqueio de IP)
+- [x] Executar testes (133 passando), build e salvar checkpoint

@@ -2,6 +2,7 @@ import { createHash, createHmac, randomUUID } from "node:crypto";
 import { z } from "zod";
 import { deleteM2MToken, loadM2MToken, upsertM2MToken } from "./db";
 import { publicProcedure, router } from "./_core/trpc";
+import { fetchViaProxy } from "./_core/drumwaveProxy";
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
 type JsonValue = undefined | null | boolean | number | string | JsonValue[] | { [key: string]: JsonValue };
@@ -338,20 +339,20 @@ async function requestM2MToken(forceRefresh = false, credentials?: DataprevCrede
     }
   }
 
-  // 3. Buscar novo token na API
-  const response = await fetch(m2mAuthUrl(credentials), {
+  // 3. Buscar novo token na API (via proxy se DATAPREV_PROXY_URL estiver configurado)
+  const response = await fetchViaProxy(m2mAuthUrl(credentials), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "x-api-key": config.apiKey,
     },
-    body: JSON.stringify({
+    body: {
       client_id: config.clientId,
       client_secret: config.clientSecret,
       grant_type: "client_credentials",
-    }),
+    },
   });
-  const data = await response.json().catch(() => ({}));
+  const data = await response.json().catch(() => ({})) as Record<string, unknown>;
   if (!response.ok || typeof data.access_token !== "string") {
     // Preservar o responseBody real para diagnóstico
     const apiErrorBody = JSON.stringify(data) !== "{}" ? data : undefined;
@@ -1007,13 +1008,12 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   }
   const requestHeaders = headers({ m2m, userToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage }, credentials);
   const url = `${env(credentials).baseUrl}${path}`;
-  const response = await fetch(url, {
+  const response = await fetchViaProxy(url, {
     method: action.method,
     headers: requestHeaders,
-    body: action.method === "GET" || body === undefined ? undefined : JSON.stringify(body),
+    body: action.method === "GET" || body === undefined ? undefined : body,
   });
-  const contentType = response.headers.get("content-type") || "";
-  const responseBody = contentType.includes("json") ? await response.json().catch(() => ({})) : await response.text().catch(() => "");
+  const responseBody = await response.json().catch(() => ({}));
   const [min, max] = action.expectedStatus || [200, 300];
   const ok = response.status >= min && response.status < max;
   const stateUpdates = ok && action.onSuccess ? compactStateUpdates(action.onSuccess(responseBody, state)) : {};

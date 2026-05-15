@@ -20,16 +20,26 @@ function jsonResponse(status: number, body: unknown) {
 }
 
 describe("execução Dataprev", () => {
+  const originalProxyUrl = process.env.DATAPREV_PROXY_URL;
+
   beforeEach(() => {
     process.env.DATAPREV_BASE_URL = "https://sandbox.test.local";
     process.env.DATAPREV_API_KEY = "api-key-teste";
     process.env.DATAPREV_CLIENT_ID = "client-id-teste";
     process.env.DATAPREV_CLIENT_SECRET = "client-secret-teste";
+    // Garantir que o proxy não interfere nos testes unitários
+    delete process.env.DATAPREV_PROXY_URL;
   });
 
   afterEach(() => {
     vi.restoreAllMocks();
     globalThis.fetch = originalFetch;
+    // Restaurar DATAPREV_PROXY_URL original
+    if (originalProxyUrl !== undefined) {
+      process.env.DATAPREV_PROXY_URL = originalProxyUrl;
+    } else {
+      delete process.env.DATAPREV_PROXY_URL;
+    }
   });
 
   it("executa o Passo 1 após Passo 0 bem-sucedido usando o token M2M no header Authorization", async () => {
