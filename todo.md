@@ -127,3 +127,12 @@
 - [x] Calcular automaticamente a próxima ação pendente para passos com múltiplas ações
 - [x] Adicionar sub-telas por ação para passos 2, 7 e 10 com campos e textos específicos
 - [x] Executar testes, build e salvar checkpoint
+
+## Correção do Passo 0 no site publicado
+
+- [x] Diagnosticar por que o Passo 0 não funciona quando acionado pelo site publicado — causa raiz: status de falha (ok: false) não era persistido no m2mStatus, portanto a UI não exibia nenhum feedback de erro
+- [x] Corrigir normalizePersistedM2MTokenStatus e persistM2MTokenStatus para aceitar e preservar status de falha com message, responseBody e httpStatus
+- [x] Atualizar readPersistedM2MTokenStatus para não remover status de falha do storage
+- [x] Atualizar Step0Panel para exibir painel vermelho com código HTTP, mensagem de erro e resposta da API expansível quando ok === false
+- [x] Validar visualmente no navegador que o token M2M é gerado com sucesso (ambiente dev funciona; site publicado retorna 403 por IP não estar na allowlist da API DrumWave)
+- [x] Executar testes (125 passando), build e salvar checkpoint

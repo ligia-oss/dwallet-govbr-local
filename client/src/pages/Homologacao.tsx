@@ -404,7 +404,17 @@ export default function Homologacao() {
         toast.success(lang === "pt" ? "Token M2M gerado com sucesso!" : "M2M Token generated successfully!");
         metadata.refetch();
       } else {
-        toast.error(result.message ?? (lang === "pt" ? "Falha ao gerar token M2M" : "Failed to generate M2M token"));
+        const failStatus = {
+          ok: false,
+          active: false,
+          savedAt: new Date().toISOString(),
+          message: result.message ?? (lang === "pt" ? "Falha ao gerar token M2M" : "Failed to generate M2M token"),
+          responseBody: (result as unknown as { responseBody?: unknown }).responseBody,
+          httpStatus: (result as unknown as { httpStatus?: number }).httpStatus,
+        };
+        setM2mStatus(failStatus);
+        persistM2MTokenStatus(failStatus);
+        toast.error(failStatus.message);
       }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Erro desconhecido");
@@ -785,10 +795,21 @@ function Step0Panel({
         </div>
       </div>
       <div className="p-6 space-y-5">
-        <div className={`rounded-lg p-4 border ${isActive ? "bg-emerald-50 border-emerald-200" : "bg-amber-50 border-amber-200"}`}>
+        <div className={`rounded-lg p-4 border ${
+          isActive ? "bg-emerald-50 border-emerald-200" :
+          (m2mStatus && !m2mStatus.ok) ? "bg-red-50 border-red-200" :
+          "bg-amber-50 border-amber-200"
+        }`}>
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-lg">{isActive ? "🟢" : "🟡"}</span>
-            <span className="font-semibold text-sm">{isActive ? t.tokenActive : t.tokenNone}</span>
+            <span className="text-lg">{isActive ? "🟢" : (m2mStatus && !m2mStatus.ok) ? "🔴" : "🟡"}</span>
+            <span className="font-semibold text-sm">
+              {isActive ? t.tokenActive : (m2mStatus && !m2mStatus.ok) ? (lang === "pt" ? "Falha na autenticação M2M" : "M2M Authentication Failed") : t.tokenNone}
+            </span>
+            {m2mStatus && !m2mStatus.ok && (m2mStatus as { httpStatus?: number }).httpStatus && (
+              <span className="ml-auto text-xs font-mono bg-red-100 text-red-700 px-2 py-0.5 rounded">
+                HTTP {(m2mStatus as { httpStatus?: number }).httpStatus}
+              </span>
+            )}
           </div>
           {isActive && m2mStatus && (
             <div className="text-xs text-gray-600 space-y-1">
@@ -798,6 +819,21 @@ function Step0Panel({
                 <div><span className="font-medium">{t.tokenExpiresIn}:</span> {m2mStatus.expiresInSeconds >= 60 ? `${Math.floor(m2mStatus.expiresInSeconds / 60)}${t.minutes}` : `${m2mStatus.expiresInSeconds}${t.seconds}`}</div>
               )}
             </div>
+          )}
+          {m2mStatus && !m2mStatus.ok && (m2mStatus as { message?: string }).message && (
+            <div className="text-xs text-red-700 mt-2 leading-relaxed">
+              {(m2mStatus as { message?: string }).message}
+            </div>
+          )}
+          {m2mStatus && !m2mStatus.ok && (m2mStatus as { responseBody?: unknown }).responseBody !== undefined && (
+            <details className="mt-3">
+              <summary className="text-xs font-semibold text-red-700 cursor-pointer hover:text-red-900">
+                {lang === "pt" ? "Ver resposta da API ▸" : "View API response ▸"}
+              </summary>
+              <pre className="mt-2 text-xs bg-red-100 text-red-800 rounded p-2 overflow-x-auto max-h-40 whitespace-pre-wrap break-all">
+                {JSON.stringify((m2mStatus as { responseBody?: unknown }).responseBody, null, 2)}
+              </pre>
+            </details>
           )}
         </div>
 
