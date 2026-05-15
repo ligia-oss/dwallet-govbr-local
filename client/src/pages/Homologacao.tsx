@@ -618,7 +618,7 @@ export default function Homologacao() {
 
           {/* ── Progress Tab ── */}
           <TabsContent value="progress" className="mt-0">
-            <div className="grid grid-cols-1 xl:grid-cols-[240px_1fr_340px] gap-6 items-start">
+            <div className="grid grid-cols-1 xl:grid-cols-[240px_minmax(0,1fr)_340px] gap-6 items-start min-w-0">
               {/* Timeline column */}
               <div>
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -674,7 +674,7 @@ export default function Homologacao() {
               </div>
 
               {/* Step detail column */}
-              <div>
+              <div className="min-w-0 overflow-hidden">
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   {activeStep === 0 ? (
                     <Step0Panel

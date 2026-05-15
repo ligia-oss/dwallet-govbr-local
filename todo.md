@@ -201,3 +201,12 @@
 - [x] Filtro aplicado em tempo real: mostrar apenas schemas que correspondem aos filtros selecionados
 - [x] Mesma melhoria visual na tela de seleção de schema (step3_select_schema)
 - [x] Executar testes, build e salvar checkpoint
+
+## Melhorias de Layout e Fluxo Clicável (Passos 3 e 4)
+- [x] Corrigir layout responsivo: mockup não deve exigir scroll horizontal ao ver passos 3 e 4
+- [x] Gerar imagens temáticas por categoria (Mobilidade, Telecom, Finanças, Saúde, Energia, Varejo, Localização, Perfil, Seguros, Emprego)
+- [x] Exibir imagem temática em cada card de schema e produto
+- [x] Schemas clicáveis: ao clicar, salva valueSchemaSid e avança para tela de seleção de produto
+- [x] Produtos clicáveis: ao clicar, monta tela de confirmação com schema + produto selecionados
+- [x] Tela de confirmação com botão "Confirmar" que executa API de criar commercial value schema
+- [x] Executar testes, build e salvar checkpoint

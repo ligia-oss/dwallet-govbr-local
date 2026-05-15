@@ -258,6 +258,32 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     resultBody: (r) => r.ok
       ? "Catálogo de produtos retornado pela sandbox."
       : r.message ?? "Não foi possível carregar os produtos.",
+    actionScreens: {
+      step4_list_products: {
+        appHeader: "Catálogo de produtos",
+        appLead: "Selecione um produto para criar o Commercial Value Schema.",
+        ctaLabel: "Consultar produtos",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Produtos carregados" : "Erro ao consultar produtos",
+        resultBody: (r) => r.ok
+          ? "Selecione um produto abaixo para continuar."
+          : r.message ?? "Não foi possível carregar os produtos.",
+      },
+      step4_create_commercial_value_schema: {
+        appHeader: "Criar produto de dados",
+        appLead: "Confirme o schema e o produto selecionados para criar o Commercial Value Schema.",
+        ctaLabel: "Criar Commercial Value Schema",
+        fields: [
+          { key: "valueSchemaSid", label: "Schema selecionado", placeholder: "Selecione um schema no passo anterior", required: true },
+          { key: "selectedProductDsku", label: "Produto selecionado (dSKU)", placeholder: "Selecione um produto acima", required: true },
+          { key: "selectedProductName", label: "Nome do produto", placeholder: "Nome do produto selecionado", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Commercial Value Schema criado!" : "Erro ao criar schema",
+        resultBody: (r) => r.ok
+          ? "Commercial Value Schema criado com sucesso. O produto de dados está pronto para uso."
+          : r.message ?? "Não foi possível criar o Commercial Value Schema.",
+      },
+    },
   },
   5: {
     stepId: 5,
@@ -709,9 +735,11 @@ function parseSchemaType(name: string, sid: string): { type: string; category: s
 
 // ─── SchemaCardList: lista visual de schemas com filtro ───────────────────────
 
-function SchemaCardList({ items, pickText }: {
+function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
   items: Record<string, unknown>[];
   pickText: (r: Record<string, unknown>, keys: string[], fallback: string) => string;
+  onSelect?: (sid: string, name: string) => void;
+  selectedSid?: string;
 }) {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
@@ -825,54 +853,77 @@ function SchemaCardList({ items, pickText }: {
         </div>
       ) : (
         <div className="space-y-2">
-          {filtered.map((e, idx) => (
-            <div
-              key={idx}
-              className="rounded-xl border bg-white p-3 flex items-start gap-3 shadow-sm"
-              style={{ borderColor: `${e.theme.color}30` }}
-            >
-              {/* Ícone temático */}
+          {onSelect && (
+            <p className="text-[9px] text-slate-500 text-center mb-1">Toque em um schema para selecioná-lo</p>
+          )}
+          {filtered.map((e, idx) => {
+            const isSelected = selectedSid === e.sid && Boolean(e.sid);
+            return (
               <div
-                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                style={{ background: `${e.theme.color}15`, color: e.theme.color }}
+                key={idx}
+                role={onSelect ? "button" : undefined}
+                tabIndex={onSelect ? 0 : undefined}
+                onClick={() => onSelect && e.sid && onSelect(e.sid, e.name)}
+                onKeyDown={(ev) => ev.key === "Enter" && onSelect && e.sid && onSelect(e.sid, e.name)}
+                className={`rounded-xl border bg-white p-3 flex items-start gap-3 shadow-sm transition-all ${onSelect ? "cursor-pointer hover:shadow-md active:scale-[0.98]" : ""}`}
+                style={{
+                  borderColor: isSelected ? e.theme.color : `${e.theme.color}30`,
+                  background: isSelected ? `${e.theme.color}08` : "white",
+                  outline: isSelected ? `2px solid ${e.theme.color}` : undefined,
+                }}
               >
-                {e.theme.icon}
-              </div>
-              {/* Informações */}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs font-bold text-slate-900 truncate leading-tight">{e.name}</p>
-                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                  {/* Badge tipo */}
-                  <span
-                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                    style={{ background: "#f1f5f9", color: "#475569" }}
-                  >
-                    {e.type}
-                  </span>
-                  {/* Badge categoria */}
-                  <span
-                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                    style={{ background: `${e.theme.color}15`, color: e.theme.color }}
-                  >
-                    {e.category}
-                  </span>
+                {/* Ícone temático */}
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                  style={{ background: `${e.theme.color}15`, color: e.theme.color }}
+                >
+                  {e.theme.icon}
                 </div>
-                {e.sid && (
-                  <p className="text-[9px] font-mono text-slate-400 truncate mt-1">{e.sid}</p>
-                )}
+                {/* Informações */}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs font-bold text-slate-900 truncate leading-tight">{e.name}</p>
+                    {isSelected && (
+                      <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: e.theme.color, color: "white" }}>✓ Selecionado</span>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                    {/* Badge tipo */}
+                    <span
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: "#f1f5f9", color: "#475569" }}
+                    >
+                      {e.type}
+                    </span>
+                    {/* Badge categoria */}
+                    <span
+                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                      style={{ background: `${e.theme.color}15`, color: e.theme.color }}
+                    >
+                      {e.category}
+                    </span>
+                  </div>
+                  {e.sid && (
+                    <p className="text-[9px] font-mono text-slate-400 truncate mt-1">{e.sid}</p>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
   );
 }
 
-function ResponseRenderer({ result, screen, runState }: {
+function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSchemaSid, onProductSelect, selectedProductDsku }: {
   result: ActionResult;
   screen: PhoneScreenConfig;
   runState: RunState;
+  onSchemaSelect?: (sid: string, name: string) => void;
+  selectedSchemaSid?: string;
+  onProductSelect?: (dsku: string, name: string) => void;
+  selectedProductDsku?: string;
 }) {
   const body = result.responseBody as Record<string, unknown> | null | undefined;
 
@@ -900,9 +951,10 @@ function ResponseRenderer({ result, screen, runState }: {
   };
 
   const allItems = extractItems(body);
-  // Para exibição genérica limitamos a 5; schemas têm lista completa
+  // Para exibição genérica limitamos a 5; schemas e produtos têm lista completa
   const isSchemaStep = screen.stepId === 3;
-  const items = isSchemaStep ? allItems : allItems.slice(0, 5);
+  const isProductStep = screen.stepId === 4;
+  const items = (isSchemaStep || isProductStep) ? allItems : allItems.slice(0, 5);
 
   const stateUpdates = result.stateUpdates as Record<string, unknown> | undefined;
   const capturedKeys = stateUpdates ? Object.keys(stateUpdates).filter(k => stateUpdates[k] !== null && stateUpdates[k] !== undefined) : [];
@@ -949,12 +1001,77 @@ function ResponseRenderer({ result, screen, runState }: {
       {isSchemaStep && result.ok && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Planos de dados disponíveis</p>
-          <SchemaCardList items={items} pickText={pickText} />
+          <SchemaCardList items={items} pickText={pickText} onSelect={onSchemaSelect} selectedSid={selectedSchemaSid} />
+          {onSchemaSelect && selectedSchemaSid && (
+            <div className="mt-2 rounded-xl px-3 py-2 text-center" style={{ background: "#1351b410", border: "1px solid #1351b430" }}>
+              <p className="text-[9px] font-semibold text-[#1351b4]">Schema selecionado! Veja os produtos disponíveis no próximo passo.</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Lista de produtos com cards visuais (passo 4 — step4_list_products) */}
+      {isProductStep && result.ok && items.length > 0 && (
+        <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Produtos disponíveis</p>
+          {onProductSelect && (
+            <p className="text-[9px] text-slate-500 text-center mb-2">Toque em um produto para selecioná-lo</p>
+          )}
+          <div className="space-y-2">
+            {items.map((item, idx) => {
+              const name = pickText(item, ["name", "title", "label", "displayName", "description"], `Produto ${idx + 1}`);
+              const dsku = pickText(item, ["dsku", "id", "sid", "productId", "sku"], "");
+              const category = pickText(item, ["category", "type", "group"], "");
+              const theme = detectSchemaCategory(name + " " + category);
+              const isSelected = selectedProductDsku === dsku && Boolean(dsku);
+              return (
+                <div
+                  key={idx}
+                  role={onProductSelect ? "button" : undefined}
+                  tabIndex={onProductSelect ? 0 : undefined}
+                  onClick={() => onProductSelect && dsku && onProductSelect(dsku, name)}
+                  onKeyDown={(ev) => ev.key === "Enter" && onProductSelect && dsku && onProductSelect(dsku, name)}
+                  className={`rounded-xl border bg-white p-3 flex items-start gap-3 shadow-sm transition-all ${onProductSelect ? "cursor-pointer hover:shadow-md active:scale-[0.98]" : ""}`}
+                  style={{
+                    borderColor: isSelected ? theme.color : `${theme.color}30`,
+                    background: isSelected ? `${theme.color}08` : "white",
+                    outline: isSelected ? `2px solid ${theme.color}` : undefined,
+                  }}
+                >
+                  <div
+                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ background: `${theme.color}15`, color: theme.color }}
+                  >
+                    {theme.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1">
+                      <p className="text-xs font-bold text-slate-900 truncate leading-tight">{name}</p>
+                      {isSelected && (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: theme.color, color: "white" }}>✓ Selecionado</span>
+                      )}
+                    </div>
+                    {category && (
+                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full mt-1 inline-block" style={{ background: `${theme.color}15`, color: theme.color }}>{category}</span>
+                    )}
+                    {dsku && (
+                      <p className="text-[9px] font-mono text-slate-400 truncate mt-1">{dsku}</p>
+                    )}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          {onProductSelect && selectedProductDsku && (
+            <div className="mt-2 rounded-xl px-3 py-2 text-center" style={{ background: "#1351b410", border: "1px solid #1351b430" }}>
+              <p className="text-[9px] font-semibold text-[#1351b4]">Produto selecionado! Confirme abaixo para criar o Commercial Value Schema.</p>
+            </div>
+          )}
         </div>
       )}
 
       {/* Lista genérica para outros passos */}
-      {!isSchemaStep && items.length > 0 && (
+      {!isSchemaStep && !isProductStep && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Retorno da API</p>
           <div className="space-y-2">
@@ -1027,6 +1144,35 @@ export function HomologacaoPhoneMockup({
   const [phase, setPhase] = useState<PhoneMockupPhase>("input");
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevActionIdRef = useRef<string | undefined>(actionId);
+
+  // Seleção de schema (passo 3) e produto (passo 4)
+  const [selectedSchemaSid, setSelectedSchemaSid] = useState<string>("");
+  const [selectedSchemaName, setSelectedSchemaName] = useState<string>("");
+  const [selectedProductDsku, setSelectedProductDsku] = useState<string>("");
+  const [selectedProductName, setSelectedProductName] = useState<string>("");
+
+  // Quando um schema é selecionado: salva no runState e avança para o próximo passo
+  const handleSchemaSelect = (sid: string, name: string) => {
+    setSelectedSchemaSid(sid);
+    setSelectedSchemaName(name);
+    onFieldChange("valueSchemaSid", sid);
+  };
+
+  // Quando um produto é selecionado: salva no runState e avança para step4_create_commercial_value_schema
+  const handleProductSelect = (dsku: string, name: string) => {
+    setSelectedProductDsku(dsku);
+    setSelectedProductName(name);
+    onFieldChange("selectedProductDsku", dsku);
+    onFieldChange("selectedProductName", name);
+    // Avançar para a ação de criar commercial value schema
+    if (onAutoAdvance && stepActions) {
+      const createAction = stepActions.find(a => a.id === "step4_create_commercial_value_schema");
+      if (createAction) {
+        onAutoAdvance(createAction.id);
+        setPhase("input");
+      }
+    }
+  };
 
   // Sync phase with execution state and result
   useEffect(() => {
@@ -1228,7 +1374,15 @@ export function HomologacaoPhoneMockup({
           {/* RESULT state */}
           {!isGap && phase === "result" && activeResult && (
             <div className="p-4 space-y-3">
-              <ResponseRenderer result={activeResult} screen={activeScreen} runState={runState} />
+              <ResponseRenderer
+                result={activeResult}
+                screen={activeScreen}
+                runState={runState}
+                onSchemaSelect={screen.stepId === 3 ? handleSchemaSelect : undefined}
+                selectedSchemaSid={screen.stepId === 3 ? selectedSchemaSid : undefined}
+                onProductSelect={screen.stepId === 4 && actionId === "step4_list_products" ? handleProductSelect : undefined}
+                selectedProductDsku={screen.stepId === 4 ? selectedProductDsku : undefined}
+              />
               {/* Auto-advance hint for multi-step */}
               {stepActions && stepActions.length > 1 && activeResult.ok && (() => {
                 const currentIdx = stepActions.findIndex(a => a.id === actionId);
@@ -1630,8 +1784,69 @@ export function HomologacaoPhoneMockup({
             );
           })()}
 
+          {/* CONFIRMAÇÃO: step4_create_commercial_value_schema */}
+          {!isGap && phase === "input" && actionId === "step4_create_commercial_value_schema" && (
+            <div className="p-4 space-y-3">
+              <div className="rounded-2xl bg-white border border-[#1351b4]/20 p-4 shadow-sm space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4]">Confirmar criação</p>
+                {/* Schema selecionado */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Schema selecionado</p>
+                  {selectedSchemaSid ? (
+                    <>
+                      <p className="text-xs font-bold text-slate-900 truncate">{selectedSchemaName || selectedSchemaSid}</p>
+                      <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">{selectedSchemaSid}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-amber-600">Nenhum schema selecionado. Volte ao passo 3 e selecione um schema.</p>
+                  )}
+                </div>
+                {/* Produto selecionado */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Produto selecionado</p>
+                  {selectedProductDsku ? (
+                    <>
+                      <p className="text-xs font-bold text-slate-900 truncate">{selectedProductName || selectedProductDsku}</p>
+                      <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">{selectedProductDsku}</p>
+                    </>
+                  ) : (
+                    <p className="text-xs text-amber-600">Nenhum produto selecionado. Volte ao passo anterior e selecione um produto.</p>
+                  )}
+                </div>
+              </div>
+              {/* Botão de confirmar */}
+              <button
+                onClick={handleCta}
+                disabled={isExecuting || !selectedSchemaSid || !selectedProductDsku}
+                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                style={{ background: colors.accent }}
+              >
+                {isExecuting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+                      <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
+                    </svg>
+                    Criando…
+                  </span>
+                ) : "Criar Commercial Value Schema"}
+              </button>
+              <button
+                onClick={() => {
+                  if (onAutoAdvance && stepActions) {
+                    const listAction = stepActions.find(a => a.id === "step4_list_products");
+                    if (listAction) { onAutoAdvance(listAction.id); setPhase("result"); }
+                  }
+                }}
+                className="w-full text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors py-1"
+              >
+                ← Voltar e escolher outro produto
+              </button>
+            </div>
+          )}
+
           {/* INPUT state */}
-          {!isGap && phase === "input" && (
+          {!isGap && phase === "input" && actionId !== "step4_create_commercial_value_schema" && (
             <div className="p-4 space-y-3">
               {/* Previous result indicator */}
               {activeResult && (
