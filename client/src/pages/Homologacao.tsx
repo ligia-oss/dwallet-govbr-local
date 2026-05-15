@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { trpc } from "@/lib/trpc";
 import { HomologacaoPhoneMockup } from "@/components/HomologacaoPhoneMockup";
 import { Button } from "@/components/ui/button";
@@ -540,11 +540,19 @@ export default function Homologacao() {
     return stepResult.results[stepResult.results.length - 1];
   })();
 
+   // Memoize executedActionIds to avoid creating a new Set on every render
+  // (which would cause unnecessary re-renders of HomologacaoPhoneMockup)
+  const executedActionIds = useMemo(
+    () => new Set(
+      stepResults.find(r => r.stepId === activeStep)?.results.filter(r => r.ok).map(r => r.actionId) ?? []
+    ),
+    [stepResults, activeStep]
+  );
+
   // Handler for field changes from the phone mockup
   const handlePhoneFieldChange = (key: string, value: string) => {
     setRunState(prev => ({ ...prev, [key]: value }));
   };
-
   // Handler for CTA button in the phone mockup
   const handlePhoneExecute = (actionId: string) => {
     if (activeStep === 0) {
@@ -720,11 +728,13 @@ export default function Homologacao() {
                   isExecuting={activeStep === 0 ? generatingToken : executingAction === phoneActionId}
                   actionId={phoneActionId}
                   stepActions={selectedStep?.actions.map(a => ({ id: a.id, title: a.title }))}
-                  executedActionIds={new Set(
-                    stepResults.find(r => r.stepId === activeStep)?.results.filter(r => r.ok).map(r => r.actionId) ?? []
-                  )}
+                  executedActionIds={executedActionIds}
                   onFieldChange={handlePhoneFieldChange}
                   onExecute={handlePhoneExecute}
+                  onAutoAdvance={() => {
+                    // Auto-advance: phoneActionId auto-derives from stepResults state
+                    // No explicit action needed here — state update triggers re-render
+                  }}
                   lang={lang}
                 />
               </div>

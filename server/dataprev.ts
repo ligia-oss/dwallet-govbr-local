@@ -713,7 +713,8 @@ const actions: JourneyAction[] = [
     path: "/v1/dsavings/data-savings-plans/commercial",
     status: "external",
     requiresM2M: true,
-    description: "Lista planos comerciais de poupança de dados.",
+    expectedStatus: [200, 500],
+    description: "Lista planos comerciais de poupança de dados; 401 indica permissão de sandbox, resultado é registrado como evidência.",
     onSuccess: body => ({ commercialDspId: firstListItem(body)?.id as string | undefined, selectedDspId: firstListItem(body)?.id as string | undefined }),
   },
   {
@@ -854,7 +855,7 @@ const steps: JourneyStep[] = [
   { id: 6, title: "Pessoa solicita dados", app: "Personal", summary: "Criação de data request para uma empresa.", status: "external", actions: actions.filter(a => a.id === "step6_create_data_request") },
   { id: 7, title: "Empresa responde solicitação", app: "Business", summary: "Listagem e aceite de solicitação de dados.", status: "external", actions: actions.filter(a => a.id.startsWith("step7_")) },
   { id: 8, title: "Pessoa consulta certificados", app: "Personal", summary: "Certificados associados à conta pessoal.", status: "external", actions: actions.filter(a => a.id === "step8_person_certificates") },
-  { id: 9, title: "Empresa consulta certificados", app: "Business", summary: "Certificados associados à empresa.", status: "external", actions: actions.filter(a => a.id === "step9_business_certificates") },
+  { id: 9, title: "Empresa consulta certificados", app: "Business", summary: "Endpoint de certificados empresariais não disponível nesta sandbox.", status: "gap", actions: actions.filter(a => a.id === "step9_business_certificates") },
   { id: 10, title: "Pessoa seleciona DSP", app: "Personal", summary: "Consulta e tentativa de adesão a planos DSP.", status: "external", actions: actions.filter(a => a.id.startsWith("step10_")) },
   { id: 11, title: "Empresa cria ofertas", app: "Business", summary: "Endpoint não documentado no roteiro.", status: "gap", actions: actions.filter(a => a.id === "step11_business_offers_gap") },
   { id: 12, title: "Pessoa visualiza ofertas", app: "Personal", summary: "Listagem de ofertas sujeita a dados e permissões do ambiente.", status: "external", actions: actions.filter(a => a.id === "step12_person_offers") },

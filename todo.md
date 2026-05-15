@@ -147,13 +147,13 @@
 
 ## Sanitização e Consolidação do Projeto
 
-- [ ] Mover /homologacao para rota principal / no App.tsx
-- [ ] Remover rotas e páginas não utilizadas (Personal GovBR, Business GovBR, Home, etc.)
-- [ ] Remover arquivos de páginas obsoletos de client/src/pages/
-- [ ] Remover imports mortos no App.tsx e demais arquivos
-- [ ] Remover comentários desnecessários e código morto
-- [ ] Atualizar título e metadados do site para refletir a nova rota principal
-- [ ] Executar testes, build e salvar checkpoint
+- [x] Mover /homologacao para rota principal / no App.tsx
+- [x] Remover rotas e páginas não utilizadas (Personal GovBR, Business GovBR, Home, etc.)
+- [x] Remover arquivos de páginas obsoletos de client/src/pages/
+- [x] Remover imports mortos no App.tsx e demais arquivos
+- [x] Remover comentários desnecessários e código morto
+- [x] Atualizar título e metadados do site para refletir a nova rota principal
+- [x] Executar testes, build e salvar checkpoint
 
 ## Sanitização e Consolidação do Projeto
 
@@ -167,3 +167,12 @@
 - [x] Atualizar README_DWALLET_GOVBR_LOCAL.md para refletir o estado atual
 - [x] Verificar TypeScript sem erros após remoções
 - [x] Executar 85 testes passando, build de produção e salvar checkpoint
+
+## Melhorias do Mockup de Celular
+
+- [ ] Remover barra de navegação inferior do mockup (Início, Dados, etc.)
+- [ ] Adicionar transição automática entre sub-telas sequenciais após execução bem-sucedida (ex: após cadastro do empregado no passo 1, ir direto para tela de input de código)
+- [ ] Aplicar identidade visual do governo brasileiro no mockup (cores, tipografia, logo gov.br)
+- [ ] Corrigir API do passo 10 que não está funcionando
+- [ ] Marcar passo 9 como GAP (sem API disponível) e remover botão de execução
+- [ ] Executar testes, build e salvar checkpoint

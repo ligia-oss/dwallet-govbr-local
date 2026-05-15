@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -366,15 +366,16 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     stepId: 9,
     appKind: "BdW",
     screenTitle: "Certificados empresariais",
-    screenSubtitle: "Empresa consulta certificados da Business dWallet",
+    screenSubtitle: "Tela de certificados da empresa — endpoint não disponível nesta sandbox",
     appHeader: "Certificados da empresa",
-    appLead: "Veja os certificados associados à carteira empresarial.",
+    appLead: "Certificados associados à carteira empresarial (Business dWallet).",
     ctaLabel: "Ver certificados",
     fields: [],
-    resultTitle: (r) => r.ok ? "Certificados carregados" : "Erro ao carregar certificados",
+    gapMessage: "Endpoint de certificados empresariais não disponível nesta sandbox. A tela permanece visível na jornada para documentar o passo.",
+    resultTitle: (r) => r.ok ? "Certificados carregados" : "API não disponível",
     resultBody: (r) => r.ok
       ? "Certificados da Business dWallet retornados."
-      : r.message ?? "Não foi possível carregar os certificados.",
+      : r.message ?? "Endpoint não disponível nesta sandbox.",
   },
   10: {
     stepId: 10,
@@ -657,6 +658,7 @@ export function HomologacaoPhoneMockup({
   executedActionIds,
   onFieldChange,
   onExecute,
+  onAutoAdvance,
   lang = "pt",
 }: {
   stepId: number;
@@ -668,10 +670,14 @@ export function HomologacaoPhoneMockup({
   executedActionIds?: Set<string>;
   onFieldChange: (key: string, value: string) => void;
   onExecute: (actionId: string) => void;
+  onAutoAdvance?: (nextActionId: string) => void;
   lang?: "pt" | "en";
 }) {
-   const screen = PHONE_SCREENS[stepId];
+  const screen = PHONE_SCREENS[stepId];
   const [phase, setPhase] = useState<PhoneMockupPhase>("input");
+  const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prevActionIdRef = useRef<string | undefined>(actionId);
+
   // Sync phase with execution state and result
   useEffect(() => {
     if (isExecuting) {
@@ -682,6 +688,40 @@ export function HomologacaoPhoneMockup({
       setPhase("input");
     }
   }, [isExecuting, activeResult]);
+
+  // Auto-advance to next sub-action after successful result (1.8s delay)
+  useEffect(() => {
+    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    if (
+      !isExecuting &&
+      activeResult?.ok &&
+      phase === "result" &&
+      stepActions &&
+      stepActions.length > 1 &&
+      actionId &&
+      onAutoAdvance
+    ) {
+      const currentIdx = stepActions.findIndex(a => a.id === actionId);
+      const nextAction = stepActions[currentIdx + 1];
+      if (nextAction) {
+        autoAdvanceTimer.current = setTimeout(() => {
+          onAutoAdvance(nextAction.id);
+          setPhase("input");
+        }, 1800);
+      }
+    }
+    return () => {
+      if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    };
+  }, [isExecuting, activeResult, phase, stepActions, actionId, onAutoAdvance]);
+
+  // Reset phase to input when actionId changes (user moved to next sub-action)
+  useEffect(() => {
+    if (prevActionIdRef.current !== actionId) {
+      prevActionIdRef.current = actionId;
+      setPhase("input");
+    }
+  }, [actionId]);
   if (!screen) return null;
   // Merge sub-tela da ação atual sobre a tela base do passo
   const actionSubScreen = actionId && screen.actionScreens ? screen.actionScreens[actionId] : undefined;
@@ -703,46 +743,62 @@ export function HomologacaoPhoneMockup({
 
   return (
     <div className="flex flex-col items-center">
-      {/* Phone shell */}
+      {/* Phone shell — identidade visual gov.br */}
       <div
-        className="relative w-[320px] rounded-[2.5rem] shadow-2xl overflow-hidden border-[6px] border-slate-800"
-        style={{ background: "#f0f4fa", minHeight: 620 }}
+        className="relative w-[320px] rounded-[2.5rem] shadow-2xl overflow-hidden border-[7px]"
+        style={{ background: "#f0f4fa", minHeight: 600, borderColor: "#1c1c1e" }}
         aria-label={`Mockup do aplicativo — Passo ${stepId}: ${activeScreen.screenTitle}`}
       >
         {/* Notch */}
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-slate-800 rounded-b-2xl z-20" />
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-28 h-[22px] rounded-b-2xl z-20" style={{ background: "#1c1c1e" }} />
 
         {/* Status bar */}
         <div
-          className="flex items-center justify-between px-6 pt-7 pb-2 text-[10px] font-semibold text-white/80"
+          className="flex items-center justify-between px-5 pt-8 pb-1 text-[10px] font-semibold text-white/90"
           style={{ background: colors.bg }}
         >
-          <span>9:41</span>
-          <span className="flex items-center gap-1">
-            <span>●●●</span>
-            <span>WiFi</span>
-            <span>🔋</span>
+          <span className="font-mono tracking-wide">9:41</span>
+          <span className="flex items-center gap-1.5">
+            <svg width="12" height="10" viewBox="0 0 12 10" fill="currentColor"><rect x="0" y="4" width="2" height="6" rx="0.5"/><rect x="3" y="2.5" width="2" height="7.5" rx="0.5"/><rect x="6" y="1" width="2" height="9" rx="0.5"/><rect x="9" y="0" width="2" height="10" rx="0.5"/></svg>
+            <svg width="14" height="10" viewBox="0 0 14 10" fill="currentColor"><path d="M7 2.5C9.2 2.5 11.2 3.5 12.5 5.1L14 3.5C12.3 1.4 9.8 0 7 0S1.7 1.4 0 3.5L1.5 5.1C2.8 3.5 4.8 2.5 7 2.5z"/><path d="M7 5.5C8.4 5.5 9.7 6.1 10.6 7.1L12.1 5.5C10.8 4.1 9 3.2 7 3.2S3.2 4.1 1.9 5.5L3.4 7.1C4.3 6.1 5.6 5.5 7 5.5z"/><circle cx="7" cy="9" r="1.5"/></svg>
+            <svg width="22" height="11" viewBox="0 0 22 11" fill="none"><rect x="0.5" y="0.5" width="18" height="10" rx="2.5" stroke="currentColor" strokeOpacity="0.5"/><rect x="2" y="2" width="14" height="7" rx="1.5" fill="currentColor"/><path d="M19.5 3.5v4a2 2 0 000-4z" fill="currentColor" fillOpacity="0.4"/></svg>
           </span>
         </div>
 
-        {/* App header */}
-        <div
-          className="px-5 pt-3 pb-4 text-white"
-          style={{ background: colors.bg }}
-        >
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-xs">
-              {screen.appKind === "BdW" ? "B" : screen.appKind === "PdW" ? "P" : "dW"}
+        {/* Gov.br header strip */}
+        <div style={{ background: colors.bg }} className="px-4 pt-2 pb-4 text-white">
+          {/* Gov.br brand row */}
+          <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-white/10">
+            {/* Brasão simplificado */}
+            <div className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center shrink-0">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="white">
+                <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2zm0 2.18l7 3.89V12c0 4.25-2.95 8.2-7 9.45C7.95 20.2 5 16.25 5 12V8.07l7-3.89z"/>
+                <path d="M12 6l-4 2.2V12c0 2.6 1.75 5.1 4 5.75 2.25-.65 4-3.15 4-5.75V8.2L12 6z" opacity="0.6"/>
+              </svg>
             </div>
             <div className="flex-1 min-w-0">
-              <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">gov.br · {appKindLabel}</p>
-              <p className="text-sm font-bold text-white truncate">{activeScreen.appHeader}</p>
+              <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest leading-none">gov.br</p>
+              <p className="text-[10px] font-semibold text-white/80 leading-tight">{appKindLabel}</p>
             </div>
-            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full text-white ${colors.badge}`}>
+            <span
+              className="text-[9px] font-bold px-2 py-0.5 rounded-full text-white/90"
+              style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.2)" }}
+            >
               Passo {stepId}
             </span>
           </div>
-          <p className="text-xs text-white/70 leading-5">{activeScreen.appLead}</p>
+
+          {/* Screen header */}
+          <div className="flex items-start gap-2.5">
+            <div className="mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
+              <span className="text-base">{activeScreen.appHeader.charAt(0)}</span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-bold text-white leading-tight truncate">{activeScreen.appHeader}</p>
+              <p className="text-[10px] text-white/65 leading-snug mt-0.5 line-clamp-2">{activeScreen.appLead}</p>
+            </div>
+          </div>
+
           {/* Multi-action progress indicator */}
           {stepActions && stepActions.length > 1 && (() => {
             const currentIdx = stepActions.findIndex(a => a.id === actionId);
@@ -757,20 +813,20 @@ export function HomologacaoPhoneMockup({
                       <div
                         className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
                           isDone ? "bg-emerald-400 text-white" :
-                          isCurrent ? "bg-white text-slate-800 ring-2 ring-white/60" :
-                          "bg-white/20 text-white/50"
+                          isCurrent ? "bg-white text-slate-800 ring-2 ring-white/40" :
+                          "bg-white/15 text-white/40"
                         }`}
                         title={action.title}
                       >
                         {isDone ? "✓" : idx + 1}
                       </div>
                       {idx < stepActions.length - 1 && (
-                        <div className={`h-0.5 w-4 rounded-full transition-all ${isDone ? "bg-emerald-400" : "bg-white/20"}`} />
+                        <div className={`h-0.5 w-4 rounded-full transition-all ${isDone ? "bg-emerald-400" : "bg-white/15"}`} />
                       )}
                     </div>
                   );
                 })}
-                <span className="ml-1 text-[9px] text-white/60">
+                <span className="ml-1 text-[9px] text-white/50">
                   {displayIdx + 1}/{stepActions.length}
                 </span>
               </div>
@@ -779,7 +835,7 @@ export function HomologacaoPhoneMockup({
         </div>
 
         {/* Screen content */}
-        <div className="overflow-y-auto" style={{ maxHeight: 420 }}>
+        <div className="overflow-y-auto" style={{ maxHeight: 390 }}>
           {/* GAP state */}
           {isGap && (
             <div className="p-4 space-y-3">
@@ -800,10 +856,10 @@ export function HomologacaoPhoneMockup({
             <div className="p-4 flex flex-col items-center justify-center gap-4 py-12">
               <div
                 className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin"
-                style={{ borderColor: `${colors.accent}40`, borderTopColor: colors.accent }}
+                style={{ borderColor: `${colors.accent}30`, borderTopColor: colors.accent }}
               />
               <div className="text-center">
-                <p className="text-sm font-bold text-slate-800">Processando…</p>
+                <p className="text-sm font-bold" style={{ color: colors.bg }}>Processando…</p>
                 <p className="text-xs text-slate-500 mt-1">Aguarde a resposta da API</p>
               </div>
             </div>
@@ -813,6 +869,18 @@ export function HomologacaoPhoneMockup({
           {!isGap && phase === "result" && activeResult && (
             <div className="p-4 space-y-3">
               <ResponseRenderer result={activeResult} screen={activeScreen} runState={runState} />
+              {/* Auto-advance hint for multi-step */}
+              {stepActions && stepActions.length > 1 && activeResult.ok && (() => {
+                const currentIdx = stepActions.findIndex(a => a.id === actionId);
+                const nextAction = stepActions[currentIdx + 1];
+                return nextAction ? (
+                  <div className="rounded-xl px-3 py-2 text-center" style={{ background: `${colors.accent}10`, border: `1px solid ${colors.accent}30` }}>
+                    <p className="text-[10px] font-semibold" style={{ color: colors.accent }}>
+                      ⏳ Avançando para: {nextAction.title}…
+                    </p>
+                  </div>
+                ) : null;
+              })()}
               <button
                 onClick={() => setPhase("input")}
                 className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
@@ -842,13 +910,13 @@ export function HomologacaoPhoneMockup({
               {/* Form fields */}
               {hasFields && (
                 <div className="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm space-y-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Dados da operação</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Dados da operação</p>
                   {activeScreen.fields.map(field => {
                     const value = String(runState[field.key] ?? "");
                     const displayValue = field.sensitive && value ? "••••••••" : value;
                     return (
                       <div key={field.key} className="space-y-1">
-                        <label className="text-[10px] font-semibold text-slate-500">
+                        <label className="text-[10px] font-semibold" style={{ color: colors.bg }}>
                           {field.label}{field.required ? " *" : ""}
                         </label>
                         <input
@@ -856,8 +924,11 @@ export function HomologacaoPhoneMockup({
                           value={field.sensitive ? value : displayValue}
                           placeholder={field.placeholder}
                           onChange={e => onFieldChange(field.key, e.target.value)}
-                          className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:border-transparent font-mono"
-                          style={{ "--tw-ring-color": colors.accent } as React.CSSProperties}
+                          className="w-full text-xs border rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:border-transparent font-mono transition-shadow"
+                          style={{
+                            borderColor: `${colors.accent}40`,
+                            "--tw-ring-color": colors.accent,
+                          } as React.CSSProperties}
                         />
                       </div>
                     );
@@ -874,31 +945,33 @@ export function HomologacaoPhoneMockup({
                 </div>
               )}
 
-              {/* CTA button */}
+              {/* CTA button — gov.br style */}
               {actionId && !isGap && (
                 <button
                   onClick={handleCta}
                   disabled={isExecuting}
-                  className="w-full rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
                   style={{ background: colors.accent }}
                 >
-                  {isExecuting ? "Enviando…" : activeScreen.ctaLabel}
+                  {isExecuting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+                        <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
+                      </svg>
+                      Enviando…
+                    </span>
+                  ) : activeScreen.ctaLabel}
                 </button>
               )}
             </div>
           )}
         </div>
 
-        {/* Bottom navigation */}
-        <div className="absolute bottom-0 left-0 right-0 grid grid-cols-4 gap-0 bg-white border-t border-slate-200 px-2 py-2 text-center text-[9px] font-semibold text-slate-500">
-          <span className="rounded-xl py-1.5 px-1" style={{ background: `${colors.accent}15`, color: colors.accent }}>Início</span>
-          <span className="py-1.5 px-1">Dados</span>
-          <span className="py-1.5 px-1">Consent.</span>
-          <span className="py-1.5 px-1">Conta</span>
+        {/* Home indicator (sem barra de navegação) */}
+        <div className="flex justify-center pb-2 pt-1 bg-white/80">
+          <div className="w-24 h-1 rounded-full" style={{ background: "#1c1c1e", opacity: 0.2 }} />
         </div>
-
-        {/* Home indicator */}
-        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-20 h-1 bg-slate-400 rounded-full" />
       </div>
 
       {/* Screen label below phone */}

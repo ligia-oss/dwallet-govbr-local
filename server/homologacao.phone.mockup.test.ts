@@ -62,8 +62,8 @@ describe("PHONE_SCREENS — mapeamento de telas por passo", () => {
     }
   });
 
-  it("passos com GAP têm gapMessage definido (11, 16, 17)", () => {
-    const gapSteps = [11, 16, 17];
+  it("passos com GAP têm gapMessage definido (9, 11, 16, 17)", () => {
+    const gapSteps = [9, 11, 16, 17];
     for (const stepId of gapSteps) {
       expect(PHONE_SCREENS[stepId]?.gapMessage).toBeTruthy();
     }
@@ -116,12 +116,13 @@ describe("PHONE_SCREENS — mapeamento de telas por passo", () => {
 // ─── Tela de entrada (input phase — fase inicial do SSR) ──────────────────────
 
 describe("HomologacaoPhoneMockup — tela de entrada", () => {
-  it("renderiza o shell do celular com barra de status e navegação inferior", () => {
+  it("renderiza o shell do celular com barra de status e identidade visual gov.br", () => {
     const html = renderMockup({ stepId: 1 });
     expect(html).toContain("9:41"); // barra de status
-    expect(html).toContain("WiFi"); // ícone de wifi
-    expect(html).toContain("Início"); // nav inferior
-    expect(html).toContain("Dados"); // nav inferior
+    expect(html).toContain("gov.br"); // marca gov.br no header
+    // Barra de navegação inferior foi removida (design gov.br sem bottom nav)
+    expect(html).not.toContain("Início"); // sem nav inferior
+    expect(html).not.toContain("Consent."); // sem nav inferior
   });
 
   it("exibe o header do app com nome e badge do passo", () => {
