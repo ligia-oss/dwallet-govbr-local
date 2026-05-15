@@ -89,8 +89,6 @@ export async function getUserByOpenId(openId: string) {
   return result.length > 0 ? result[0] : undefined;
 }
 
-// TODO: add feature queries here as your schema grows.
-
 /**
  * Persiste o token M2M no banco de dados para sobreviver a reinicializações do servidor.
  * O token é armazenado como texto plano (já é um JWT opaco; o banco não é exposto publicamente).

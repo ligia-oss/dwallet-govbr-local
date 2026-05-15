@@ -144,3 +144,26 @@
 - [x] Configurar `DATAPREV_PROXY_URL` nos Secrets do projeto publicado apontando para o servidor de dev
 - [x] Testar no site publicado — proxy funcional (HTTP 403 da API indica credenciais precisam ser verificadas nos Secrets, não bloqueio de IP)
 - [x] Executar testes (133 passando), build e salvar checkpoint
+
+## Sanitização e Consolidação do Projeto
+
+- [ ] Mover /homologacao para rota principal / no App.tsx
+- [ ] Remover rotas e páginas não utilizadas (Personal GovBR, Business GovBR, Home, etc.)
+- [ ] Remover arquivos de páginas obsoletos de client/src/pages/
+- [ ] Remover imports mortos no App.tsx e demais arquivos
+- [ ] Remover comentários desnecessários e código morto
+- [ ] Atualizar título e metadados do site para refletir a nova rota principal
+- [ ] Executar testes, build e salvar checkpoint
+
+## Sanitização e Consolidação do Projeto
+
+- [x] Mover /homologacao para rota principal / no App.tsx
+- [x] Remover rotas /personal-govbr e /business-govbr do App.tsx
+- [x] Remover páginas não utilizadas: Home.tsx, PersonalGovBRWallet.tsx, BusinessGovBRWallet.tsx, PersonalDWallet.tsx, BusinessDWallet.tsx, DWalletApp.tsx, GovBRWalletApp.tsx, ComponentShowcase.tsx
+- [x] Remover componentes não utilizados: AIChatBox.tsx, DashboardLayout.tsx, DashboardLayoutSkeleton.tsx, ManusDialog.tsx, Map.tsx
+- [x] Remover arquivo de testes obsoleto: govbr.wallet.ui.test.ts (testava GovBRWalletApp removido)
+- [x] Remover 22 arquivos de documentação/verificação obsoletos (.md)
+- [x] Remover comentários TODO e código morto em routers.ts e db.ts
+- [x] Atualizar README_DWALLET_GOVBR_LOCAL.md para refletir o estado atual
+- [x] Verificar TypeScript sem erros após remoções
+- [x] Executar 85 testes passando, build de produção e salvar checkpoint

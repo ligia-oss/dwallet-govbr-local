@@ -1,5 +1,0 @@
-# Verificação visual das novas etapas GovBR
-
-A rota `/business-govbr` foi aberta no preview local após a implementação. A navegação lateral da Business dWallet exibe as novas etapas **Aceitar ou rejeitar solicitação de dados**, **Schemas, datasets e databases** e **Certificados de dados empresariais** em sequência dentro da carteira de dados. A página preserva a identidade visual recente da home, incluindo o texto `DrumWave dWallets®`, o subtítulo de protótipo para teste de APIs e a organização das abas `Tela atual`, `Guia de teste`, `Variáveis de teste` e `Credenciais`.
-
-A tentativa de abrir diretamente etapas posteriores pela navegação lateral foi bloqueada pelo controle de pré-requisitos já existente, o que está coerente com o fluxo sequencial da jornada. A validação funcional das telas internas foi complementada pela cobertura Vitest em `server/govbr.wallet.ui.test.ts`, que renderiza diretamente o telefone emulado e verifica a seleção de value schemas, a decisão de aceitar/rejeitar solicitação e os cartões de certificados para Business e Personal dWallet.
