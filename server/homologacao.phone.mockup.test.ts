@@ -533,3 +533,39 @@ describe("HomologacaoPhoneMockup — PHONE_SCREENS: tela Home pós-login", () =>
     expect(PHONE_SCREENS[2].appKind).toBe("PdW");
   });
 });
+
+// ─── Schema card helpers ──────────────────────────────────────────────────────
+// Nota: detectSchemaCategory e parseSchemaType são funções internas do componente React.
+// Testamos o comportamento esperado via PHONE_SCREENS step 3.
+
+describe("HomologacaoPhoneMockup — PHONE_SCREENS: passo 3 (Value Schemas)", () => {
+  it("passo 3 é do app BdW", () => {
+    expect(PHONE_SCREENS[3].appKind).toBe("BdW");
+  });
+
+  it("passo 3 tem ctaLabel de consulta de schemas", () => {
+    expect(PHONE_SCREENS[3].ctaLabel).toMatch(/schema/i);
+  });
+
+  it("passo 3 retorna resultTitle de sucesso correto", () => {
+    const result = { actionId: "step3_list_schemas", actionTitle: "Consultar schemas", status: "done", ok: true };
+    expect(PHONE_SCREENS[3].resultTitle(result)).toBe("Schemas carregados");
+  });
+
+  it("passo 3 retorna resultTitle de erro correto", () => {
+    const result = { actionId: "step3_list_schemas", actionTitle: "Consultar schemas", status: "error", ok: false };
+    expect(PHONE_SCREENS[3].resultTitle(result)).toBe("Erro ao consultar schemas");
+  });
+
+  it("passo 3 resultDetails retorna contagem quando há items", () => {
+    const result = {
+      actionId: "step3_list_schemas",
+      actionTitle: "Consultar schemas",
+      status: "done",
+      ok: true,
+      responseBody: { items: [{ name: "rideshare-fares" }, { name: "telecom-subscription" }] },
+    };
+    const details = PHONE_SCREENS[3].resultDetails?.(result);
+    expect(details).toContain("2");
+  });
+});

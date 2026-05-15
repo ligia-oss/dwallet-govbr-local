@@ -193,3 +193,11 @@
 - [x] Avatar: ilustração SVG de homem (BdW) ou mulher (PdW) com anel de destaque
 - [x] Nome exibido: extraído do runState (employeeFirstName/personFirstName) ou da resposta da API
 - [x] Botão "Continuar jornada →" para avançar para a próxima ação
+
+## Redesign da Tela de Value Schemas no Mockup
+- [x] Substituir retângulos com dados crus por cards visuais com ícone temático por categoria (rideshare, telecom, finanças, saúde, etc.)
+- [x] Cada card exibe: ícone SVG temático, nome do plano, tipo e categoria
+- [x] Implementar filtro multi-seleção por tipo e categoria (default: sem nada selecionado, mostra todos)
+- [x] Filtro aplicado em tempo real: mostrar apenas schemas que correspondem aos filtros selecionados
+- [x] Mesma melhoria visual na tela de seleção de schema (step3_select_schema)
+- [x] Executar testes, build e salvar checkpoint

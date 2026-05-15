@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useMemo } from "react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -550,6 +550,325 @@ function getAppColors(appKind: PhoneScreenConfig["appKind"]) {
 
 // ─── Response renderer ────────────────────────────────────────────────────────
 
+// ─── Schema theme helpers ─────────────────────────────────────────────────────
+
+// Detecta categoria a partir do nome/id do schema
+function detectSchemaCategory(name: string): { label: string; color: string; icon: React.ReactNode } {
+  const n = name.toLowerCase();
+  if (n.includes("rideshare") || n.includes("ride") || n.includes("transport") || n.includes("mobility") || n.includes("uber") || n.includes("taxi")) {
+    return {
+      label: "Mobilidade",
+      color: "#0ea5e9",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M5 17H3a2 2 0 0 1-2-2V9a2 2 0 0 1 2-2h14l4 4v4a2 2 0 0 1-2 2h-2" />
+          <circle cx="7.5" cy="17.5" r="2.5" />
+          <circle cx="17.5" cy="17.5" r="2.5" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("telecom") || n.includes("phone") || n.includes("mobile") || n.includes("subscription") || n.includes("celular") || n.includes("internet")) {
+    return {
+      label: "Telecom",
+      color: "#8b5cf6",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="5" y="2" width="14" height="20" rx="2" />
+          <line x1="12" y1="18" x2="12.01" y2="18" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("finance") || n.includes("bank") || n.includes("payment") || n.includes("credit") || n.includes("loan") || n.includes("invest") || n.includes("financ") || n.includes("pagament") || n.includes("conta") || n.includes("saldo")) {
+    return {
+      label: "Finanças",
+      color: "#10b981",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="12" y1="1" x2="12" y2="23" />
+          <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("health") || n.includes("medical") || n.includes("saude") || n.includes("saúde") || n.includes("hospital") || n.includes("clinic") || n.includes("pharma")) {
+    return {
+      label: "Saúde",
+      color: "#ef4444",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M22 12h-4l-3 9L9 3l-3 9H2" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("energy") || n.includes("electric") || n.includes("energia") || n.includes("luz") || n.includes("gas") || n.includes("water") || n.includes("água")) {
+    return {
+      label: "Energia & Utilidades",
+      color: "#f59e0b",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("retail") || n.includes("shop") || n.includes("ecommerce") || n.includes("commerce") || n.includes("store") || n.includes("loja") || n.includes("compra")) {
+    return {
+      label: "Varejo",
+      color: "#f97316",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" />
+          <line x1="3" y1="6" x2="21" y2="6" />
+          <path d="M16 10a4 4 0 0 1-8 0" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("location") || n.includes("address") || n.includes("geo") || n.includes("place") || n.includes("endereço") || n.includes("localiza")) {
+    return {
+      label: "Localização",
+      color: "#06b6d4",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("profile") || n.includes("user") || n.includes("identity") || n.includes("perfil") || n.includes("identidade") || n.includes("pessoa") || n.includes("person")) {
+    return {
+      label: "Perfil & Identidade",
+      color: "#6366f1",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("insurance") || n.includes("seguro") || n.includes("protect")) {
+    return {
+      label: "Seguros",
+      color: "#0891b2",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+      ),
+    };
+  }
+  if (n.includes("employ") || n.includes("work") || n.includes("job") || n.includes("salary") || n.includes("emprego") || n.includes("salario") || n.includes("trabalhista")) {
+    return {
+      label: "Emprego & Renda",
+      color: "#84cc16",
+      icon: (
+        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+          <rect x="2" y="7" width="20" height="14" rx="2" />
+          <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+          <line x1="12" y1="12" x2="12" y2="16" />
+          <line x1="10" y1="14" x2="14" y2="14" />
+        </svg>
+      ),
+    };
+  }
+  // Default: dados genéricos
+  return {
+    label: "Dados",
+    color: "#1351b4",
+    icon: (
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <ellipse cx="12" cy="5" rx="9" ry="3" />
+        <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3" />
+        <path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5" />
+      </svg>
+    ),
+  };
+}
+
+// Extrai tipo e categoria de um schema a partir do nome/id
+function parseSchemaType(name: string, sid: string): { type: string; category: string } {
+  const combined = (name + " " + sid).toLowerCase();
+  // Tipo: inferido pelo padrão do nome
+  let type = "Standard";
+  if (combined.includes("event") || combined.includes("evento")) type = "Evento";
+  else if (combined.includes("profile") || combined.includes("perfil")) type = "Perfil";
+  else if (combined.includes("transaction") || combined.includes("transac")) type = "Transação";
+  else if (combined.includes("subscription") || combined.includes("assinatura")) type = "Assinatura";
+  else if (combined.includes("location") || combined.includes("localiza")) type = "Localização";
+  else if (combined.includes("fare") || combined.includes("tarifa") || combined.includes("price")) type = "Tarifa";
+  else if (combined.includes("certificate") || combined.includes("certificado")) type = "Certificado";
+  // Categoria: inferida pelo domínio
+  const cat = detectSchemaCategory(name);
+  return { type, category: cat.label };
+}
+
+// ─── SchemaCardList: lista visual de schemas com filtro ───────────────────────
+
+function SchemaCardList({ items, pickText }: {
+  items: Record<string, unknown>[];
+  pickText: (r: Record<string, unknown>, keys: string[], fallback: string) => string;
+}) {
+  const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
+  const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
+
+  // Enriquecer items com metadados
+  const enriched = useMemo(() => items.map((item, idx) => {
+    const name = pickText(item, ["name", "title", "label", "displayName", "description"], `Schema ${idx + 1}`);
+    const sid = pickText(item, ["id", "sid", "dsku", "planId", "schemaId", "valueSchemaSid"], "");
+    const theme = detectSchemaCategory(name);
+    const { type, category } = parseSchemaType(name, sid);
+    return { name, sid, theme, type, category, raw: item };
+  }), [items]);
+
+  // Coletar tipos e categorias únicos
+  const allTypes = useMemo(() => Array.from(new Set(enriched.map(e => e.type))).sort(), [enriched]);
+  const allCategories = useMemo(() => Array.from(new Set(enriched.map(e => e.category))).sort(), [enriched]);
+
+  // Filtrar
+  const filtered = useMemo(() => enriched.filter(e => {
+    const typeOk = selectedTypes.size === 0 || selectedTypes.has(e.type);
+    const catOk = selectedCategories.size === 0 || selectedCategories.has(e.category);
+    return typeOk && catOk;
+  }), [enriched, selectedTypes, selectedCategories]);
+
+  const toggleType = (t: string) => setSelectedTypes(prev => {
+    const next = new Set(prev);
+    next.has(t) ? next.delete(t) : next.add(t);
+    return next;
+  });
+  const toggleCategory = (c: string) => setSelectedCategories(prev => {
+    const next = new Set(prev);
+    next.has(c) ? next.delete(c) : next.add(c);
+    return next;
+  });
+
+  const hasFilters = selectedTypes.size > 0 || selectedCategories.size > 0;
+
+  return (
+    <div className="space-y-2">
+      {/* Filtros */}
+      <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2">
+        <div className="flex items-center justify-between">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Filtrar planos</p>
+          {hasFilters && (
+            <button
+              onClick={() => { setSelectedTypes(new Set()); setSelectedCategories(new Set()); }}
+              className="text-[9px] text-[#1351b4] font-semibold underline"
+            >
+              Limpar filtros
+            </button>
+          )}
+        </div>
+        {/* Tipos */}
+        {allTypes.length > 1 && (
+          <div>
+            <p className="text-[9px] font-semibold text-slate-400 uppercase mb-1">Tipo</p>
+            <div className="flex flex-wrap gap-1">
+              {allTypes.map(t => (
+                <button
+                  key={t}
+                  onClick={() => toggleType(t)}
+                  className="text-[9px] px-2 py-0.5 rounded-full border font-semibold transition-all"
+                  style={{
+                    background: selectedTypes.has(t) ? "#1351b4" : "white",
+                    color: selectedTypes.has(t) ? "white" : "#475569",
+                    borderColor: selectedTypes.has(t) ? "#1351b4" : "#cbd5e1",
+                  }}
+                >
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+        {/* Categorias */}
+        {allCategories.length > 1 && (
+          <div>
+            <p className="text-[9px] font-semibold text-slate-400 uppercase mb-1">Categoria</p>
+            <div className="flex flex-wrap gap-1">
+              {allCategories.map(c => {
+                const theme = detectSchemaCategory(c);
+                return (
+                  <button
+                    key={c}
+                    onClick={() => toggleCategory(c)}
+                    className="text-[9px] px-2 py-0.5 rounded-full border font-semibold transition-all"
+                    style={{
+                      background: selectedCategories.has(c) ? theme.color : "white",
+                      color: selectedCategories.has(c) ? "white" : "#475569",
+                      borderColor: selectedCategories.has(c) ? theme.color : "#cbd5e1",
+                    }}
+                  >
+                    {c}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Contagem */}
+      <p className="text-[9px] text-slate-400 text-right">
+        {filtered.length} de {enriched.length} plano(s)
+      </p>
+
+      {/* Cards de schemas */}
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
+          <p className="text-xs text-slate-400">Nenhum plano corresponde aos filtros selecionados.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {filtered.map((e, idx) => (
+            <div
+              key={idx}
+              className="rounded-xl border bg-white p-3 flex items-start gap-3 shadow-sm"
+              style={{ borderColor: `${e.theme.color}30` }}
+            >
+              {/* Ícone temático */}
+              <div
+                className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+                style={{ background: `${e.theme.color}15`, color: e.theme.color }}
+              >
+                {e.theme.icon}
+              </div>
+              {/* Informações */}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold text-slate-900 truncate leading-tight">{e.name}</p>
+                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
+                  {/* Badge tipo */}
+                  <span
+                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                    style={{ background: "#f1f5f9", color: "#475569" }}
+                  >
+                    {e.type}
+                  </span>
+                  {/* Badge categoria */}
+                  <span
+                    className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
+                    style={{ background: `${e.theme.color}15`, color: e.theme.color }}
+                  >
+                    {e.category}
+                  </span>
+                </div>
+                {e.sid && (
+                  <p className="text-[9px] font-mono text-slate-400 truncate mt-1">{e.sid}</p>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ResponseRenderer({ result, screen, runState }: {
   result: ActionResult;
   screen: PhoneScreenConfig;
@@ -560,13 +879,13 @@ function ResponseRenderer({ result, screen, runState }: {
   // Extract list items from common response shapes
   const extractItems = (data: unknown): Record<string, unknown>[] => {
     if (!data) return [];
-    if (Array.isArray(data)) return data.slice(0, 5) as Record<string, unknown>[];
+    if (Array.isArray(data)) return data as Record<string, unknown>[];
     if (typeof data === "object") {
       const obj = data as Record<string, unknown>;
       const candidates = [obj.items, obj.data, obj.results, obj.valueSchemas, obj.schemas,
         obj.products, obj.dskus, obj.plans, obj.dataSavingsPlans, obj.certificates, obj.content];
       for (const c of candidates) {
-        if (Array.isArray(c) && c.length > 0) return (c as Record<string, unknown>[]).slice(0, 5);
+        if (Array.isArray(c) && c.length > 0) return c as Record<string, unknown>[];
       }
     }
     return [];
@@ -580,7 +899,11 @@ function ResponseRenderer({ result, screen, runState }: {
     return fallback;
   };
 
-  const items = extractItems(body);
+  const allItems = extractItems(body);
+  // Para exibição genérica limitamos a 5; schemas têm lista completa
+  const isSchemaStep = screen.stepId === 3;
+  const items = isSchemaStep ? allItems : allItems.slice(0, 5);
+
   const stateUpdates = result.stateUpdates as Record<string, unknown> | undefined;
   const capturedKeys = stateUpdates ? Object.keys(stateUpdates).filter(k => stateUpdates[k] !== null && stateUpdates[k] !== undefined) : [];
 
@@ -622,8 +945,16 @@ function ResponseRenderer({ result, screen, runState }: {
         </div>
       )}
 
-      {/* List items from response */}
-      {items.length > 0 && (
+      {/* Lista de schemas com cards visuais e filtro (passo 3) */}
+      {isSchemaStep && result.ok && items.length > 0 && (
+        <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Planos de dados disponíveis</p>
+          <SchemaCardList items={items} pickText={pickText} />
+        </div>
+      )}
+
+      {/* Lista genérica para outros passos */}
+      {!isSchemaStep && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Retorno da API</p>
           <div className="space-y-2">
