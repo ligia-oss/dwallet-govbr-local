@@ -648,11 +648,11 @@ function ResponseRenderer({ result, screen, runState }: {
 
 export type PhoneMockupPhase = "input" | "loading" | "result" | "email-sent" | "app-home";
 
-// Ações de signup/criação que disparam a tela "Código enviado"
+// Ações de signup que disparam a tela "Código enviado por e-mail"
+// Apenas os cadastros de usuário (não inclui business_create, que é criação de empresa após login)
 const SIGNUP_ACTION_IDS = new Set([
   "step1_employee_signup",
   "step2_person_signup",
-  "step1_business_create",
 ]);
 
 // Ações de verificação de código que disparam a tela "Home do app"

@@ -181,3 +181,8 @@
 - [x] Após validação bem-sucedida do código, exibir tela home do app com identidade visual gov.br, avatar (desenho de pessoa), nome do usuário e cards de ações
 - [x] Garantir que a transição entre telas (criação → código → home) seja fluida e automática
 - [x] Executar testes, build e salvar checkpoint
+
+## Correção de Fluxo do Mockup
+- [x] Corrigir: tela "Home do app" deve aparecer apenas após verify_code bem-sucedido (não após signup/business_create)
+- [x] Após signup bem-sucedido → apenas tela "Código enviado" (email-sent)
+- [x] Após verify_code bem-sucedido → tela "Home do app" (app-home)
