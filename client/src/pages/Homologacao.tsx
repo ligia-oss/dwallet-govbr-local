@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { trpc } from "@/lib/trpc";
+import { HomologacaoPhoneMockup } from "@/components/HomologacaoPhoneMockup";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -487,9 +488,50 @@ export default function Homologacao() {
     toast.success(lang === "pt" ? "Teste resetado com sucesso." : "Test reset successfully.");
   };
 
-  // ─── Render ───────────────────────────────────────────────────────────────
-
+    // ─── Render ───────────────────────────────────────────────────────────────
   const selectedStep = steps.find(s => s.id === activeStep);
+
+  // Derive the first actionId for the current step (used by the phone mockup)
+  const phoneActionId = activeStep === 0
+    ? "step0_m2m_auth"
+    : (selectedStep?.actions[0]?.id ?? undefined);
+
+  // Derive the active result for the phone mockup
+  const phoneActiveResult: ActionResult | undefined = (() => {
+    if (activeStep === 0) {
+      if (!m2mStatus) return undefined;
+      return {
+        actionId: "step0_m2m_auth",
+        actionTitle: "Gerar M2M Token",
+        status: m2mStatus.ok ? "done" : "failed",
+        ok: Boolean(m2mStatus.ok),
+        stateUpdates: m2mStatus.tokenHandle ? { tokenHandle: m2mStatus.tokenHandle } : {},
+        message: m2mStatus.ok ? "Token M2M gerado com sucesso." : "Falha ao gerar token M2M.",
+        executedAt: m2mStatus.savedAt,
+      } as ActionResult;
+    }
+    const stepResult = stepResults.find(r => r.stepId === activeStep);
+    if (!stepResult) return undefined;
+    // Return the result for the first action of this step
+    const firstActionId = selectedStep?.actions[0]?.id;
+    if (!firstActionId) return stepResult.results[stepResult.results.length - 1];
+    return stepResult.results.find(r => r.actionId === firstActionId)
+      ?? stepResult.results[stepResult.results.length - 1];
+  })();
+
+  // Handler for field changes from the phone mockup
+  const handlePhoneFieldChange = (key: string, value: string) => {
+    setRunState(prev => ({ ...prev, [key]: value }));
+  };
+
+  // Handler for CTA button in the phone mockup
+  const handlePhoneExecute = (actionId: string) => {
+    if (activeStep === 0) {
+      handleGenerateToken();
+      return;
+    }
+    handleExecuteAction(actionId, activeStep);
+  };
 
   return (
     <div className="min-h-screen bg-[#f0f4fa] govbr-app">
@@ -547,9 +589,9 @@ export default function Homologacao() {
 
           {/* ── Progress Tab ── */}
           <TabsContent value="progress" className="mt-0">
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-[240px_1fr_340px] gap-6 items-start">
               {/* Timeline column */}
-              <div className="lg:col-span-1">
+              <div>
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   <div className="px-4 py-3 bg-[#071d41] text-white">
                     <h2 className="text-sm font-semibold">Passo 0 → 17</h2>
@@ -603,7 +645,7 @@ export default function Homologacao() {
               </div>
 
               {/* Step detail column */}
-              <div className="lg:col-span-2">
+              <div>
                 <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
                   {activeStep === 0 ? (
                     <Step0Panel
@@ -642,6 +684,24 @@ export default function Homologacao() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Phone mockup column */}
+              <div className="flex flex-col items-center gap-4">
+                <div className="w-full rounded-xl border border-[#1351b4]/20 bg-white px-4 py-3 shadow-sm">
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#1351b4]">Emulador do Aplicativo</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">Tela do app para o passo selecionado</p>
+                </div>
+                <HomologacaoPhoneMockup
+                  stepId={activeStep}
+                  runState={runState}
+                  activeResult={phoneActiveResult}
+                  isExecuting={activeStep === 0 ? generatingToken : executingAction === phoneActionId}
+                  actionId={phoneActionId}
+                  onFieldChange={handlePhoneFieldChange}
+                  onExecute={handlePhoneExecute}
+                  lang={lang}
+                />
               </div>
             </div>
           </TabsContent>

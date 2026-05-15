@@ -1,0 +1,678 @@
+import React, { useState, useEffect } from "react";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type RunState = Record<string, string | number | boolean | null>;
+
+type ActionResult = {
+  actionId: string;
+  actionTitle: string;
+  status: string;
+  ok: boolean;
+  httpStatus?: number;
+  method?: string;
+  url?: string;
+  message?: string;
+  requestBody?: unknown;
+  responseBody?: unknown;
+  stateUpdates?: Record<string, unknown>;
+  executedAt?: string;
+};
+
+type PhoneField = {
+  key: string;
+  label: string;
+  placeholder: string;
+  type?: string;
+  required?: boolean;
+  sensitive?: boolean;
+};
+
+type PhoneScreenConfig = {
+  stepId: number;
+  actionId?: string;
+  appKind: "BdW" | "PdW" | "BdW/PdW" | "Ambos";
+  screenTitle: string;
+  screenSubtitle: string;
+  appHeader: string;
+  appLead: string;
+  ctaLabel: string;
+  fields: PhoneField[];
+  resultTitle: (result: ActionResult) => string;
+  resultBody: (result: ActionResult, state: RunState) => string;
+  resultDetails?: (result: ActionResult) => string | undefined;
+  gapMessage?: string;
+};
+
+// ─── Per-step screen configurations ──────────────────────────────────────────
+
+export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
+  0: {
+    stepId: 0,
+    appKind: "BdW/PdW",
+    screenTitle: "Autenticação técnica",
+    screenSubtitle: "Pré-requisito de sandbox — não visível ao usuário final",
+    appHeader: "Autenticação",
+    appLead: "Gerando credencial de acesso à sandbox Dataprev.",
+    ctaLabel: "Gerar M2M Token",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Token gerado com sucesso" : "Falha na autenticação",
+    resultBody: (r) => r.ok
+      ? "Token M2M ativo. Todas as chamadas protegidas usarão este token como Bearer."
+      : r.message ?? "Verifique as credenciais e tente novamente.",
+  },
+  1: {
+    stepId: 1,
+    appKind: "BdW",
+    screenTitle: "Empresa cria conta",
+    screenSubtitle: "Cadastro do responsável e criação da Business dWallet",
+    appHeader: "Criar sua conta",
+    appLead: "Informe os dados do responsável para iniciar a Business dWallet.",
+    ctaLabel: "Criar conta do funcionário",
+    fields: [
+      { key: "employeeFirstName", label: "Nome", placeholder: "Maria", required: true },
+      { key: "employeeLastName", label: "Sobrenome", placeholder: "Silva", required: true },
+      { key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@empresa.com", type: "email", required: true },
+      { key: "employeePassword", label: "Senha", placeholder: "Senha de teste", type: "password", required: true, sensitive: true },
+    ],
+    resultTitle: (r) => r.ok ? "Conta criada com sucesso" : "Erro ao criar conta",
+    resultBody: (r, s) => r.ok
+      ? `Conta criada para ${String(s.employeeEmail ?? "o responsável")}. Próximo passo: verificar o e-mail.`
+      : r.message ?? "Verifique os dados e tente novamente.",
+    resultDetails: (r) => r.ok ? "O código de verificação foi enviado para o e-mail cadastrado." : undefined,
+  },
+  2: {
+    stepId: 2,
+    appKind: "PdW",
+    screenTitle: "Pessoa cria carteira",
+    screenSubtitle: "Cadastro da pessoa física e criação da Personal dWallet",
+    appHeader: "Criar sua conta",
+    appLead: "Informe seus dados para criar a carteira de dados pessoal.",
+    ctaLabel: "Criar conta pessoal",
+    fields: [
+      { key: "personFirstName", label: "Nome", placeholder: "João", required: true },
+      { key: "personLastName", label: "Sobrenome", placeholder: "Santos", required: true },
+      { key: "personEmail", label: "E-mail", placeholder: "joao@email.com", type: "email", required: true },
+      { key: "personPassword", label: "Senha", placeholder: "Senha de teste", type: "password", required: true, sensitive: true },
+      { key: "personCpf", label: "CPF", placeholder: "000.000.000-00", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Conta criada com sucesso" : "Erro ao criar conta",
+    resultBody: (r, s) => r.ok
+      ? `Conta criada para ${String(s.personEmail ?? "a pessoa")}. Verifique o e-mail para continuar.`
+      : r.message ?? "Verifique os dados e tente novamente.",
+  },
+  3: {
+    stepId: 3,
+    appKind: "BdW",
+    screenTitle: "Consultar schemas",
+    screenSubtitle: "Empresa consulta os Standard Value Schemas disponíveis",
+    appHeader: "Catálogo de schemas",
+    appLead: "Veja os schemas de dados disponíveis para criar produtos.",
+    ctaLabel: "Consultar schemas",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Schemas carregados" : "Erro ao consultar schemas",
+    resultBody: (r) => r.ok
+      ? "Lista de Standard Value Schemas retornada pela sandbox."
+      : r.message ?? "Não foi possível carregar os schemas.",
+    resultDetails: (r: ActionResult): string | undefined => {
+      if (!r.ok) return undefined;
+      const body = r.responseBody as Record<string, unknown> | undefined;
+      if (!body) return undefined;
+      const items = (body.items ?? body.data ?? body.valueSchemas ?? body.schemas) as unknown[];
+      if (Array.isArray(items) && items.length > 0) {
+        return `${items.length} schema(s) disponível(is).`;
+      }
+      return "Resposta recebida da sandbox.";
+    },
+  },
+  4: {
+    stepId: 4,
+    appKind: "BdW",
+    screenTitle: "Produtos da empresa",
+    screenSubtitle: "Empresa consulta e cadastra produtos de dados",
+    appHeader: "Meus produtos",
+    appLead: "Gerencie os produtos de dados da sua empresa.",
+    ctaLabel: "Consultar produtos",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Produtos carregados" : "Erro ao consultar produtos",
+    resultBody: (r) => r.ok
+      ? "Catálogo de produtos retornado pela sandbox."
+      : r.message ?? "Não foi possível carregar os produtos.",
+  },
+  5: {
+    stepId: 5,
+    appKind: "PdW",
+    screenTitle: "Explorar produtos",
+    screenSubtitle: "Pessoa consulta produtos e empresas disponíveis",
+    appHeader: "Marketplace",
+    appLead: "Descubra produtos e empresas que oferecem serviços de dados.",
+    ctaLabel: "Ver produtos disponíveis",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Catálogo carregado" : "Erro ao carregar catálogo",
+    resultBody: (r) => r.ok
+      ? "Produtos e empresas disponíveis na sandbox."
+      : r.message ?? "Não foi possível carregar o catálogo.",
+  },
+  6: {
+    stepId: 6,
+    appKind: "PdW",
+    screenTitle: "Solicitar dados",
+    screenSubtitle: "Pessoa solicita dados a uma empresa",
+    appHeader: "Solicitar dados",
+    appLead: "Envie uma solicitação de dados para a empresa selecionada.",
+    ctaLabel: "Enviar solicitação",
+    fields: [
+      { key: "businessDwalletId", label: "ID da Business dWallet", placeholder: "Preenchido automaticamente", required: true },
+      { key: "valueSchemaSid", label: "Schema selecionado", placeholder: "Preenchido automaticamente", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Solicitação enviada" : "Erro ao enviar solicitação",
+    resultBody: (r, s) => r.ok
+      ? `Solicitação enviada para a empresa ${String(s.businessDwalletId ?? "selecionada")}.`
+      : r.message ?? "Não foi possível enviar a solicitação.",
+    resultDetails: (r: ActionResult): string | undefined => {
+      if (!r.ok) return undefined;
+      const upd = r.stateUpdates as Record<string, unknown> | undefined;
+      if (upd?.requestId) return `ID da solicitação: ${String(upd.requestId)}`;
+      return "Aguarde a resposta da empresa.";
+    },
+  },
+  7: {
+    stepId: 7,
+    appKind: "BdW",
+    screenTitle: "Responder solicitação",
+    screenSubtitle: "Empresa consulta e aceita ou rejeita solicitações de dados",
+    appHeader: "Solicitações recebidas",
+    appLead: "Gerencie as solicitações de dados enviadas pelas pessoas.",
+    ctaLabel: "Consultar solicitações",
+    fields: [
+      { key: "requestId", label: "ID da solicitação", placeholder: "Preenchido automaticamente", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Ação executada" : "Erro ao processar solicitação",
+    resultBody: (r) => r.ok
+      ? "Solicitação processada com sucesso."
+      : r.message ?? "Não foi possível processar a solicitação.",
+  },
+  8: {
+    stepId: 8,
+    appKind: "PdW",
+    screenTitle: "Certificados pessoais",
+    screenSubtitle: "Pessoa consulta certificados da carteira pessoal",
+    appHeader: "Meus certificados",
+    appLead: "Veja os certificados de dados associados à sua carteira.",
+    ctaLabel: "Ver certificados",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Certificados carregados" : "Erro ao carregar certificados",
+    resultBody: (r) => r.ok
+      ? "Certificados da Personal dWallet retornados."
+      : r.message ?? "Não foi possível carregar os certificados.",
+  },
+  9: {
+    stepId: 9,
+    appKind: "BdW",
+    screenTitle: "Certificados empresariais",
+    screenSubtitle: "Empresa consulta certificados da Business dWallet",
+    appHeader: "Certificados da empresa",
+    appLead: "Veja os certificados associados à carteira empresarial.",
+    ctaLabel: "Ver certificados",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Certificados carregados" : "Erro ao carregar certificados",
+    resultBody: (r) => r.ok
+      ? "Certificados da Business dWallet retornados."
+      : r.message ?? "Não foi possível carregar os certificados.",
+  },
+  10: {
+    stepId: 10,
+    appKind: "PdW",
+    screenTitle: "Planos de poupança",
+    screenSubtitle: "Pessoa consulta e adere a um Data Savings Plan",
+    appHeader: "Planos DSP",
+    appLead: "Escolha um plano de poupança de dados para sua carteira.",
+    ctaLabel: "Ver planos disponíveis",
+    fields: [
+      { key: "selectedDspId", label: "DSP selecionado", placeholder: "Preenchido ao escolher um plano", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Plano carregado" : "Erro ao carregar planos",
+    resultBody: (r) => r.ok
+      ? "Planos DSP disponíveis na sandbox."
+      : r.message ?? "Não foi possível carregar os planos.",
+  },
+  11: {
+    stepId: 11,
+    appKind: "BdW",
+    screenTitle: "Criar ofertas",
+    screenSubtitle: "Empresa cria ofertas no marketplace de dados",
+    appHeader: "Minhas ofertas",
+    appLead: "Crie e gerencie ofertas de dados para o marketplace.",
+    ctaLabel: "Criar oferta",
+    fields: [],
+    gapMessage: "Endpoint de criação de ofertas não disponível na sandbox atual. A tela permanece visível na jornada para documentar o passo.",
+    resultTitle: (r) => r.ok ? "Oferta criada" : "API não disponível",
+    resultBody: (r) => r.ok
+      ? "Oferta publicada no marketplace."
+      : r.message ?? "Endpoint não disponível nesta sandbox.",
+  },
+  12: {
+    stepId: 12,
+    appKind: "PdW",
+    screenTitle: "Visualizar ofertas",
+    screenSubtitle: "Pessoa visualiza ofertas disponíveis no marketplace",
+    appHeader: "Ofertas disponíveis",
+    appLead: "Veja as ofertas de dados disponíveis para você.",
+    ctaLabel: "Ver ofertas",
+    fields: [
+      { key: "offerId", label: "ID da oferta", placeholder: "Preenchido ao selecionar uma oferta", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Ofertas carregadas" : "Erro ao carregar ofertas",
+    resultBody: (r) => r.ok
+      ? "Ofertas disponíveis no marketplace."
+      : r.message ?? "Não foi possível carregar as ofertas.",
+  },
+  13: {
+    stepId: 13,
+    appKind: "PdW",
+    screenTitle: "Aceitar oferta",
+    screenSubtitle: "Pessoa aceita ou rejeita uma oferta do marketplace",
+    appHeader: "Confirmar oferta",
+    appLead: "Revise os termos e confirme sua decisão sobre a oferta.",
+    ctaLabel: "Aceitar oferta",
+    fields: [
+      { key: "offerId", label: "ID da oferta", placeholder: "Preenchido automaticamente", required: true },
+    ],
+    resultTitle: (r) => r.ok ? "Decisão registrada" : "Erro ao processar oferta",
+    resultBody: (r) => r.ok
+      ? "Sua decisão sobre a oferta foi registrada."
+      : r.message ?? "Não foi possível processar a oferta.",
+  },
+  14: {
+    stepId: 14,
+    appKind: "Ambos",
+    screenTitle: "Extrato da carteira",
+    screenSubtitle: "Histórico de movimentações financeiras",
+    appHeader: "Extrato",
+    appLead: "Acompanhe as movimentações da sua carteira.",
+    ctaLabel: "Ver extrato",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Extrato carregado" : "Erro ao carregar extrato",
+    resultBody: (r) => r.ok
+      ? "Movimentações da carteira retornadas."
+      : r.message ?? "Não foi possível carregar o extrato.",
+  },
+  15: {
+    stepId: 15,
+    appKind: "Ambos",
+    screenTitle: "Solicitar resgate",
+    screenSubtitle: "Solicitação de resgate de saldo da carteira",
+    appHeader: "Resgatar saldo",
+    appLead: "Solicite o resgate do saldo disponível na carteira.",
+    ctaLabel: "Solicitar resgate",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Resgate solicitado" : "Erro ao solicitar resgate",
+    resultBody: (r) => r.ok
+      ? "Solicitação de resgate registrada."
+      : r.message ?? "Não foi possível solicitar o resgate.",
+  },
+  16: {
+    stepId: 16,
+    appKind: "Ambos",
+    screenTitle: "Cadastrar Pix / Conta",
+    screenSubtitle: "Registro de chave Pix ou conta para recebimentos",
+    appHeader: "Chave Pix",
+    appLead: "Vincule uma chave Pix ou conta bancária à sua carteira.",
+    ctaLabel: "Cadastrar chave",
+    fields: [
+      { key: "btgPixKey", label: "Chave Pix", placeholder: "cpf, e-mail ou telefone", required: false },
+    ],
+    gapMessage: "Cadastro de chave Pix não disponível na sandbox atual. A tela permanece visível na jornada.",
+    resultTitle: (r) => r.ok ? "Chave cadastrada" : "API não disponível",
+    resultBody: (r) => r.ok
+      ? "Chave Pix vinculada à carteira."
+      : r.message ?? "Endpoint não disponível nesta sandbox.",
+  },
+  17: {
+    stepId: 17,
+    appKind: "Ambos",
+    screenTitle: "Histórico de resgates",
+    screenSubtitle: "Consulta ao histórico de resgates realizados",
+    appHeader: "Histórico",
+    appLead: "Veja todos os resgates realizados pela carteira.",
+    ctaLabel: "Ver histórico",
+    fields: [],
+    gapMessage: "Histórico de resgates não disponível na sandbox atual. A tela permanece visível na jornada.",
+    resultTitle: (r) => r.ok ? "Histórico carregado" : "API não disponível",
+    resultBody: (r) => r.ok
+      ? "Histórico de resgates retornado."
+      : r.message ?? "Endpoint não disponível nesta sandbox.",
+  },
+};
+
+// ─── App color by kind ────────────────────────────────────────────────────────
+
+function getAppColors(appKind: PhoneScreenConfig["appKind"]) {
+  if (appKind === "BdW") return { bg: "#0b3d2e", accent: "#168821", badge: "bg-emerald-600" };
+  if (appKind === "PdW") return { bg: "#071d41", accent: "#1351b4", badge: "bg-blue-600" };
+  return { bg: "#3d0b3d", accent: "#7c3aed", badge: "bg-purple-600" };
+}
+
+// ─── Response renderer ────────────────────────────────────────────────────────
+
+function ResponseRenderer({ result, screen, runState }: {
+  result: ActionResult;
+  screen: PhoneScreenConfig;
+  runState: RunState;
+}) {
+  const body = result.responseBody as Record<string, unknown> | null | undefined;
+
+  // Extract list items from common response shapes
+  const extractItems = (data: unknown): Record<string, unknown>[] => {
+    if (!data) return [];
+    if (Array.isArray(data)) return data.slice(0, 5) as Record<string, unknown>[];
+    if (typeof data === "object") {
+      const obj = data as Record<string, unknown>;
+      const candidates = [obj.items, obj.data, obj.results, obj.valueSchemas, obj.schemas,
+        obj.products, obj.dskus, obj.plans, obj.dataSavingsPlans, obj.certificates, obj.content];
+      for (const c of candidates) {
+        if (Array.isArray(c) && c.length > 0) return (c as Record<string, unknown>[]).slice(0, 5);
+      }
+    }
+    return [];
+  };
+
+  const pickText = (record: Record<string, unknown>, keys: string[], fallback: string) => {
+    for (const key of keys) {
+      const v = record[key];
+      if (v !== undefined && v !== null && String(v).trim()) return String(v);
+    }
+    return fallback;
+  };
+
+  const items = extractItems(body);
+  const stateUpdates = result.stateUpdates as Record<string, unknown> | undefined;
+  const capturedKeys = stateUpdates ? Object.keys(stateUpdates).filter(k => stateUpdates[k] !== null && stateUpdates[k] !== undefined) : [];
+
+  return (
+    <div className="space-y-3">
+      {/* Status banner */}
+      <div className={`rounded-2xl p-3 ${result.ok ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"}`}>
+        <div className="flex items-center gap-2 mb-1">
+          <span className="text-base">{result.ok ? "✅" : "❌"}</span>
+          <span className="text-sm font-bold text-slate-900">{screen.resultTitle(result)}</span>
+        </div>
+        <p className="text-xs leading-5 text-slate-600">{screen.resultBody(result, runState)}</p>
+        {screen.resultDetails && screen.resultDetails(result) && (
+          <p className="text-xs leading-5 text-slate-500 mt-1">{screen.resultDetails(result)}</p>
+        )}
+        {result.httpStatus && (
+          <span className={`inline-block mt-2 text-xs font-mono font-bold px-2 py-0.5 rounded ${result.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+            HTTP {result.httpStatus}
+          </span>
+        )}
+      </div>
+
+      {/* Captured variables */}
+      {capturedKeys.length > 0 && (
+        <div className="rounded-2xl bg-white border border-blue-100 p-3 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-2">📥 Variáveis capturadas</p>
+          <div className="space-y-1.5">
+            {capturedKeys.slice(0, 4).map(key => (
+              <div key={key} className="flex items-start gap-2">
+                <span className="text-[10px] font-mono font-semibold text-[#1351b4] shrink-0">{key}</span>
+                <span className="text-[10px] font-mono text-slate-600 truncate">
+                  {String(stateUpdates![key]).length > 30
+                    ? `${String(stateUpdates![key]).slice(0, 12)}…${String(stateUpdates![key]).slice(-8)}`
+                    : String(stateUpdates![key])}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* List items from response */}
+      {items.length > 0 && (
+        <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Retorno da API</p>
+          <div className="space-y-2">
+            {items.map((item, idx) => {
+              const name = pickText(item, ["name", "title", "label", "displayName", "description"], `Item ${idx + 1}`);
+              const id = pickText(item, ["id", "sid", "dsku", "planId", "requestId", "offerId", "schemaId", "valueSchemaSid"], "");
+              return (
+                <div key={idx} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                  <p className="text-xs font-semibold text-slate-900 truncate">{name}</p>
+                  {id && <p className="text-[10px] font-mono text-slate-500 truncate mt-0.5">{id}</p>}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Main PhoneMockup component ───────────────────────────────────────────────
+
+export type PhoneMockupPhase = "input" | "loading" | "result";
+
+export function HomologacaoPhoneMockup({
+  stepId,
+  runState,
+  activeResult,
+  isExecuting,
+  actionId,
+  onFieldChange,
+  onExecute,
+  lang = "pt",
+}: {
+  stepId: number;
+  runState: RunState;
+  activeResult?: ActionResult;
+  isExecuting: boolean;
+  actionId?: string;
+  onFieldChange: (key: string, value: string) => void;
+  onExecute: (actionId: string) => void;
+  lang?: "pt" | "en";
+}) {
+  const screen = PHONE_SCREENS[stepId];
+  const [phase, setPhase] = useState<PhoneMockupPhase>("input");
+
+  // Sync phase with execution state and result
+  useEffect(() => {
+    if (isExecuting) {
+      setPhase("loading");
+    } else if (activeResult) {
+      setPhase("result");
+    } else {
+      setPhase("input");
+    }
+  }, [isExecuting, activeResult]);
+
+  if (!screen) return null;
+
+  const colors = getAppColors(screen.appKind);
+  const isGap = Boolean(screen.gapMessage);
+  const hasFields = screen.fields.length > 0;
+
+  const appKindLabel = screen.appKind === "BdW" ? "Business dWallet®"
+    : screen.appKind === "PdW" ? "Personal dWallet®"
+    : "dWallet®";
+
+  const handleCta = () => {
+    if (!actionId || isGap) return;
+    onExecute(actionId);
+  };
+
+  return (
+    <div className="flex flex-col items-center">
+      {/* Phone shell */}
+      <div
+        className="relative w-[320px] rounded-[2.5rem] shadow-2xl overflow-hidden border-[6px] border-slate-800"
+        style={{ background: "#f0f4fa", minHeight: 620 }}
+        aria-label={`Mockup do aplicativo — Passo ${stepId}: ${screen.screenTitle}`}
+      >
+        {/* Notch */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-slate-800 rounded-b-2xl z-20" />
+
+        {/* Status bar */}
+        <div
+          className="flex items-center justify-between px-6 pt-7 pb-2 text-[10px] font-semibold text-white/80"
+          style={{ background: colors.bg }}
+        >
+          <span>9:41</span>
+          <span className="flex items-center gap-1">
+            <span>●●●</span>
+            <span>WiFi</span>
+            <span>🔋</span>
+          </span>
+        </div>
+
+        {/* App header */}
+        <div
+          className="px-5 pt-3 pb-4 text-white"
+          style={{ background: colors.bg }}
+        >
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-8 h-8 rounded-xl bg-white/20 flex items-center justify-center text-white font-bold text-xs">
+              {screen.appKind === "BdW" ? "B" : screen.appKind === "PdW" ? "P" : "dW"}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">gov.br · {appKindLabel}</p>
+              <p className="text-sm font-bold text-white truncate">{screen.appHeader}</p>
+            </div>
+            <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full text-white ${colors.badge}`}>
+              Passo {stepId}
+            </span>
+          </div>
+          <p className="text-xs text-white/70 leading-5">{screen.appLead}</p>
+        </div>
+
+        {/* Screen content */}
+        <div className="overflow-y-auto" style={{ maxHeight: 420 }}>
+          {/* GAP state */}
+          {isGap && (
+            <div className="p-4 space-y-3">
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
+                <div className="text-3xl mb-2">🚧</div>
+                <p className="text-sm font-bold text-amber-800">API não disponível</p>
+                <p className="text-xs text-amber-600 mt-2 leading-5">{screen.gapMessage}</p>
+              </div>
+              <div className="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Tela esperada no app</p>
+                <p className="text-xs text-slate-600 leading-5">{screen.screenSubtitle}</p>
+              </div>
+            </div>
+          )}
+
+          {/* LOADING state */}
+          {!isGap && phase === "loading" && (
+            <div className="p-4 flex flex-col items-center justify-center gap-4 py-12">
+              <div
+                className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin"
+                style={{ borderColor: `${colors.accent}40`, borderTopColor: colors.accent }}
+              />
+              <div className="text-center">
+                <p className="text-sm font-bold text-slate-800">Processando…</p>
+                <p className="text-xs text-slate-500 mt-1">Aguarde a resposta da API</p>
+              </div>
+            </div>
+          )}
+
+          {/* RESULT state */}
+          {!isGap && phase === "result" && activeResult && (
+            <div className="p-4 space-y-3">
+              <ResponseRenderer result={activeResult} screen={screen} runState={runState} />
+              <button
+                onClick={() => setPhase("input")}
+                className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+              >
+                ← Voltar ao formulário
+              </button>
+            </div>
+          )}
+
+          {/* INPUT state */}
+          {!isGap && phase === "input" && (
+            <div className="p-4 space-y-3">
+              {/* Previous result indicator */}
+              {activeResult && (
+                <button
+                  onClick={() => setPhase("result")}
+                  className={`w-full text-xs font-semibold py-2 rounded-2xl border transition-colors ${
+                    activeResult.ok
+                      ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                      : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                  }`}
+                >
+                  {activeResult.ok ? "✅ Ver último resultado →" : "❌ Ver último erro →"}
+                </button>
+              )}
+
+              {/* Form fields */}
+              {hasFields && (
+                <div className="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm space-y-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Dados da operação</p>
+                  {screen.fields.map(field => {
+                    const value = String(runState[field.key] ?? "");
+                    const displayValue = field.sensitive && value ? "••••••••" : value;
+                    return (
+                      <div key={field.key} className="space-y-1">
+                        <label className="text-[10px] font-semibold text-slate-500">
+                          {field.label}{field.required ? " *" : ""}
+                        </label>
+                        <input
+                          type={field.type ?? "text"}
+                          value={field.sensitive ? value : displayValue}
+                          placeholder={field.placeholder}
+                          onChange={e => onFieldChange(field.key, e.target.value)}
+                          className="w-full text-xs border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:border-transparent font-mono"
+                          style={{ "--tw-ring-color": colors.accent } as React.CSSProperties}
+                        />
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* No fields — info card */}
+              {!hasFields && (
+                <div className="rounded-2xl bg-white border border-slate-100 p-4 shadow-sm">
+                  <p className="text-xs text-slate-500 leading-5">
+                    Esta etapa não requer campos de entrada. Toque no botão abaixo para executar a API.
+                  </p>
+                </div>
+              )}
+
+              {/* CTA button */}
+              {actionId && !isGap && (
+                <button
+                  onClick={handleCta}
+                  disabled={isExecuting}
+                  className="w-full rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
+                  style={{ background: colors.accent }}
+                >
+                  {isExecuting ? "Enviando…" : screen.ctaLabel}
+                </button>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Bottom navigation */}
+        <div className="absolute bottom-0 left-0 right-0 grid grid-cols-4 gap-0 bg-white border-t border-slate-200 px-2 py-2 text-center text-[9px] font-semibold text-slate-500">
+          <span className="rounded-xl py-1.5 px-1" style={{ background: `${colors.accent}15`, color: colors.accent }}>Início</span>
+          <span className="py-1.5 px-1">Dados</span>
+          <span className="py-1.5 px-1">Consent.</span>
+          <span className="py-1.5 px-1">Conta</span>
+        </div>
+
+        {/* Home indicator */}
+        <div className="absolute bottom-1 left-1/2 -translate-x-1/2 w-20 h-1 bg-slate-400 rounded-full" />
+      </div>
+
+      {/* Screen label below phone */}
+      <div className="mt-3 text-center">
+        <p className="text-xs font-semibold text-slate-700">{screen.screenTitle}</p>
+        <p className="text-[10px] text-slate-400 mt-0.5">{screen.screenSubtitle}</p>
+      </div>
+    </div>
+  );
+}
