@@ -405,3 +405,19 @@
 - [x] Diagnosticar causa raiz definitiva: m2mResult com ok:false persistido no localStorage do navegador mesmo quando servidor tem token válido
 - [x] Adicionar useEffect de sincronização: quando metadata.data.m2mToken.active=true mas m2mResult local está inativo, atualizar estado do frontend
 - [x] Validar com 81 testes passando e TypeScript sem erros
+
+## Novo Frontend /homologacao
+
+- [x] Criar rota /homologacao no App.tsx
+- [x] Criar página Homologacao.tsx com layout de linha contínua de progresso Passo 0↑17
+- [x] Implementar componente ProgressTimeline com 18 nós (0-17), status visual por passo (pendente/ativo/concluído/sem API)
+- [x] Implementar painel de detalhes do passo selecionado com lista de APIs e botões de execução
+- [x] Implementar aba de Variáveis com: credenciais essenciais (API URL, x-api-key, Client ID, Client Secret), botão Gerar M2M Token, variáveis retornadas pelas APIs, botão Reset Teste
+- [x] Implementar suporte PT/EN com botão de alternância de idioma
+- [x] Implementar persistência de variáveis no localStorage (credenciais + estado das APIs)
+- [x] Implementar execução de APIs via trpc.dataprev.executeAction com propagação de estado entre passos
+- [x] Implementar exibição de evidências/retorno de cada API executada
+- [x] Implementar indicador visual de quais variáveis do estado serão usadas nos próximos passos
+- [x] Adicionar link para /homologacao na página Home.tsx
+- [x] Escrever testes Vitest para o novo frontend
+- [x] Executar pnpm test, pnpm build, verificar status e salvar checkpoint
