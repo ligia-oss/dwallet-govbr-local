@@ -646,7 +646,7 @@ function ResponseRenderer({ result, screen, runState }: {
 
 // ─── Main PhoneMockup component ───────────────────────────────────────────────
 
-export type PhoneMockupPhase = "input" | "loading" | "result" | "email-sent" | "app-home";
+export type PhoneMockupPhase = "input" | "loading" | "result" | "email-sent" | "app-home" | "signin-success";
 
 // Ações de signup que disparam a tela "Código enviado por e-mail"
 // Apenas os cadastros de usuário (não inclui business_create, que é criação de empresa após login)
@@ -655,10 +655,16 @@ const SIGNUP_ACTION_IDS = new Set([
   "step2_person_signup",
 ]);
 
-// Ações de verificação de código que disparam a tela "Home do app"
+// Ações de verificação de código que disparam a tela "Home do app" (pós-cadastro)
 const VERIFY_CODE_ACTION_IDS = new Set([
   "step1_employee_verify_code",
   "step2_person_verify_code",
+]);
+
+// Ações de login que disparam a tela "Home do app" (pós-login)
+const SIGNIN_ACTION_IDS = new Set([
+  "step1_employee_signin",
+  "step2_person_signin",
 ]);
 
 export function HomologacaoPhoneMockup({
@@ -696,11 +702,14 @@ export function HomologacaoPhoneMockup({
     if (isExecuting) {
       setPhase("loading");
     } else if (activeResult?.ok && actionId && SIGNUP_ACTION_IDS.has(actionId)) {
-      // Após signup bem-sucedido → mostrar tela "Código enviado"
+      // Após signup bem-sucedido → tela "Código enviado"
       setPhase("email-sent");
     } else if (activeResult?.ok && actionId && VERIFY_CODE_ACTION_IDS.has(actionId)) {
-      // Após verificação de código bem-sucedida → mostrar tela "Home do app"
+      // Após verificação de código bem-sucedida → tela "Home do app" (pós-cadastro)
       setPhase("app-home");
+    } else if (activeResult?.ok && actionId && SIGNIN_ACTION_IDS.has(actionId)) {
+      // Após login bem-sucedido → tela "Home do app" (pós-login)
+      setPhase("signin-success");
     } else if (activeResult) {
       setPhase("result");
     } else {
@@ -1088,6 +1097,200 @@ export function HomologacaoPhoneMockup({
                     }}
                     className="w-full rounded-xl py-2.5 text-xs font-semibold transition-all active:scale-95"
                     style={{ background: "rgba(255,255,255,0.95)", color: accentBg }}
+                  >
+                    Continuar jornada →
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+
+          {/* SIGNIN-SUCCESS state — tela Home completa após login bem-sucedido */}
+          {!isGap && phase === "signin-success" && (() => {
+            const respBody = activeResult?.responseBody as Record<string, unknown> | null | undefined;
+            // Extrair nome do usuário da resposta ou do runState
+            const firstName = String(
+              respBody?.firstName ?? respBody?.first_name ??
+              respBody?.name ?? respBody?.username ??
+              runState.employeeFirstName ?? runState.personFirstName ?? "Usuário"
+            );
+            const isBdW = screen.appKind === "BdW";
+            const appLabel = isBdW ? "Business dWallet®" : "Personal dWallet®";
+            const accentBg = colors.bg;
+            const accentColor = colors.accent;
+
+            // Avatar SVG: homem para BdW, mulher para PdW
+            const AvatarSVG = isBdW ? (
+              // Homem: cabeça com cabelo curto
+              <svg viewBox="0 0 80 80" width="64" height="64" fill="none">
+                {/* Corpo */}
+                <ellipse cx="40" cy="68" rx="22" ry="12" fill="rgba(255,255,255,0.25)" />
+                {/* Pescoço */}
+                <rect x="35" y="46" width="10" height="10" rx="3" fill="rgba(255,255,255,0.5)" />
+                {/* Cabeça */}
+                <ellipse cx="40" cy="34" rx="16" ry="17" fill="rgba(255,255,255,0.85)" />
+                {/* Cabelo curto */}
+                <path d="M24 30 Q24 14 40 14 Q56 14 56 30" fill="rgba(255,255,255,0.4)" />
+                {/* Orelhas */}
+                <ellipse cx="24" cy="35" rx="3" ry="4" fill="rgba(255,255,255,0.6)" />
+                <ellipse cx="56" cy="35" rx="3" ry="4" fill="rgba(255,255,255,0.6)" />
+                {/* Olhos */}
+                <circle cx="34" cy="33" r="2.5" fill={accentBg} opacity="0.7" />
+                <circle cx="46" cy="33" r="2.5" fill={accentBg} opacity="0.7" />
+                {/* Boca */}
+                <path d="M34 42 Q40 46 46 42" stroke={accentBg} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+              </svg>
+            ) : (
+              // Mulher: cabeça com cabelo longo
+              <svg viewBox="0 0 80 80" width="64" height="64" fill="none">
+                {/* Cabelo longo (atrás) */}
+                <path d="M22 32 Q18 55 22 70 Q30 76 40 76 Q50 76 58 70 Q62 55 58 32" fill="rgba(255,255,255,0.3)" />
+                {/* Corpo */}
+                <ellipse cx="40" cy="68" rx="20" ry="10" fill="rgba(255,255,255,0.25)" />
+                {/* Pescoço */}
+                <rect x="36" y="47" width="8" height="9" rx="3" fill="rgba(255,255,255,0.5)" />
+                {/* Cabeça */}
+                <ellipse cx="40" cy="34" rx="15" ry="16" fill="rgba(255,255,255,0.85)" />
+                {/* Cabelo topo */}
+                <path d="M25 28 Q25 14 40 13 Q55 14 55 28" fill="rgba(255,255,255,0.45)" />
+                {/* Orelhas */}
+                <ellipse cx="25" cy="35" rx="3" ry="4" fill="rgba(255,255,255,0.6)" />
+                <ellipse cx="55" cy="35" rx="3" ry="4" fill="rgba(255,255,255,0.6)" />
+                {/* Olhos */}
+                <ellipse cx="34" cy="33" rx="3" ry="2.5" fill={accentBg} opacity="0.7" />
+                <ellipse cx="46" cy="33" rx="3" ry="2.5" fill={accentBg} opacity="0.7" />
+                {/* Cílios */}
+                <path d="M31 30.5 Q34 29 37 30.5" stroke={accentBg} strokeWidth="1" fill="none" opacity="0.5" />
+                <path d="M43 30.5 Q46 29 49 30.5" stroke={accentBg} strokeWidth="1" fill="none" opacity="0.5" />
+                {/* Boca */}
+                <path d="M35 42 Q40 46 45 42" stroke={accentBg} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+              </svg>
+            );
+
+            return (
+              <div className="flex flex-col" style={{ background: accentBg, minHeight: 420 }}>
+
+                {/* Header: saudão + avatar pequeno + menu */}
+                <div
+                  className="px-4 pt-3 pb-3 flex items-center justify-between"
+                  style={{ borderBottom: "1px solid rgba(255,255,255,0.12)" }}
+                >
+                  <div className="flex items-center gap-2.5">
+                    {/* Avatar pequeno no header */}
+                    <div
+                      className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center shrink-0"
+                      style={{ background: `${accentColor}40`, border: "2px solid rgba(255,255,255,0.3)" }}
+                    >
+                      <svg viewBox="0 0 40 40" width="28" height="28" fill="none">
+                        {isBdW ? (
+                          <>
+                            <ellipse cx="20" cy="34" rx="11" ry="6" fill="rgba(255,255,255,0.3)" />
+                            <ellipse cx="20" cy="17" rx="8" ry="8.5" fill="rgba(255,255,255,0.9)" />
+                            <path d="M12 15 Q12 7 20 7 Q28 7 28 15" fill="rgba(255,255,255,0.4)" />
+                          </>
+                        ) : (
+                          <>
+                            <path d="M11 16 Q9 27 11 35 Q15 38 20 38 Q25 38 29 35 Q31 27 29 16" fill="rgba(255,255,255,0.25)" />
+                            <ellipse cx="20" cy="17" rx="7.5" ry="8" fill="rgba(255,255,255,0.9)" />
+                            <path d="M12.5 14 Q12.5 7 20 6.5 Q27.5 7 27.5 14" fill="rgba(255,255,255,0.4)" />
+                          </>
+                        )}
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-white/50 leading-none">Olá,</p>
+                      <p className="text-sm font-bold text-white leading-tight">{firstName}!</p>
+                    </div>
+                  </div>
+                  {/* Menu hamburguer */}
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center"
+                    style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)" }}
+                  >
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="white">
+                      <rect x="3" y="6" width="18" height="2" rx="1" />
+                      <rect x="3" y="11" width="18" height="2" rx="1" />
+                      <rect x="3" y="16" width="18" height="2" rx="1" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Área central: avatar grande + nome + app */}
+                <div className="flex flex-col items-center pt-5 pb-4 px-4">
+                  {/* Avatar grande com anéis concêntricos */}
+                  <div
+                    className="relative w-24 h-24 rounded-full flex items-center justify-center mb-3"
+                    style={{
+                      background: `${accentColor}30`,
+                      boxShadow: `0 0 0 5px ${accentColor}25, 0 0 0 10px ${accentColor}12, 0 0 0 16px ${accentColor}06`
+                    }}
+                  >
+                    {AvatarSVG}
+                  </div>
+                  <p className="text-base font-bold text-white tracking-wide">{firstName}</p>
+                  <p className="text-[10px] text-white/55 mt-0.5">{appLabel}</p>
+                </div>
+
+                {/* Título seção */}
+                <div className="px-4 pb-1">
+                  <p className="text-sm font-bold text-white text-center">Minhas solicitações</p>
+                  <p className="text-[10px] text-white/50 text-center mt-0.5">Solicite dados das empresas com as quais possui relação</p>
+                </div>
+
+                {/* Stats */}
+                <div className="px-4 py-3">
+                  <div
+                    className="rounded-2xl flex justify-around py-3"
+                    style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
+                  >
+                    {[
+                      { label: "Pendente", value: "0" },
+                      { label: "Aceito", value: "0" },
+                      { label: "Recusado", value: "0" },
+                    ].map((s, i) => (
+                      <React.Fragment key={i}>
+                        {i > 0 && <div style={{ width: 1, background: "rgba(255,255,255,0.15)" }} />}
+                        <div className="text-center px-3">
+                          <p className="text-xl font-bold text-white">{s.value}</p>
+                          <p className="text-[9px] text-white/55 mt-0.5">{s.label}</p>
+                        </div>
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Botões de ação */}
+                <div className="px-4 pb-4 space-y-2">
+                  <button
+                    className="w-full rounded-2xl py-3 text-sm font-bold transition-all active:scale-95"
+                    style={{ background: "rgba(255,255,255,0.95)", color: accentBg }}
+                    onClick={() => setPhase("input")}
+                  >
+                    Solicite mais dados
+                  </button>
+                  <button
+                    className="w-full rounded-2xl py-3 text-sm font-bold text-white border transition-all active:scale-95"
+                    style={{ background: "transparent", borderColor: "rgba(255,255,255,0.4)" }}
+                    onClick={() => setPhase("input")}
+                  >
+                    Ver minhas solicitações
+                  </button>
+                  {/* Continuar jornada */}
+                  <button
+                    onClick={() => {
+                      if (onAutoAdvance && stepActions && actionId) {
+                        const currentIdx = stepActions.findIndex(a => a.id === actionId);
+                        const nextAction = stepActions[currentIdx + 1];
+                        if (nextAction) {
+                          onAutoAdvance(nextAction.id);
+                          setPhase("input");
+                          return;
+                        }
+                      }
+                      setPhase("input");
+                    }}
+                    className="w-full rounded-2xl py-2.5 text-xs font-semibold text-white/70 transition-all"
+                    style={{ background: "rgba(255,255,255,0.06)" }}
                   >
                     Continuar jornada →
                   </button>

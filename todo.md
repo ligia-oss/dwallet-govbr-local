@@ -186,3 +186,10 @@
 - [x] Corrigir: tela "Home do app" deve aparecer apenas após verify_code bem-sucedido (não após signup/business_create)
 - [x] Após signup bem-sucedido → apenas tela "Código enviado" (email-sent)
 - [x] Após verify_code bem-sucedido → tela "Home do app" (app-home)
+
+## Tela Home Pós-Login no Mockup
+- [x] Adicionar fase signin-success disparada após step1_employee_signin e step2_person_signin bem-sucedidos
+- [x] Tela Home com layout das telas de referência: header com saudação + avatar, área central com foto ilustrativa (homem/mulher SVG), título "Minhas solicitações", stats (Pendente/Aceito/Recusado), botões de ação
+- [x] Avatar: ilustração SVG de homem (BdW) ou mulher (PdW) com anel de destaque
+- [x] Nome exibido: extraído do runState (employeeFirstName/personFirstName) ou da resposta da API
+- [x] Botão "Continuar jornada →" para avançar para a próxima ação

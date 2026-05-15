@@ -502,3 +502,34 @@ describe("HomologacaoPhoneMockup — PHONE_SCREENS: telas pós-criação", () =>
     expect(screen?.resultTitle?.(result)).toBe("Empresa criada");
   });
 });
+
+// ─── Tela Home pós-login ──────────────────────────────────────────────────────
+
+describe("HomologacaoPhoneMockup — PHONE_SCREENS: tela Home pós-login", () => {
+  it("ação step1_employee_signin está definida no passo 1", () => {
+    const step1Screens = PHONE_SCREENS[1].actionScreens ?? {};
+    expect(Object.keys(step1Screens)).toContain("step1_employee_signin");
+  });
+
+  it("ação step2_person_signin está definida no passo 2", () => {
+    const step2Screens = PHONE_SCREENS[2].actionScreens ?? {};
+    expect(Object.keys(step2Screens)).toContain("step2_person_signin");
+  });
+
+  it("step1_employee_signin tem resultTitle de sucesso correto", () => {
+    const result = { actionId: "step1_employee_signin", actionTitle: "Entrar", status: "done", ok: true };
+    const screen = PHONE_SCREENS[1].actionScreens?.["step1_employee_signin"];
+    expect(screen?.resultTitle?.(result)).toBe("Login realizado");
+  });
+
+  it("step2_person_signin tem resultTitle de sucesso correto", () => {
+    const result = { actionId: "step2_person_signin", actionTitle: "Entrar", status: "done", ok: true };
+    const screen = PHONE_SCREENS[2].actionScreens?.["step2_person_signin"];
+    expect(screen?.resultTitle?.(result)).toBe("Login realizado");
+  });
+
+  it("passo 1 é BdW (Business) e passo 2 é PdW (Personal)", () => {
+    expect(PHONE_SCREENS[1].appKind).toBe("BdW");
+    expect(PHONE_SCREENS[2].appKind).toBe("PdW");
+  });
+});
