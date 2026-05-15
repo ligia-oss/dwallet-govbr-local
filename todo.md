@@ -421,3 +421,7 @@
 - [x] Adicionar link para /homologacao na página Home.tsx
 - [x] Escrever testes Vitest para o novo frontend
 - [x] Executar pnpm test, pnpm build, verificar status e salvar checkpoint
+
+- [x] Diagnosticar por que o Passo 0 M2M não funciona no /homologacao publicado
+- [x] Corrigir a causa raiz no Homologacao.tsx para que o Passo 0 funcione no navegador: campos vazios = usar Secrets do servidor (habilitado), campos parciais = bloquear com aviso, todos preenchidos = usar credenciais do usuário
+- [x] Validar com testes, build e salvar checkpoint para publicação

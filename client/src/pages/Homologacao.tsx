@@ -358,7 +358,13 @@ export default function Homologacao() {
   }, [m2mStatus, steps, stepResults, activeStep]);
 
   // Credentials helpers
-  const hasCredentials = creds.baseUrl && creds.apiKey && creds.clientId && creds.clientSecret;
+  // True when ALL 4 fields are filled (user-provided credentials)
+  const hasAllCredentials = !!(creds.baseUrl && creds.apiKey && creds.clientId && creds.clientSecret);
+  // True when SOME but not all fields are filled (partial = invalid state)
+  const hasAnyCredential = !!(creds.baseUrl || creds.apiKey || creds.clientId || creds.clientSecret);
+  const hasPartialCredentials = hasAnyCredential && !hasAllCredentials;
+  // For UI display: show warning only when partially filled
+  const hasCredentials = hasAllCredentials;
 
   const handleCredsChange = (field: keyof DataprevCredentialForm, value: string) => {
     const updated = { ...creds, [field]: value };
@@ -368,19 +374,20 @@ export default function Homologacao() {
 
   // Generate M2M token
   const handleGenerateToken = async () => {
-    if (!hasCredentials) {
+    // Block only if partially filled (some fields but not all)
+    if (hasPartialCredentials) {
       toast.error(t.credsMissing);
       return;
     }
     setGeneratingToken(true);
     try {
+      // If all fields are empty, send empty credentials so server uses its Secrets
+      // If all fields are filled, send user-provided credentials
+      const credentialsPayload = hasAllCredentials
+        ? { baseUrl: creds.baseUrl, apiKey: creds.apiKey, clientId: creds.clientId, clientSecret: creds.clientSecret }
+        : {};
       const result = await authenticateM2M.mutateAsync({
-        credentials: {
-          baseUrl: creds.baseUrl,
-          apiKey: creds.apiKey,
-          clientId: creds.clientId,
-          clientSecret: creds.clientSecret,
-        },
+        credentials: credentialsPayload,
       });
       if (result.ok) {
         const status = {
@@ -407,7 +414,8 @@ export default function Homologacao() {
 
   // Execute a single action
   const handleExecuteAction = async (actionId: string, stepId: number) => {
-    if (!hasCredentials) {
+    // Block only if partially filled (some fields but not all)
+    if (hasPartialCredentials) {
       toast.error(t.credsMissing);
       setActiveTab("variables");
       return;
@@ -420,15 +428,14 @@ export default function Homologacao() {
         if (actionId.includes("employee_verify")) stateWithCodes.employeeVerificationCode = verificationCodes[actionId];
         if (actionId.includes("person_verify")) stateWithCodes.personVerificationCode = verificationCodes[actionId];
       }
+      // If all fields are empty, send empty credentials so server uses its Secrets
+      const execCredentials = hasAllCredentials
+        ? { baseUrl: creds.baseUrl, apiKey: creds.apiKey, clientId: creds.clientId, clientSecret: creds.clientSecret }
+        : {};
       const result = await executeAction.mutateAsync({
         actionId,
         state: stateWithCodes,
-        credentials: {
-          baseUrl: creds.baseUrl,
-          apiKey: creds.apiKey,
-          clientId: creds.clientId,
-          clientSecret: creds.clientSecret,
-        },
+        credentials: execCredentials,
       });
       // Merge state updates
       if (result.stateUpdates && Object.keys(result.stateUpdates).length > 0) {
@@ -606,6 +613,7 @@ export default function Homologacao() {
                       m2mStatus={m2mStatus}
                       generatingToken={generatingToken}
                       hasCredentials={!!hasCredentials}
+                      hasPartialCredentials={hasPartialCredentials}
                       onGenerate={handleGenerateToken}
                       onGoToVariables={() => setActiveTab("variables")}
                     />
@@ -621,6 +629,7 @@ export default function Homologacao() {
                       executingAction={executingAction}
                       verificationCodes={verificationCodes}
                       hasCredentials={!!hasCredentials}
+                      hasPartialCredentials={hasPartialCredentials}
                       m2mActive={isM2MAuthResultActive(m2mStatus)}
                       onExecute={handleExecuteAction}
                       onCodeChange={(actionId, code) => setVerificationCodes(prev => ({ ...prev, [actionId]: code }))}
@@ -647,6 +656,7 @@ export default function Homologacao() {
               runState={runState}
               generatingToken={generatingToken}
               hasCredentials={!!hasCredentials}
+              hasPartialCredentials={hasPartialCredentials}
               onCredsChange={handleCredsChange}
               onGenerate={handleGenerateToken}
             />
@@ -672,7 +682,7 @@ export default function Homologacao() {
 type TDict = typeof T["pt"] | typeof T["en"];
 
 function Step0Panel({
-  lang, t, creds, m2mStatus, generatingToken, hasCredentials, onGenerate, onGoToVariables
+  lang, t, creds, m2mStatus, generatingToken, hasCredentials, hasPartialCredentials, onGenerate, onGoToVariables
 }: {
   lang: Lang;
   t: TDict;
@@ -680,6 +690,7 @@ function Step0Panel({
   m2mStatus: ReturnType<typeof readPersistedM2MTokenStatus>;
   generatingToken: boolean;
   hasCredentials: boolean;
+  hasPartialCredentials: boolean;
   onGenerate: () => void;
   onGoToVariables: () => void;
 }) {
@@ -715,12 +726,18 @@ function Step0Panel({
           )}
         </div>
 
-        {!hasCredentials && (
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-4 text-sm text-blue-800">
-            ℹ️ {t.credsMissing}{" "}
-            <button onClick={onGoToVariables} className="underline font-semibold hover:text-blue-900">
+        {hasPartialCredentials && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
+            ⚠️ {t.credsMissing}{" "}
+            <button onClick={onGoToVariables} className="underline font-semibold hover:text-amber-900">
               {lang === "pt" ? "Ir para Variáveis →" : "Go to Variables →"}
             </button>
+          </div>
+        )}
+
+        {!hasCredentials && !hasPartialCredentials && (
+          <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
+            ℹ️ {lang === "pt" ? "Usando credenciais configuradas no servidor. Preencha os campos acima para usar credenciais personalizadas." : "Using server-configured credentials. Fill in the fields above to use custom credentials."}
           </div>
         )}
 
@@ -740,7 +757,7 @@ function Step0Panel({
 
         <Button
           onClick={onGenerate}
-          disabled={!hasCredentials || generatingToken}
+          disabled={hasPartialCredentials || generatingToken}
           className="w-full bg-[#1351b4] hover:bg-[#0c326f] text-white font-semibold"
           size="lg"
         >
@@ -759,7 +776,7 @@ function Step0Panel({
 
 function StepDetailPanel({
   lang, t, step, stepId, stepStatus, runState, stepResults, executingAction,
-  verificationCodes, hasCredentials, m2mActive, onExecute, onCodeChange, onGoToVariables
+  verificationCodes, hasCredentials, hasPartialCredentials, m2mActive, onExecute, onCodeChange, onGoToVariables
 }: {
   lang: Lang;
   t: TDict;
@@ -771,6 +788,7 @@ function StepDetailPanel({
   executingAction: string | null;
   verificationCodes: Record<string, string>;
   hasCredentials: boolean;
+  hasPartialCredentials: boolean;
   m2mActive: boolean;
   onExecute: (actionId: string, stepId: number) => void;
   onCodeChange: (actionId: string, code: string) => void;
@@ -802,9 +820,9 @@ function StepDetailPanel({
       </div>
 
       <div className="p-6 space-y-4">
-        {!hasCredentials && (
-          <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-800 flex items-center gap-2">
-            ℹ️ {t.credsMissing}{" "}
+        {hasPartialCredentials && (
+          <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 flex items-center gap-2">
+            ⚠️ {t.credsMissing}{" "}
             <button onClick={onGoToVariables} className="underline font-semibold">
               {lang === "pt" ? "Ir para Variáveis →" : "Go to Variables →"}
             </button>
@@ -846,7 +864,7 @@ function StepDetailPanel({
                     <Button
                       size="sm"
                       onClick={() => onExecute(action.id, stepId)}
-                      disabled={isExecuting || !hasCredentials}
+                      disabled={isExecuting || hasPartialCredentials}
                       className={`flex-shrink-0 text-xs ${result?.ok ? "bg-emerald-600 hover:bg-emerald-700" : "bg-[#1351b4] hover:bg-[#0c326f]"} text-white`}
                     >
                       {isExecuting ? <span className="animate-spin">⟳</span> : t.btnRunStep}
@@ -909,7 +927,7 @@ function StepDetailPanel({
 // ─── Variables Tab ────────────────────────────────────────────────────────────
 
 function VariablesTab({
-  lang, t, creds, m2mStatus, runState, generatingToken, hasCredentials, onCredsChange, onGenerate
+  lang, t, creds, m2mStatus, runState, generatingToken, hasCredentials, hasPartialCredentials, onCredsChange, onGenerate
 }: {
   lang: Lang;
   t: TDict;
@@ -918,6 +936,7 @@ function VariablesTab({
   runState: RunState;
   generatingToken: boolean;
   hasCredentials: boolean;
+  hasPartialCredentials: boolean;
   onCredsChange: (field: keyof DataprevCredentialForm, value: string) => void;
   onGenerate: () => void;
 }) {
@@ -976,7 +995,7 @@ function VariablesTab({
             </div>
             <Button
               onClick={onGenerate}
-              disabled={!hasCredentials || generatingToken}
+              disabled={hasPartialCredentials || generatingToken}
               className="bg-[#1351b4] hover:bg-[#0c326f] text-white font-semibold ml-4 flex-shrink-0"
             >
               {generatingToken ? (
