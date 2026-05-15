@@ -491,12 +491,21 @@ export default function Homologacao() {
     // ─── Render ───────────────────────────────────────────────────────────────
   const selectedStep = steps.find(s => s.id === activeStep);
 
-  // Derive the first actionId for the current step (used by the phone mockup)
-  const phoneActionId = activeStep === 0
-    ? "step0_m2m_auth"
-    : (selectedStep?.actions[0]?.id ?? undefined);
+  // Derive the next pending actionId for the current step (used by the phone mockup)
+  // For steps with multiple actions, find the first action not yet executed successfully
+  const phoneActionId: string | undefined = (() => {
+    if (activeStep === 0) return "step0_m2m_auth";
+    if (!selectedStep) return undefined;
+    const stepResult = stepResults.find(r => r.stepId === activeStep);
+    const executedOkIds = new Set(
+      stepResult?.results.filter(r => r.ok).map(r => r.actionId) ?? []
+    );
+    // Find the first action not yet executed successfully
+    const nextAction = selectedStep.actions.find(a => !executedOkIds.has(a.id));
+    return nextAction?.id ?? selectedStep.actions[selectedStep.actions.length - 1]?.id;
+  })();
 
-  // Derive the active result for the phone mockup
+  // Derive the active result for the phone mockup (result of the current phoneActionId)
   const phoneActiveResult: ActionResult | undefined = (() => {
     if (activeStep === 0) {
       if (!m2mStatus) return undefined;
@@ -512,11 +521,13 @@ export default function Homologacao() {
     }
     const stepResult = stepResults.find(r => r.stepId === activeStep);
     if (!stepResult) return undefined;
-    // Return the result for the first action of this step
-    const firstActionId = selectedStep?.actions[0]?.id;
-    if (!firstActionId) return stepResult.results[stepResult.results.length - 1];
-    return stepResult.results.find(r => r.actionId === firstActionId)
-      ?? stepResult.results[stepResult.results.length - 1];
+    // Return the result for the current phoneActionId (next pending action)
+    if (phoneActionId) {
+      const specificResult = stepResult.results.find(r => r.actionId === phoneActionId);
+      if (specificResult) return specificResult;
+    }
+    // Fallback: last result
+    return stepResult.results[stepResult.results.length - 1];
   })();
 
   // Handler for field changes from the phone mockup
@@ -698,6 +709,10 @@ export default function Homologacao() {
                   activeResult={phoneActiveResult}
                   isExecuting={activeStep === 0 ? generatingToken : executingAction === phoneActionId}
                   actionId={phoneActionId}
+                  stepActions={selectedStep?.actions.map(a => ({ id: a.id, title: a.title }))}
+                  executedActionIds={new Set(
+                    stepResults.find(r => r.stepId === activeStep)?.results.filter(r => r.ok).map(r => r.actionId) ?? []
+                  )}
                   onFieldChange={handlePhoneFieldChange}
                   onExecute={handlePhoneExecute}
                   lang={lang}

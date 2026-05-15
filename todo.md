@@ -117,3 +117,13 @@
 - [x] Exibir tela de erro dentro do celular quando a API retornar falha
 - [x] Sincronizar campos editáveis do mockup com o runState da jornada (valores usados nas chamadas reais)
 - [x] Executar testes, build, verificar status e salvar checkpoint do mockup de celular no /homologacao
+
+## Botão Executar no Mockup de Celular
+
+- [x] Conectar onExecute do mockup ao handleExecuteAction da página /homologacao
+- [x] Garantir que campos editados no mockup são propagados para o runState antes da execução
+- [x] Desabilitar botão CTA do mockup durante execução (isExecuting) e exibir "Enviando…"
+- [x] Adicionar indicador de progresso de sub-etapas para passos com múltiplas ações (ex: Passo 2 com 4 ações)
+- [x] Calcular automaticamente a próxima ação pendente para passos com múltiplas ações
+- [x] Adicionar sub-telas por ação para passos 2, 7 e 10 com campos e textos específicos
+- [x] Executar testes, build e salvar checkpoint

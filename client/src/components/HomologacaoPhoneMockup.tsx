@@ -42,6 +42,8 @@ type PhoneScreenConfig = {
   resultBody: (result: ActionResult, state: RunState) => string;
   resultDetails?: (result: ActionResult) => string | undefined;
   gapMessage?: string;
+  // Sub-telas por ação (para passos com múltiplas ações sequenciais)
+  actionScreens?: Record<string, Partial<Omit<PhoneScreenConfig, "actionScreens" | "stepId" | "appKind">>>;
 };
 
 // ─── Per-step screen configurations ──────────────────────────────────────────
@@ -80,6 +82,71 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
       ? `Conta criada para ${String(s.employeeEmail ?? "o responsável")}. Próximo passo: verificar o e-mail.`
       : r.message ?? "Verifique os dados e tente novamente.",
     resultDetails: (r) => r.ok ? "O código de verificação foi enviado para o e-mail cadastrado." : undefined,
+    actionScreens: {
+      step1_employee_signup: {
+        appHeader: "Criar sua conta",
+        appLead: "Informe os dados do responsável para iniciar a Business dWallet.",
+        ctaLabel: "Criar conta do funcionário",
+        fields: [
+          { key: "employeeFirstName", label: "Nome", placeholder: "Maria", required: true },
+          { key: "employeeLastName", label: "Sobrenome", placeholder: "Silva", required: true },
+          { key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@empresa.com", type: "email", required: true },
+          { key: "employeePassword", label: "Senha", placeholder: "Senha de teste", type: "password", required: true, sensitive: true },
+        ],
+        resultTitle: (r) => r.ok ? "Conta criada" : "Erro ao criar conta",
+        resultBody: (r, s) => r.ok
+          ? `Conta criada para ${String(s.employeeEmail ?? "o responsável")}. Verifique o e-mail.`
+          : r.message ?? "Verifique os dados e tente novamente.",
+      },
+      step1_employee_send_code: {
+        appHeader: "Verificação de e-mail",
+        appLead: "Um código foi enviado para o seu e-mail corporativo. Aguarde e informe-o no próximo passo.",
+        ctaLabel: "Enviar código de verificação",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Código enviado" : "Erro ao enviar código",
+        resultBody: (r, s) => r.ok
+          ? `Código enviado para ${String(s.employeeEmail ?? "o e-mail")}. Informe-o no próximo passo.`
+          : r.message ?? "Não foi possível enviar o código.",
+      },
+      step1_employee_verify_code: {
+        appHeader: "Confirmar código",
+        appLead: "Informe o código de verificação recebido no e-mail corporativo.",
+        ctaLabel: "Confirmar código",
+        fields: [
+          { key: "employeeVerificationCode", label: "Código de verificação (e-mail)", placeholder: "Digite o código recebido", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "E-mail verificado" : "Código inválido",
+        resultBody: (r) => r.ok
+          ? "E-mail corporativo verificado com sucesso. Próximo passo: fazer login."
+          : r.message ?? "Código inválido ou expirado. Solicite um novo código.",
+      },
+      step1_employee_signin: {
+        appHeader: "Entrar na conta",
+        appLead: "Faça login com as credenciais do colaborador Business.",
+        ctaLabel: "Entrar",
+        fields: [
+          { key: "employeeEmail", label: "E-mail corporativo", placeholder: "colaborador@empresa.com", type: "email", required: true },
+          { key: "employeePassword", label: "Senha", placeholder: "Senha de teste", type: "password", required: true, sensitive: true },
+        ],
+        resultTitle: (r) => r.ok ? "Login realizado" : "Erro no login",
+        resultBody: (r) => r.ok
+          ? "Login realizado com sucesso. Token de colaborador salvo."
+          : r.message ?? "Credenciais inválidas.",
+      },
+      step1_business_create: {
+        appHeader: "Criar empresa",
+        appLead: "Informe os dados da empresa para criar a Business dWallet.",
+        ctaLabel: "Criar Business dWallet",
+        fields: [
+          { key: "businessName", label: "Nome da empresa", placeholder: "Empresa Teste LTDA", required: false },
+          { key: "businessCnpj", label: "CNPJ", placeholder: "00.000.000/0001-00", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Empresa criada" : "Erro ao criar empresa",
+        resultBody: (r, s) => r.ok
+          ? `Business dWallet criada para ${String(s.businessName ?? "a empresa")}.`
+          : r.message ?? "Não foi possível criar a empresa.",
+      },
+    },
   },
   2: {
     stepId: 2,
@@ -100,6 +167,59 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     resultBody: (r, s) => r.ok
       ? `Conta criada para ${String(s.personEmail ?? "a pessoa")}. Verifique o e-mail para continuar.`
       : r.message ?? "Verifique os dados e tente novamente.",
+    actionScreens: {
+      step2_person_signup: {
+        appHeader: "Criar sua conta",
+        appLead: "Informe seus dados para criar a carteira de dados pessoal.",
+        ctaLabel: "Criar conta pessoal",
+        fields: [
+          { key: "personFirstName", label: "Nome", placeholder: "João", required: true },
+          { key: "personLastName", label: "Sobrenome", placeholder: "Santos", required: true },
+          { key: "personEmail", label: "E-mail", placeholder: "joao@email.com", type: "email", required: true },
+          { key: "personPassword", label: "Senha", placeholder: "Senha de teste", type: "password", required: true, sensitive: true },
+          { key: "personCpf", label: "CPF", placeholder: "000.000.000-00", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Conta criada" : "Erro ao criar conta",
+        resultBody: (r, s) => r.ok
+          ? `Conta criada para ${String(s.personEmail ?? "a pessoa")}. Verifique o e-mail.`
+          : r.message ?? "Verifique os dados e tente novamente.",
+      },
+      step2_person_send_code: {
+        appHeader: "Verificação de e-mail",
+        appLead: "Um código será enviado para o seu e-mail pessoal. Aguarde e informe-o no próximo passo.",
+        ctaLabel: "Enviar código de verificação",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Código enviado" : "Erro ao enviar código",
+        resultBody: (r, s) => r.ok
+          ? `Código enviado para ${String(s.personEmail ?? "o e-mail")}. Informe-o no próximo passo.`
+          : r.message ?? "Não foi possível enviar o código.",
+      },
+      step2_person_verify_code: {
+        appHeader: "Confirmar código",
+        appLead: "Informe o código de verificação recebido no seu e-mail pessoal.",
+        ctaLabel: "Confirmar código",
+        fields: [
+          { key: "personVerificationCode", label: "Código de verificação (e-mail)", placeholder: "Digite o código recebido", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "E-mail verificado" : "Código inválido",
+        resultBody: (r) => r.ok
+          ? "E-mail pessoal verificado com sucesso. Próximo passo: fazer login."
+          : r.message ?? "Código inválido ou expirado. Solicite um novo código.",
+      },
+      step2_person_signin: {
+        appHeader: "Entrar na carteira",
+        appLead: "Faça login com as credenciais da sua Personal dWallet.",
+        ctaLabel: "Entrar",
+        fields: [
+          { key: "personEmail", label: "E-mail", placeholder: "joao@email.com", type: "email", required: true },
+          { key: "personPassword", label: "Senha", placeholder: "Senha de teste", type: "password", required: true, sensitive: true },
+        ],
+        resultTitle: (r) => r.ok ? "Login realizado" : "Erro no login",
+        resultBody: (r) => r.ok
+          ? "Login realizado com sucesso. Token pessoal salvo."
+          : r.message ?? "Credenciais inválidas.",
+      },
+    },
   },
   3: {
     stepId: 3,
@@ -191,6 +311,42 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     resultBody: (r) => r.ok
       ? "Solicitação processada com sucesso."
       : r.message ?? "Não foi possível processar a solicitação.",
+    actionScreens: {
+      step7_list_business_requests: {
+        appHeader: "Solicitações recebidas",
+        appLead: "Consulte as solicitações de dados enviadas pelas pessoas.",
+        ctaLabel: "Consultar solicitações",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Solicitações carregadas" : "Erro ao consultar",
+        resultBody: (r) => r.ok
+          ? "Lista de solicitações de dados retornada."
+          : r.message ?? "Não foi possível carregar as solicitações.",
+      },
+      step7_accept_data_request: {
+        appHeader: "Aceitar solicitação",
+        appLead: "Confirme o aceite da solicitação de dados selecionada.",
+        ctaLabel: "Aceitar solicitação",
+        fields: [
+          { key: "dataRequestId", label: "ID da solicitação", placeholder: "Preenchido automaticamente", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Solicitação aceita" : "Erro ao aceitar",
+        resultBody: (r) => r.ok
+          ? "Solicitação de dados aceita com sucesso."
+          : r.message ?? "Não foi possível aceitar a solicitação.",
+      },
+      step7_reject_data_request: {
+        appHeader: "Rejeitar solicitação",
+        appLead: "Confirme a rejeição da solicitação de dados selecionada.",
+        ctaLabel: "Rejeitar solicitação",
+        fields: [
+          { key: "dataRequestId", label: "ID da solicitação", placeholder: "Preenchido automaticamente", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Solicitação rejeitada" : "Erro ao rejeitar",
+        resultBody: (r) => r.ok
+          ? "Solicitação de dados rejeitada com sucesso."
+          : r.message ?? "Não foi possível rejeitar a solicitação.",
+      },
+    },
   },
   8: {
     stepId: 8,
@@ -235,6 +391,44 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     resultBody: (r) => r.ok
       ? "Planos DSP disponíveis na sandbox."
       : r.message ?? "Não foi possível carregar os planos.",
+    actionScreens: {
+      step10_commercial_dsps: {
+        appHeader: "Planos comerciais",
+        appLead: "Veja os planos DSP comerciais disponíveis.",
+        ctaLabel: "Consultar planos comerciais",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Planos comerciais" : "Erro ao carregar",
+        resultBody: (r) => r.ok ? "Planos DSP comerciais retornados." : r.message ?? "Não foi possível carregar.",
+      },
+      step10_standard_dsps: {
+        appHeader: "Planos padrão",
+        appLead: "Veja os planos DSP padrão disponíveis.",
+        ctaLabel: "Consultar planos padrão",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Planos padrão" : "Erro ao carregar",
+        resultBody: (r) => r.ok ? "Planos DSP padrão retornados." : r.message ?? "Não foi possível carregar.",
+      },
+      step10_dsp_details: {
+        appHeader: "Detalhes do plano",
+        appLead: "Veja os detalhes do plano DSP selecionado.",
+        ctaLabel: "Ver detalhes do plano",
+        fields: [
+          { key: "selectedDspId", label: "ID do plano", placeholder: "Preenchido automaticamente", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Detalhes carregados" : "Erro ao carregar",
+        resultBody: (r) => r.ok ? "Detalhes do plano DSP retornados." : r.message ?? "Não foi possível carregar.",
+      },
+      step10_create_dsp_account: {
+        appHeader: "Aderir ao plano",
+        appLead: "Confirme a adesão ao plano DSP selecionado.",
+        ctaLabel: "Aderir ao plano",
+        fields: [
+          { key: "selectedDspId", label: "DSP selecionado", placeholder: "Preenchido ao escolher um plano", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Adesão realizada" : "Erro ao aderir",
+        resultBody: (r) => r.ok ? "Conta DSP criada com sucesso." : r.message ?? "Não foi possível aderir ao plano.",
+      },
+    },
   },
   11: {
     stepId: 11,
@@ -459,6 +653,8 @@ export function HomologacaoPhoneMockup({
   activeResult,
   isExecuting,
   actionId,
+  stepActions,
+  executedActionIds,
   onFieldChange,
   onExecute,
   lang = "pt",
@@ -468,13 +664,14 @@ export function HomologacaoPhoneMockup({
   activeResult?: ActionResult;
   isExecuting: boolean;
   actionId?: string;
+  stepActions?: Array<{ id: string; title: string }>;
+  executedActionIds?: Set<string>;
   onFieldChange: (key: string, value: string) => void;
   onExecute: (actionId: string) => void;
   lang?: "pt" | "en";
 }) {
-  const screen = PHONE_SCREENS[stepId];
+   const screen = PHONE_SCREENS[stepId];
   const [phase, setPhase] = useState<PhoneMockupPhase>("input");
-
   // Sync phase with execution state and result
   useEffect(() => {
     if (isExecuting) {
@@ -485,12 +682,15 @@ export function HomologacaoPhoneMockup({
       setPhase("input");
     }
   }, [isExecuting, activeResult]);
-
   if (!screen) return null;
-
+  // Merge sub-tela da ação atual sobre a tela base do passo
+  const actionSubScreen = actionId && screen.actionScreens ? screen.actionScreens[actionId] : undefined;
+  const activeScreen: PhoneScreenConfig = actionSubScreen
+    ? { ...screen, ...actionSubScreen }
+    : screen;
   const colors = getAppColors(screen.appKind);
-  const isGap = Boolean(screen.gapMessage);
-  const hasFields = screen.fields.length > 0;
+  const isGap = Boolean(activeScreen.gapMessage);
+  const hasFields = activeScreen.fields.length > 0;
 
   const appKindLabel = screen.appKind === "BdW" ? "Business dWallet®"
     : screen.appKind === "PdW" ? "Personal dWallet®"
@@ -507,7 +707,7 @@ export function HomologacaoPhoneMockup({
       <div
         className="relative w-[320px] rounded-[2.5rem] shadow-2xl overflow-hidden border-[6px] border-slate-800"
         style={{ background: "#f0f4fa", minHeight: 620 }}
-        aria-label={`Mockup do aplicativo — Passo ${stepId}: ${screen.screenTitle}`}
+        aria-label={`Mockup do aplicativo — Passo ${stepId}: ${activeScreen.screenTitle}`}
       >
         {/* Notch */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-24 h-5 bg-slate-800 rounded-b-2xl z-20" />
@@ -536,13 +736,46 @@ export function HomologacaoPhoneMockup({
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-[10px] font-semibold text-white/60 uppercase tracking-wider">gov.br · {appKindLabel}</p>
-              <p className="text-sm font-bold text-white truncate">{screen.appHeader}</p>
+              <p className="text-sm font-bold text-white truncate">{activeScreen.appHeader}</p>
             </div>
             <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full text-white ${colors.badge}`}>
               Passo {stepId}
             </span>
           </div>
-          <p className="text-xs text-white/70 leading-5">{screen.appLead}</p>
+          <p className="text-xs text-white/70 leading-5">{activeScreen.appLead}</p>
+          {/* Multi-action progress indicator */}
+          {stepActions && stepActions.length > 1 && (() => {
+            const currentIdx = stepActions.findIndex(a => a.id === actionId);
+            const displayIdx = currentIdx >= 0 ? currentIdx : 0;
+            return (
+              <div className="mt-3 flex items-center gap-1.5">
+                {stepActions.map((action, idx) => {
+                  const isDone = executedActionIds?.has(action.id);
+                  const isCurrent = action.id === actionId;
+                  return (
+                    <div key={action.id} className="flex items-center gap-1.5">
+                      <div
+                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
+                          isDone ? "bg-emerald-400 text-white" :
+                          isCurrent ? "bg-white text-slate-800 ring-2 ring-white/60" :
+                          "bg-white/20 text-white/50"
+                        }`}
+                        title={action.title}
+                      >
+                        {isDone ? "✓" : idx + 1}
+                      </div>
+                      {idx < stepActions.length - 1 && (
+                        <div className={`h-0.5 w-4 rounded-full transition-all ${isDone ? "bg-emerald-400" : "bg-white/20"}`} />
+                      )}
+                    </div>
+                  );
+                })}
+                <span className="ml-1 text-[9px] text-white/60">
+                  {displayIdx + 1}/{stepActions.length}
+                </span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Screen content */}
@@ -553,11 +786,11 @@ export function HomologacaoPhoneMockup({
               <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center">
                 <div className="text-3xl mb-2">🚧</div>
                 <p className="text-sm font-bold text-amber-800">API não disponível</p>
-                <p className="text-xs text-amber-600 mt-2 leading-5">{screen.gapMessage}</p>
+                <p className="text-xs text-amber-600 mt-2 leading-5">{activeScreen.gapMessage}</p>
               </div>
               <div className="rounded-2xl bg-white border border-slate-200 p-3 shadow-sm">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Tela esperada no app</p>
-                <p className="text-xs text-slate-600 leading-5">{screen.screenSubtitle}</p>
+                <p className="text-xs text-slate-600 leading-5">{activeScreen.screenSubtitle}</p>
               </div>
             </div>
           )}
@@ -579,7 +812,7 @@ export function HomologacaoPhoneMockup({
           {/* RESULT state */}
           {!isGap && phase === "result" && activeResult && (
             <div className="p-4 space-y-3">
-              <ResponseRenderer result={activeResult} screen={screen} runState={runState} />
+              <ResponseRenderer result={activeResult} screen={activeScreen} runState={runState} />
               <button
                 onClick={() => setPhase("input")}
                 className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
@@ -610,7 +843,7 @@ export function HomologacaoPhoneMockup({
               {hasFields && (
                 <div className="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm space-y-3">
                   <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Dados da operação</p>
-                  {screen.fields.map(field => {
+                  {activeScreen.fields.map(field => {
                     const value = String(runState[field.key] ?? "");
                     const displayValue = field.sensitive && value ? "••••••••" : value;
                     return (
@@ -649,7 +882,7 @@ export function HomologacaoPhoneMockup({
                   className="w-full rounded-2xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-opacity"
                   style={{ background: colors.accent }}
                 >
-                  {isExecuting ? "Enviando…" : screen.ctaLabel}
+                  {isExecuting ? "Enviando…" : activeScreen.ctaLabel}
                 </button>
               )}
             </div>
@@ -670,8 +903,8 @@ export function HomologacaoPhoneMockup({
 
       {/* Screen label below phone */}
       <div className="mt-3 text-center">
-        <p className="text-xs font-semibold text-slate-700">{screen.screenTitle}</p>
-        <p className="text-[10px] text-slate-400 mt-0.5">{screen.screenSubtitle}</p>
+        <p className="text-xs font-semibold text-slate-700">{activeScreen.screenTitle}</p>
+        <p className="text-[10px] text-slate-400 mt-0.5">{activeScreen.screenSubtitle}</p>
       </div>
     </div>
   );
