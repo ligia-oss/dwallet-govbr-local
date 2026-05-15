@@ -646,7 +646,20 @@ function ResponseRenderer({ result, screen, runState }: {
 
 // ─── Main PhoneMockup component ───────────────────────────────────────────────
 
-export type PhoneMockupPhase = "input" | "loading" | "result";
+export type PhoneMockupPhase = "input" | "loading" | "result" | "email-sent" | "app-home";
+
+// Ações de signup/criação que disparam a tela "Código enviado"
+const SIGNUP_ACTION_IDS = new Set([
+  "step1_employee_signup",
+  "step2_person_signup",
+  "step1_business_create",
+]);
+
+// Ações de verificação de código que disparam a tela "Home do app"
+const VERIFY_CODE_ACTION_IDS = new Set([
+  "step1_employee_verify_code",
+  "step2_person_verify_code",
+]);
 
 export function HomologacaoPhoneMockup({
   stepId,
@@ -682,14 +695,21 @@ export function HomologacaoPhoneMockup({
   useEffect(() => {
     if (isExecuting) {
       setPhase("loading");
+    } else if (activeResult?.ok && actionId && SIGNUP_ACTION_IDS.has(actionId)) {
+      // Após signup bem-sucedido → mostrar tela "Código enviado"
+      setPhase("email-sent");
+    } else if (activeResult?.ok && actionId && VERIFY_CODE_ACTION_IDS.has(actionId)) {
+      // Após verificação de código bem-sucedida → mostrar tela "Home do app"
+      setPhase("app-home");
     } else if (activeResult) {
       setPhase("result");
     } else {
       setPhase("input");
     }
-  }, [isExecuting, activeResult]);
+  }, [isExecuting, activeResult, actionId]);
 
   // Auto-advance to next sub-action after successful result (1.8s delay)
+  // Não auto-avança quando está nas telas especiais email-sent ou app-home
   useEffect(() => {
     if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
     if (
@@ -889,6 +909,192 @@ export function HomologacaoPhoneMockup({
               </button>
             </div>
           )}
+
+          {/* EMAIL-SENT state — após signup bem-sucedido */}
+          {!isGap && phase === "email-sent" && (() => {
+            const userEmail = String(
+              runState.employeeEmail ?? runState.personEmail ?? "seu e-mail"
+            );
+            return (
+              <div className="p-5 flex flex-col items-center gap-5">
+                {/* Ícone de envelope animado */}
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center shadow-lg mt-4"
+                  style={{ background: `${colors.accent}15`, border: `3px solid ${colors.accent}30` }}
+                >
+                  <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke={colors.accent} strokeWidth="1.5">
+                    <rect x="2" y="4" width="20" height="16" rx="3" />
+                    <path d="M2 7l10 7 10-7" />
+                  </svg>
+                </div>
+                {/* Texto principal */}
+                <div className="text-center space-y-2">
+                  <p className="text-base font-bold text-slate-900 leading-snug">
+                    Enviamos um código para seu e-mail
+                  </p>
+                  <p className="text-xs text-slate-500 leading-5">
+                    Verifique a caixa de entrada de{" "}
+                    <span className="font-semibold" style={{ color: colors.accent }}>{userEmail}</span>{" "}
+                    e informe o código recebido.
+                  </p>
+                </div>
+                {/* Card informativo */}
+                <div
+                  className="w-full rounded-2xl p-3 text-center"
+                  style={{ background: `${colors.accent}08`, border: `1px solid ${colors.accent}20` }}
+                >
+                  <p className="text-[10px] text-slate-500 leading-5">
+                    O código expira em <span className="font-semibold">15 minutos</span>.
+                    Verifique também a pasta de spam.
+                  </p>
+                </div>
+                {/* Botão Informar código */}
+                <button
+                  onClick={() => {
+                    // Avançar para a próxima ação (send_code ou verify_code)
+                    if (onAutoAdvance && stepActions && actionId) {
+                      const currentIdx = stepActions.findIndex(a => a.id === actionId);
+                      const nextAction = stepActions[currentIdx + 1];
+                      if (nextAction) {
+                        onAutoAdvance(nextAction.id);
+                        setPhase("input");
+                        return;
+                      }
+                    }
+                    setPhase("input");
+                  }}
+                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+                  style={{ background: colors.accent }}
+                >
+                  Informar código
+                </button>
+                <button
+                  onClick={() => setPhase("result")}
+                  className="text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors"
+                >
+                  Ver detalhes da resposta
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* APP-HOME state — após verificação de código bem-sucedida */}
+          {!isGap && phase === "app-home" && (() => {
+            // Extrair nome do usuário da resposta ou do runState
+            const respBody = activeResult?.responseBody as Record<string, unknown> | null | undefined;
+            const firstName = String(
+              respBody?.firstName ?? respBody?.first_name ?? respBody?.name ??
+              runState.employeeFirstName ?? runState.personFirstName ?? "Usuário"
+            );
+            const isBdW = screen.appKind === "BdW";
+            const appLabel = isBdW ? "Business dWallet®" : "Personal dWallet®";
+            const accentBg = colors.bg;
+            return (
+              <div className="flex flex-col" style={{ background: accentBg, minHeight: 390 }}>
+                {/* Header com saudão */}
+                <div className="px-4 pt-3 pb-3 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                  {/* Avatar */}
+                  <div className="flex items-center gap-2.5">
+                    <div
+                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
+                      style={{ background: "rgba(255,255,255,0.15)" }}
+                    >
+                      {/* Desenho de pessoa (silhueta neutra) */}
+                      <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
+                        <circle cx="12" cy="7" r="4" />
+                        <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" strokeLinecap="round" />
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-[9px] text-white/50 leading-none">Olá,</p>
+                      <p className="text-sm font-bold text-white leading-tight">{firstName}!</p>
+                    </div>
+                  </div>
+                  {/* Menu icon */}
+                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="white">
+                      <rect x="3" y="6" width="18" height="2" rx="1" />
+                      <rect x="3" y="11" width="18" height="2" rx="1" />
+                      <rect x="3" y="16" width="18" height="2" rx="1" />
+                    </svg>
+                  </div>
+                </div>
+
+                {/* Área central — avatar grande + título */}
+                <div className="flex flex-col items-center pt-5 pb-3 px-4">
+                  {/* Avatar grande com anel */}
+                  <div
+                    className="w-20 h-20 rounded-full flex items-center justify-center mb-3"
+                    style={{
+                      background: "rgba(255,255,255,0.12)",
+                      boxShadow: `0 0 0 4px rgba(255,255,255,0.15), 0 0 0 8px rgba(255,255,255,0.06)`
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" width="44" height="44" fill="white">
+                      <circle cx="12" cy="8" r="4.5" />
+                      <path d="M3 22c0-5 4-9 9-9s9 4 9 9" strokeLinecap="round" />
+                    </svg>
+                  </div>
+                  <p className="text-base font-bold text-white">{firstName}</p>
+                  <p className="text-[10px] text-white/60 mt-0.5">{appLabel}</p>
+                </div>
+
+                {/* Cards de ações */}
+                <div className="px-4 pb-4 space-y-2">
+                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2">Minhas solicitações</p>
+
+                  {/* Stats row */}
+                  <div
+                    className="rounded-2xl p-3 flex justify-around"
+                    style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.12)" }}
+                  >
+                    {[{label: "Pendente", value: "0"}, {label: "Aceito", value: "0"}, {label: "Recusado", value: "0"}].map((s, i) => (
+                      <div key={i} className="text-center">
+                        <p className="text-lg font-bold text-white">{s.value}</p>
+                        <p className="text-[9px] text-white/60">{s.label}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Botões de ação */}
+                  <button
+                    className="w-full rounded-xl py-2.5 text-xs font-bold text-white border border-white/30 transition-all active:scale-95"
+                    style={{ background: "rgba(255,255,255,0.15)" }}
+                    onClick={() => setPhase("input")}
+                  >
+                    Solicitar dados
+                  </button>
+                  <button
+                    className="w-full rounded-xl py-2.5 text-xs font-bold text-white border border-white/30 transition-all active:scale-95"
+                    style={{ background: "rgba(255,255,255,0.08)" }}
+                    onClick={() => setPhase("input")}
+                  >
+                    Ver minhas solicitações
+                  </button>
+
+                  {/* Continuar jornada */}
+                  <button
+                    onClick={() => {
+                      if (onAutoAdvance && stepActions && actionId) {
+                        const currentIdx = stepActions.findIndex(a => a.id === actionId);
+                        const nextAction = stepActions[currentIdx + 1];
+                        if (nextAction) {
+                          onAutoAdvance(nextAction.id);
+                          setPhase("input");
+                          return;
+                        }
+                      }
+                      setPhase("input");
+                    }}
+                    className="w-full rounded-xl py-2.5 text-xs font-semibold transition-all active:scale-95"
+                    style={{ background: "rgba(255,255,255,0.95)", color: accentBg }}
+                  >
+                    Continuar jornada →
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
 
           {/* INPUT state */}
           {!isGap && phase === "input" && (

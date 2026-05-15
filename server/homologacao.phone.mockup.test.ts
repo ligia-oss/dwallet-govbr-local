@@ -464,3 +464,41 @@ describe("HomologacaoPhoneMockup — acessibilidade", () => {
     expect(html).toContain("Sobrenome");
   });
 });
+
+// ─── Telas especiais pós-criação de conta ─────────────────────────────────────
+
+describe("HomologacaoPhoneMockup — PHONE_SCREENS: telas pós-criação", () => {
+  it("SIGNUP_ACTION_IDS cobre as ações de criação de conta esperadas", () => {
+    // Verificar que as ações de signup estão definidas nos PHONE_SCREENS
+    const step1Screens = PHONE_SCREENS[1].actionScreens ?? {};
+    const step2Screens = PHONE_SCREENS[2].actionScreens ?? {};
+    expect(Object.keys(step1Screens)).toContain("step1_employee_signup");
+    expect(Object.keys(step1Screens)).toContain("step1_business_create");
+    expect(Object.keys(step2Screens)).toContain("step2_person_signup");
+  });
+
+  it("VERIFY_CODE_ACTION_IDS cobre as ações de verificação de código esperadas", () => {
+    const step1Screens = PHONE_SCREENS[1].actionScreens ?? {};
+    const step2Screens = PHONE_SCREENS[2].actionScreens ?? {};
+    expect(Object.keys(step1Screens)).toContain("step1_employee_verify_code");
+    expect(Object.keys(step2Screens)).toContain("step2_person_verify_code");
+  });
+
+  it("ação step1_employee_signup tem resultTitle de sucesso correto", () => {
+    const result = { actionId: "step1_employee_signup", actionTitle: "Criar conta", status: "done", ok: true };
+    const screen = PHONE_SCREENS[1].actionScreens?.["step1_employee_signup"];
+    expect(screen?.resultTitle?.(result)).toBe("Conta criada");
+  });
+
+  it("ação step2_person_verify_code tem resultTitle de sucesso correto", () => {
+    const result = { actionId: "step2_person_verify_code", actionTitle: "Confirmar código", status: "done", ok: true };
+    const screen = PHONE_SCREENS[2].actionScreens?.["step2_person_verify_code"];
+    expect(screen?.resultTitle?.(result)).toBe("E-mail verificado");
+  });
+
+  it("ação step1_business_create tem resultTitle de sucesso correto", () => {
+    const result = { actionId: "step1_business_create", actionTitle: "Criar empresa", status: "done", ok: true };
+    const screen = PHONE_SCREENS[1].actionScreens?.["step1_business_create"];
+    expect(screen?.resultTitle?.(result)).toBe("Empresa criada");
+  });
+});

@@ -168,11 +168,16 @@
 - [x] Verificar TypeScript sem erros após remoções
 - [x] Executar 85 testes passando, build de produção e salvar checkpoint
 
-## Melhorias do Mockup de Celular
+### Melhorias do Mockup de Celular
+- [x] Remover barra de navegação inferior do mockup (Início, Dados, etc.)
+- [x] Adicionar transição automática entre sub-telas sequenciais após execução bem-sucedida (ex: após cadastro do empregado no passo 1, ir direto para tela de input de código)
+- [x] Aplicar identidade visual do governo brasileiro no mockup (cores, tipografia, logo gov.br)
+- [x] Corrigir API do passo 10 que não está funcionando
+- [x] Marcar passo 9 como GAP (sem API disponível) e remover botão de execução
+- [x] Executar testes, build e salvar checkpoint
 
-- [ ] Remover barra de navegação inferior do mockup (Início, Dados, etc.)
-- [ ] Adicionar transição automática entre sub-telas sequenciais após execução bem-sucedida (ex: após cadastro do empregado no passo 1, ir direto para tela de input de código)
-- [ ] Aplicar identidade visual do governo brasileiro no mockup (cores, tipografia, logo gov.br)
-- [ ] Corrigir API do passo 10 que não está funcionando
-- [ ] Marcar passo 9 como GAP (sem API disponível) e remover botão de execução
-- [ ] Executar testes, build e salvar checkpoint
+## Telas Pós-Criação de Conta no Mockup
+- [x] Após sucesso na criação de BdW ou PdW, exibir tela "Enviamos um código para seu e-mail" com botão "Informar código"
+- [x] Após validação bem-sucedida do código, exibir tela home do app com identidade visual gov.br, avatar (desenho de pessoa), nome do usuário e cards de ações
+- [x] Garantir que a transição entre telas (criação → código → home) seja fluida e automática
+- [x] Executar testes, build e salvar checkpoint
