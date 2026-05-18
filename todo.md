@@ -260,3 +260,9 @@
 - [x] Passo 7: aceitar → step7_accept_data_request, recusar → step7_reject_data_request com registros selecionados
 - [x] Passo 7: tela de resposta da API após aceitar/recusar
 - [x] Passo 12: mensagem de erro melhorada distinguindo token nunca gerado vs expirado após reinicialização do servidor
+
+## Sprint — Correção DSKU Mapeamento Passo 5
+
+- [x] Corrigir PRODUCT_FRIENDLY_NAMES: adicionados DSKUs reais como chave + função lookupProductFriendly com 5 estratégias de lookup (DSKU exato, uppercase, nome, substring, parcial)
+- [x] Gerar 5 imagens nano banana temáticas corretas: banco (p5-banco-bank), telecom (p5-telecel), cia aérea (p5-voa-leve), saúde (p5-mais-saude), redes sociais (p5-tictac)
+- [x] ProductCardList, handleProductSelect, handleProductSelectStep5 e tela de confirmação do passo 6 atualizados para usar lookupProductFriendly

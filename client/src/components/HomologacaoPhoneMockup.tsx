@@ -799,28 +799,81 @@ function getSchemaFriendlyName(name: string, sid: string): string {
 }
 
 // ─── Mapeamento de nomes amigáveis para produtos específicos do passo 5 ──────
+// Mapeamento de produtos por ID de produto (nome), DSKU parcial, ou DSKU completo.
+// A API do passo 5 retorna itens com campo `name` = "Test_Product_XXX" e campo `dsku` = "DSKU-XXXX-TEST-PRODUCT-XXX".
+// Para garantir o match, o lookup é feito por nome (campo `name`) e também por DSKU.
 const PRODUCT_FRIENDLY_NAMES: Record<string, { brand: string; image: string }> = {
+  // Lookup por nome do produto (campo `name` retornado pela API)
   "Test_Product_7Or1uUrK8": {
     brand: "Banco Bank",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-banco-bank-8tWRWVzKdCi448oPRExUHq.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-banco-bank-LMKCsyMEmfBdrTYEpWQXyU.webp",
   },
   "Test_Product_2kTqoH7lc": {
     brand: "Telecel",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-telecel-cijcbW4X6E3UpDfAgZQCUC.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-telecel-UZ2aBLVKUbuvFkGAZJe33R.webp",
   },
   "Test_Product_1ZAPwXOmu": {
     brand: "Voa Leve",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-voa-leve-PG8phdMggNKPTf8LWhi4zg.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-voa-leve-btiFJfMp6kALPmZQnaVMRo.webp",
   },
   "Test_Product_MEOxuE71": {
     brand: "Mais Saúde",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-mais-saude-bapqcZkAkignCAiQL9hYQU.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-mais-saude-mXFDVjYVmj2jrdUPxy9Nfq.webp",
   },
   "Test_Product_8uP2LoThy": {
     brand: "TicTac",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-tictac-3krwdwwYhdsMdgtJGkxmEG.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-tictac-F5bq9ypssMeVZvRHVKCfVo.webp",
+  },
+  // Lookup por DSKU completo (campo `dsku` retornado pela API — formato: DSKU-XXXX-TEST-PRODUCT-XXX)
+  "DSKU-34750F-TEST-PRODUCT-7OR1UURK8": {
+    brand: "Banco Bank",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-banco-bank-LMKCsyMEmfBdrTYEpWQXyU.webp",
+  },
+  "DSKU-A92ABE-TEST-PRODUCT-2KTQOH7LC": {
+    brand: "Telecel",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-telecel-UZ2aBLVKUbuvFkGAZJe33R.webp",
+  },
+  "DSKU-A92ABE-TEST-PRODUCT-1ZAPWXOMU": {
+    brand: "Voa Leve",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-voa-leve-btiFJfMp6kALPmZQnaVMRo.webp",
+  },
+  "DSKU-A92ABE-TEST-PRODUCT-MEOXUE71": {
+    brand: "Mais Saúde",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-mais-saude-mXFDVjYVmj2jrdUPxy9Nfq.webp",
+  },
+  "DSKU-A92ABE-TEST-PRODUCT-8UP2LOTHY": {
+    brand: "TicTac",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-tictac-F5bq9ypssMeVZvRHVKCfVo.webp",
   },
 };
+
+// Lookup helper: tenta pelo DSKU, depois pelo nome, depois por substring do DSKU (case-insensitive)
+function lookupProductFriendly(dsku: string, name: string): { brand: string; image: string } | null {
+  // 1. Lookup direto pelo DSKU (exato)
+  if (PRODUCT_FRIENDLY_NAMES[dsku]) return PRODUCT_FRIENDLY_NAMES[dsku];
+  // 2. Lookup pelo DSKU em uppercase
+  if (PRODUCT_FRIENDLY_NAMES[dsku.toUpperCase()]) return PRODUCT_FRIENDLY_NAMES[dsku.toUpperCase()];
+  // 3. Lookup pelo nome do produto (exato)
+  if (PRODUCT_FRIENDLY_NAMES[name]) return PRODUCT_FRIENDLY_NAMES[name];
+  // 4. Lookup por substring: o DSKU contém o ID do produto (ex: DSKU-XXXX-TEST-PRODUCT-7OR1UURK8)
+  const dskuUpper = dsku.toUpperCase();
+  for (const [key, val] of Object.entries(PRODUCT_FRIENDLY_NAMES)) {
+    const keyUpper = key.toUpperCase();
+    if (dskuUpper.includes(keyUpper) || keyUpper.includes(dskuUpper)) return val;
+    // Extrair o sufixo do ID do produto do DSKU (parte após "TEST-PRODUCT-")
+    const match = dskuUpper.match(/TEST-PRODUCT-([A-Z0-9]+)/);
+    if (match) {
+      const suffix = match[1];
+      if (keyUpper.includes(suffix)) return val;
+    }
+  }
+  // 5. Lookup por nome parcial (case-insensitive)
+  const nameLower = name.toLowerCase();
+  for (const [key, val] of Object.entries(PRODUCT_FRIENDLY_NAMES)) {
+    if (nameLower.includes(key.toLowerCase()) || key.toLowerCase().includes(nameLower)) return val;
+  }
+  return null;
+}
 
 // ─── Mapeamento de imagens temáticas por schema ─────────────────────────────
 const SCHEMA_IMAGES: Record<string, string> = {
@@ -1219,8 +1272,8 @@ function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku
     const rawName = pickText(item, ["name", "title", "label", "displayName", "description"], `Produto ${idx + 1}`);
     const dsku = pickText(item, ["dsku", "id", "sid", "productId", "sku"], "");
     const category = pickText(item, ["category", "type", "group"], "");
-    // Usar nome amigável se disponível
-    const friendly = PRODUCT_FRIENDLY_NAMES[dsku];
+    // Usar lookupProductFriendly que tenta DSKU, nome, substring e parcial
+    const friendly = lookupProductFriendly(dsku, rawName);
     const name = friendly ? friendly.brand : rawName;
     const theme = detectSchemaCategory(name + " " + category);
     // Usar imagem do PRODUCT_FRIENDLY_NAMES se disponível, senão usar getProductImage
@@ -1690,7 +1743,7 @@ export function HomologacaoPhoneMockup({
   // Quando um produto é selecionado no passo 4: salva no runState e avança para step4_add_dsku_to_cart
   const handleProductSelect = (dsku: string, name: string) => {
     // Usar nome amigável se disponível (passo 4 usa ProductCardList genérico)
-    const friendly = PRODUCT_FRIENDLY_NAMES[dsku];
+    const friendly = lookupProductFriendly(dsku, name);
     const displayName = friendly ? friendly.brand : name;
     setSelectedProductDsku(dsku);
     setSelectedProductName(displayName);
@@ -1708,7 +1761,7 @@ export function HomologacaoPhoneMockup({
 
   // Quando um produto é selecionado no passo 5: salva no runState e navega para o passo 6
   const handleProductSelectStep5 = (dsku: string, name: string) => {
-    const friendly = PRODUCT_FRIENDLY_NAMES[dsku];
+    const friendly = lookupProductFriendly(dsku, name);
     const displayName = friendly ? friendly.brand : name;
     setSelectedProductDsku(dsku);
     setSelectedProductName(displayName);
@@ -2557,7 +2610,7 @@ export function HomologacaoPhoneMockup({
           {!isGap && phase === "input" && screen.stepId === 6 && actionId === "step6_create_data_request" && (() => {
             const productDsku = String(runState.selectedProductDsku ?? selectedProductDsku ?? "");
             const productName = String(runState.selectedProductName ?? selectedProductName ?? "");
-            const friendly = productDsku ? PRODUCT_FRIENDLY_NAMES[productDsku] : null;
+            const friendly = productDsku ? lookupProductFriendly(productDsku, productName || "") : null;
             const displayName = friendly ? friendly.brand : productName || productDsku;
             const productImage = friendly ? friendly.image : (productName ? getProductImage(productName, "") : null);
             return (
