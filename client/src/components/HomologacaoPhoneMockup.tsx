@@ -269,6 +269,19 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
           ? "Selecione um produto abaixo para continuar."
           : r.message ?? "Não foi possível carregar os produtos.",
       },
+      step4_add_dsku_to_cart: {
+        appHeader: "Adicionar ao carrinho",
+        appLead: "Adicionando o produto selecionado ao carrinho da Business dWallet.",
+        ctaLabel: "Adicionar ao carrinho",
+        fields: [
+          { key: "selectedProductDsku", label: "Produto (dSKU)", placeholder: "Produto selecionado", required: true },
+          { key: "businessDwalletId", label: "ID da Business dWallet", placeholder: "Capturado no passo 1", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Produto adicionado ao carrinho!" : "Erro ao adicionar ao carrinho",
+        resultBody: (r) => r.ok
+          ? "Produto adicionado com sucesso. Agora crie o Commercial Value Schema."
+          : r.message ?? "Não foi possível adicionar o produto ao carrinho.",
+      },
       step4_create_commercial_value_schema: {
         appHeader: "Criar produto de dados",
         appLead: "Confirme o schema e o produto selecionados para criar o Commercial Value Schema.",
@@ -1360,17 +1373,17 @@ export function HomologacaoPhoneMockup({
     onFieldChange("valueSchemaSid", sid);
   };
 
-  // Quando um produto é selecionado: salva no runState e avança para step4_create_commercial_value_schema
+  // Quando um produto é selecionado: salva no runState e avança para step4_add_dsku_to_cart
   const handleProductSelect = (dsku: string, name: string) => {
     setSelectedProductDsku(dsku);
     setSelectedProductName(name);
     onFieldChange("selectedProductDsku", dsku);
     onFieldChange("selectedProductName", name);
-    // Avançar para a ação de criar commercial value schema
+    // Avançar para a ação de adicionar ao carrinho
     if (onAutoAdvance && stepActions) {
-      const createAction = stepActions.find(a => a.id === "step4_create_commercial_value_schema");
-      if (createAction) {
-        onAutoAdvance(createAction.id);
+      const cartAction = stepActions.find(a => a.id === "step4_add_dsku_to_cart");
+      if (cartAction) {
+        onAutoAdvance(cartAction.id);
         setPhase("input");
       }
     }
@@ -1991,6 +2004,78 @@ export function HomologacaoPhoneMockup({
             );
           })()}
 
+          {/* CONFIRMAÇÃO: step4_add_dsku_to_cart */}
+          {!isGap && phase === "input" && actionId === "step4_add_dsku_to_cart" && (
+            <div className="p-4 space-y-3">
+              <div className="rounded-2xl bg-white border border-[#1351b4]/20 p-4 shadow-sm space-y-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4]">Adicionar ao carrinho</p>
+                {/* Produto selecionado */}
+                <div className="relative rounded-2xl overflow-hidden" style={{ minHeight: 72 }}>
+                  {selectedProductDsku && (() => {
+                    const img = getProductImage(selectedProductName, "");
+                    return img ? (
+                      <>
+                        <img src={img} alt={selectedProductName} className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.7)" }} />
+                        <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.2) 100%)" }} />
+                        <div className="relative z-10 p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-white/70 mb-0.5">Produto selecionado</p>
+                          <p className="text-xs font-bold text-white leading-tight">{selectedProductName || selectedProductDsku}</p>
+                          <p className="text-[9px] font-mono text-white/70 mt-0.5">{selectedProductDsku}</p>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Produto selecionado</p>
+                        <p className="text-xs font-bold text-slate-900 truncate">{selectedProductName || selectedProductDsku}</p>
+                        <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">{selectedProductDsku}</p>
+                      </div>
+                    );
+                  })()}
+                  {!selectedProductDsku && (
+                    <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                      <p className="text-xs text-amber-600">Nenhum produto selecionado. Volte e selecione um produto.</p>
+                    </div>
+                  )}
+                </div>
+                {/* Tipo de registro */}
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
+                  <span className="text-lg">🛒</span>
+                  <div>
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Tipo de registro</p>
+                    <p className="text-xs font-semibold text-slate-800">dsku-registration-annual</p>
+                  </div>
+                </div>
+              </div>
+              {/* Botão de confirmar */}
+              <button
+                onClick={handleCta}
+                disabled={isExecuting || !selectedProductDsku}
+                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                style={{ background: colors.accent }}
+              >
+                {isExecuting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+                      <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
+                    </svg>
+                    Adicionando…
+                  </span>
+                ) : "🛒 Adicionar ao carrinho"}
+              </button>
+              <button
+                onClick={() => {
+                  if (onAutoAdvance && stepActions) {
+                    const listAction = stepActions.find(a => a.id === "step4_list_products");
+                    if (listAction) { onAutoAdvance(listAction.id); setPhase("result"); }
+                  }
+                }}
+                className="w-full text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors py-1"
+              >
+                ← Voltar e escolher outro produto
+              </button>
+            </div>
+          )}
           {/* CONFIRMAÇÃO: step4_create_commercial_value_schema */}
           {!isGap && phase === "input" && actionId === "step4_create_commercial_value_schema" && (
             <div className="p-4 space-y-3">
@@ -2053,7 +2138,7 @@ export function HomologacaoPhoneMockup({
           )}
 
           {/* INPUT state */}
-          {!isGap && phase === "input" && actionId !== "step4_create_commercial_value_schema" && (
+          {!isGap && phase === "input" && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && (
             <div className="p-4 space-y-3">
               {/* Previous result indicator */}
               {activeResult && (

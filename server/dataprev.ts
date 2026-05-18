@@ -611,6 +611,24 @@ const actions: JourneyAction[] = [
     onSuccess: body => ({ dsku: firstListItem(body)?.dsku as string | undefined || firstListItem(body)?.id as string | undefined }),
   },
   {
+    id: "step4_add_dsku_to_cart",
+    title: "Adicionar produto (dSKU) ao carrinho",
+    app: "Business",
+    group: "Marketplace Cart",
+    method: "POST",
+    path: "/v1/marketplace/cart/v2/prg-cart/:bd_dwallet_id/add",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    description: "Adiciona o dSKU selecionado ao carrinho da Business dWallet (prg-cart). Requer o ID da BdW (businessDwalletId) capturado no passo 1.",
+    buildPath: state => `/v1/marketplace/cart/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || ""))}/add`,
+    buildBody: state => ({
+      itemType: "dsku-registration-annual",
+      itemId: state.selectedProductDsku || state.dsku,
+    }),
+    onSuccess: body => ({ cartItemId: (body as Record<string, unknown>)?.id as string | undefined || (body as Record<string, unknown>)?.itemId as string | undefined }),
+  },
+  {
     id: "step4_create_commercial_value_schema",
     title: "Criar Commercial Value Schema",
     app: "Business",
@@ -868,7 +886,7 @@ const steps: JourneyStep[] = [
   { id: 1, title: "Empresa cria conta", app: "Business", summary: "Cadastro, OTP anti-automação, login e criação da entidade empresarial.", status: "external", actions: actions.filter(a => a.id.startsWith("step1_")) },
   { id: 2, title: "Pessoa cria carteira", app: "Personal", summary: "Cadastro, OTP anti-automação, login e identificação da pessoa física.", status: "external", actions: actions.filter(a => a.id.startsWith("step2_")) },
   { id: 3, title: "Empresa consulta schemas", app: "Business", summary: "Consulta de Standard Value Schemas.", status: "external", actions: actions.filter(a => a.id === "step3_list_schemas") },
-  { id: 4, title: "Empresa consulta/cadastra produtos", app: "Business", summary: "Catálogo executável; seleção de schema e produto para criar Commercial Value Schema.", status: "external", actions: actions.filter(a => a.id === "step4_list_products" || a.id === "step4_create_commercial_value_schema") },
+  { id: 4, title: "Empresa consulta/cadastra produtos", app: "Business", summary: "Catálogo executável; seleção de produto, adição ao carrinho e criação de Commercial Value Schema.", status: "external", actions: actions.filter(a => a.id === "step4_list_products" || a.id === "step4_add_dsku_to_cart" || a.id === "step4_create_commercial_value_schema") },
   { id: 5, title: "Pessoa consulta produtos", app: "Personal", summary: "Visão de catálogo de produtos e empresas disponíveis.", status: "external", actions: actions.filter(a => a.id === "step5_person_catalog") },
   { id: 6, title: "Pessoa solicita dados", app: "Personal", summary: "Criação de data request para uma empresa.", status: "external", actions: actions.filter(a => a.id === "step6_create_data_request") },
   { id: 7, title: "Empresa responde solicitação", app: "Business", summary: "Listagem e aceite de solicitação de dados.", status: "external", actions: actions.filter(a => a.id.startsWith("step7_")) },
@@ -922,6 +940,10 @@ function initialState(): RunState {
 function missingPrerequisite(action: JourneyAction, state: RunState) {
   if (action.id === "step1_employee_verify_code" && !(state.employeeVerificationCode || state.businessOtp)) return "Informe o código recebido por e-mail para confirmar o colaborador Business.";
   if (action.id === "step2_person_verify_code" && !(state.personVerificationCode || state.otp)) return "Informe o código recebido por e-mail para confirmar a pessoa física.";
+  if (action.id === "step4_add_dsku_to_cart" && !(state.selectedProductDsku || state.dsku)) return "Selecione um produto na lista antes de adicioná-lo ao carrinho.";
+  if (action.id === "step4_add_dsku_to_cart" && !state.businessDwalletId) return "Crie a entidade empresarial (passo 1) para obter o ID da Business dWallet necessário para o carrinho.";
+  if (action.id === "step4_create_commercial_value_schema" && !(state.selectedProductDsku || state.dsku)) return "Adicione um produto ao carrinho antes de criar o Commercial Value Schema.";
+  if (action.id === "step4_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema (passo 3) antes de criar o Commercial Value Schema.";
   if (action.requiresUser === "employee" && !getStoredToken(String(state.employeeTokenHandle || ""))) return "Execute primeiro o login do colaborador Business para gerar um token de usuário no servidor.";
   if (action.requiresUser === "person" && !getStoredToken(String(state.personTokenHandle || ""))) return "Execute primeiro o login da pessoa física para gerar um token de usuário no servidor.";
   if (action.id === "step1_business_create" && !state.employeeTokenHandle) return "Token do colaborador Business indisponível.";

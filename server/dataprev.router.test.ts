@@ -29,6 +29,55 @@ describe("dataprevRouter", () => {
     expect(metadata.steps.some(step => step.status === "gap")).toBe(true);
   });
 
+  it("passo 4 contém as três ações na ordem correta: listar produtos, adicionar ao carrinho e criar CVS", async () => {
+    const caller = appRouter.createCaller(ctx);
+    const metadata = await caller.dataprev.metadata();
+    const step4 = metadata.steps.find(step => step.id === 4);
+    expect(step4).toBeDefined();
+    const step4ActionIds = step4!.actions.map(a => a.id);
+    expect(step4ActionIds).toEqual([
+      "step4_list_products",
+      "step4_add_dsku_to_cart",
+      "step4_create_commercial_value_schema",
+    ]);
+  });
+
+  it("step4_add_dsku_to_cart requer produto selecionado e businessDwalletId", async () => {
+    const caller = appRouter.createCaller(ctx);
+    // Sem produto selecionado (com token simulado para passar a guarda de requiresUser)
+    const evidenceNoProduct = await caller.dataprev.executeAction({
+      actionId: "step4_add_dsku_to_cart",
+      state: { businessDwalletId: "bdw-123", employeeTokenHandle: "__test_skip__" },
+    });
+    expect(evidenceNoProduct.ok).toBe(false);
+    expect(evidenceNoProduct.message).toContain("produto");
+    // Sem businessDwalletId
+    const evidenceNoBdw = await caller.dataprev.executeAction({
+      actionId: "step4_add_dsku_to_cart",
+      state: { selectedProductDsku: "dsku-abc", employeeTokenHandle: "__test_skip__" },
+    });
+    expect(evidenceNoBdw.ok).toBe(false);
+    expect(evidenceNoBdw.message).toContain("Business dWallet");
+  });
+
+  it("step4_create_commercial_value_schema requer produto e valueSchemaSid", async () => {
+    const caller = appRouter.createCaller(ctx);
+    // Sem produto (com token simulado para passar a guarda de requiresUser)
+    const evidenceNoProduct = await caller.dataprev.executeAction({
+      actionId: "step4_create_commercial_value_schema",
+      state: { valueSchemaSid: "vs-123", employeeTokenHandle: "__test_skip__" },
+    });
+    expect(evidenceNoProduct.ok).toBe(false);
+    expect(evidenceNoProduct.message).toContain("produto");
+    // Sem valueSchemaSid
+    const evidenceNoSchema = await caller.dataprev.executeAction({
+      actionId: "step4_create_commercial_value_schema",
+      state: { selectedProductDsku: "dsku-abc", employeeTokenHandle: "__test_skip__" },
+    });
+    expect(evidenceNoSchema.ok).toBe(false);
+    expect(evidenceNoSchema.message).toContain("Standard Value Schema");
+  });
+
   it("registra como evidência uma etapa sem API externa sem chamar serviços remotos", async () => {
     const caller = appRouter.createCaller(ctx);
     const evidence = await caller.dataprev.executeAction({
