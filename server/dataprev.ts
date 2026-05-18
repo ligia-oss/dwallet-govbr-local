@@ -1089,9 +1089,19 @@ export const dataprevRouter = router({
         m2mCache = { token: dbCached.token, expiresAt: expiresAtMs, handle: dbCached.tokenHandle, credentialScope: scope };
       }
     }
+    const envConfig = env();
+    const hasServerCreds = Boolean(envConfig.baseUrl && envConfig.apiKey && envConfig.clientId && envConfig.clientSecret);
     return {
-      credentialsConfigured: Boolean(env().baseUrl && env().apiKey && env().clientId && env().clientSecret),
-      baseUrl: env().baseUrl,
+      credentialsConfigured: hasServerCreds,
+      baseUrl: envConfig.baseUrl,
+      // Expõe as credenciais do servidor para o frontend pré-preencher os campos automaticamente.
+      // Isso permite que o servidor publicado (IP autorizado) execute as chamadas sem intervenção do usuário.
+      credentialDefaults: hasServerCreds ? {
+        baseUrl: envConfig.baseUrl,
+        apiKey: envConfig.apiKey,
+        clientId: envConfig.clientId,
+        clientSecret: envConfig.clientSecret,
+      } : null,
       m2mToken: m2mCache ? {
         tokenHandle: m2mCache.handle,
         expiresAt: new Date(m2mCache.expiresAt).toISOString(),

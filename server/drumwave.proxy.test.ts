@@ -84,9 +84,11 @@ describe("fetchViaProxy — modo direto", () => {
 
 // ──────────────────────────────────────────────────────────────────────────────
 // fetchViaProxy — modo proxy (com DATAPREV_PROXY_URL)
+// Nova estratégia: tenta chamada direta primeiro; usa proxy como fallback quando
+// a chamada direta retorna 401/403 (bloqueio de IP).
 // ──────────────────────────────────────────────────────────────────────────────
 
-describe("fetchViaProxy — modo proxy", () => {
+describe("fetchViaProxy — modo proxy (fallback quando direto retorna 403)", () => {
   const originalEnv = process.env.DATAPREV_PROXY_URL;
   const originalFetch = globalThis.fetch;
 
@@ -103,8 +105,8 @@ describe("fetchViaProxy — modo proxy", () => {
     globalThis.fetch = originalFetch;
   });
 
-  it("deve chamar o endpoint proxy em vez da URL alvo diretamente", async () => {
-    const mockFetch = makeMockFetch(200, { access_token: "proxied-tok" });
+  it("deve usar chamada direta quando ela retorna 200 (mesmo com DATAPREV_PROXY_URL configurado)", async () => {
+    const mockFetch = makeMockFetch(200, { access_token: "direct-tok" });
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
     const result = await fetchViaProxy("https://api.sandbox.drumwave.com.br/v1/auth/token/iam/authn/services/oauth2/token", {
@@ -113,12 +115,51 @@ describe("fetchViaProxy — modo proxy", () => {
       body: { client_id: "cid", client_secret: "csec", grant_type: "client_credentials" },
     });
 
+    // Deve ter chamado apenas uma vez (chamada direta, sem proxy)
     expect(mockFetch).toHaveBeenCalledOnce();
-    const [calledUrl, calledInit] = mockFetch.mock.calls[0] as [string, RequestInit];
-    // Deve chamar o proxy, não a URL alvo
-    expect(calledUrl).toBe("https://dev-sandbox.example.com/api/drumwave-proxy");
+    const [calledUrl] = mockFetch.mock.calls[0] as [string, ...unknown[]];
+    // Deve chamar a URL alvo diretamente (não o proxy)
+    expect(calledUrl).toBe("https://api.sandbox.drumwave.com.br/v1/auth/token/iam/authn/services/oauth2/token");
+    expect(result.ok).toBe(true);
+    const body = await result.json();
+    expect((body as { access_token: string }).access_token).toBe("direct-tok");
+  });
+
+  it("deve usar o proxy como fallback quando a chamada direta retorna 403", async () => {
+    // Primeira chamada (direta) retorna 403; segunda chamada (proxy) retorna 200
+    const mockFetch = vi.fn()
+      .mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        text: async () => JSON.stringify({ message: "Forbidden" }),
+        json: async () => ({ message: "Forbidden" }),
+        headers: { get: () => "application/json" },
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        text: async () => JSON.stringify({ access_token: "proxied-tok" }),
+        json: async () => ({ access_token: "proxied-tok" }),
+        headers: { get: () => "application/json" },
+      });
+    globalThis.fetch = mockFetch as unknown as typeof fetch;
+
+    const result = await fetchViaProxy("https://api.sandbox.drumwave.com.br/v1/auth/token/iam/authn/services/oauth2/token", {
+      method: "POST",
+      headers: { "x-api-key": "key123" },
+      body: { client_id: "cid", client_secret: "csec", grant_type: "client_credentials" },
+    });
+
+    // Deve ter chamado duas vezes: primeiro direta (403), depois proxy (200)
+    expect(mockFetch).toHaveBeenCalledTimes(2);
+    const [firstUrl] = mockFetch.mock.calls[0] as [string, ...unknown[]];
+    const [secondUrl, secondInit] = mockFetch.mock.calls[1] as [string, RequestInit];
+    // Primeira chamada: URL alvo diretamente
+    expect(firstUrl).toBe("https://api.sandbox.drumwave.com.br/v1/auth/token/iam/authn/services/oauth2/token");
+    // Segunda chamada: endpoint proxy
+    expect(secondUrl).toBe("https://dev-sandbox.example.com/api/drumwave-proxy");
     // O body do proxy deve conter a URL alvo
-    const proxyBody = JSON.parse(calledInit.body as string) as { url: string; method: string };
+    const proxyBody = JSON.parse(secondInit.body as string) as { url: string; method: string };
     expect(proxyBody.url).toBe("https://api.sandbox.drumwave.com.br/v1/auth/token/iam/authn/services/oauth2/token");
     expect(proxyBody.method).toBe("POST");
     expect(result.ok).toBe(true);
@@ -126,7 +167,8 @@ describe("fetchViaProxy — modo proxy", () => {
     expect((body as { access_token: string }).access_token).toBe("proxied-tok");
   });
 
-  it("deve retornar ok: false quando o proxy retorna status 403", async () => {
+  it("deve retornar ok: false quando tanto a chamada direta quanto o proxy retornam 403", async () => {
+    // Ambas as chamadas retornam 403
     const mockFetch = makeMockFetch(403, { message: "Forbidden" });
     globalThis.fetch = mockFetch as unknown as typeof fetch;
 
@@ -136,6 +178,8 @@ describe("fetchViaProxy — modo proxy", () => {
       body: {},
     });
 
+    // Deve ter chamado duas vezes: direta (403) + proxy (403)
+    expect(mockFetch).toHaveBeenCalledTimes(2);
     expect(result.ok).toBe(false);
     expect(result.status).toBe(403);
   });

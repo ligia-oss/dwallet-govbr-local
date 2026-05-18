@@ -340,6 +340,23 @@ export default function Homologacao() {
     }
   }, [metadata.data?.initialState]);
 
+  // Auto-fill credentials from server defaults when fields are empty
+  useEffect(() => {
+    const defaults = metadata.data?.credentialDefaults;
+    if (!defaults) return;
+    // Only auto-fill if ALL fields are currently empty (don't overwrite user input)
+    const allEmpty = !creds.baseUrl && !creds.apiKey && !creds.clientId && !creds.clientSecret;
+    if (!allEmpty) return;
+    const filled: DataprevCredentialForm = {
+      baseUrl: defaults.baseUrl || "",
+      apiKey: defaults.apiKey || "",
+      clientId: defaults.clientId || "",
+      clientSecret: defaults.clientSecret || "",
+    };
+    setCreds(filled);
+    persistDataprevCredentials(filled);
+  }, [metadata.data?.credentialDefaults]);
+
   // Compute step statuses
   const steps = metadata.data?.steps ?? [];
   const getStepStatus = useCallback((stepId: number): StepStatus => {
@@ -687,6 +704,17 @@ export default function Homologacao() {
                       hasPartialCredentials={hasPartialCredentials}
                       onGenerate={handleGenerateToken}
                       onGoToVariables={() => setActiveTab("variables")}
+                      onAutoFill={metadata.data?.credentialDefaults ? () => {
+                        const d = metadata.data!.credentialDefaults!;
+                        const filled: DataprevCredentialForm = {
+                          baseUrl: d.baseUrl || "",
+                          apiKey: d.apiKey || "",
+                          clientId: d.clientId || "",
+                          clientSecret: d.clientSecret || "",
+                        };
+                        setCreds(filled);
+                        persistDataprevCredentials(filled);
+                      } : undefined}
                     />
                   ) : selectedStep ? (
                     <StepDetailPanel
@@ -777,7 +805,7 @@ export default function Homologacao() {
 type TDict = typeof T["pt"] | typeof T["en"];
 
 function Step0Panel({
-  lang, t, creds, m2mStatus, generatingToken, hasCredentials, hasPartialCredentials, onGenerate, onGoToVariables
+  lang, t, creds, m2mStatus, generatingToken, hasCredentials, hasPartialCredentials, onGenerate, onGoToVariables, onAutoFill
 }: {
   lang: Lang;
   t: TDict;
@@ -788,6 +816,7 @@ function Step0Panel({
   hasPartialCredentials: boolean;
   onGenerate: () => void;
   onGoToVariables: () => void;
+  onAutoFill?: () => void;
 }) {
   const isActive = isM2MAuthResultActive(m2mStatus);
   return (
@@ -856,9 +885,20 @@ function Step0Panel({
           </div>
         )}
 
-        {!hasCredentials && !hasPartialCredentials && (
+        {!hasCredentials && !hasPartialCredentials && onAutoFill && (
+          <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700 flex items-center justify-between gap-3">
+            <span>ℹ️ {lang === "pt" ? "Credenciais do servidor disponíveis." : "Server credentials available."}</span>
+            <button
+              onClick={onAutoFill}
+              className="shrink-0 text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors"
+            >
+              {lang === "pt" ? "Auto-preencher" : "Auto-fill"}
+            </button>
+          </div>
+        )}
+        {!hasCredentials && !hasPartialCredentials && !onAutoFill && (
           <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
-            ℹ️ {lang === "pt" ? "Usando credenciais configuradas no servidor. Preencha os campos acima para usar credenciais personalizadas." : "Using server-configured credentials. Fill in the fields above to use custom credentials."}
+            ℹ️ {lang === "pt" ? "Usando credenciais configuradas no servidor." : "Using server-configured credentials."}
           </div>
         )}
 

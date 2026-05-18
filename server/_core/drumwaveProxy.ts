@@ -86,33 +86,33 @@ export function registerDrumwaveProxy(app: Application) {
  * @param options Opções da requisição (method, headers, body)
  * @returns Response simulada com status e json()
  */
-export async function fetchViaProxy(
+async function fetchDirect(
   url: string,
   options: { method?: string; headers?: Record<string, string>; body?: unknown }
 ): Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }> {
-  const proxyUrl = process.env.DATAPREV_PROXY_URL;
-
-  if (!proxyUrl) {
-    // Chamada direta (ambiente dev ou proxy não configurado)
-    const fetchOptions: RequestInit = {
-      method: options.method || "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(options.headers || {}),
-      },
-    };
-    if (options.body !== undefined) {
-      fetchOptions.body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
-    }
-    const response = await fetch(url, fetchOptions);
-    return {
-      ok: response.ok,
-      status: response.status,
-      json: () => response.json(),
-    };
+  const fetchOptions: RequestInit = {
+    method: options.method || "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers || {}),
+    },
+  };
+  if (options.body !== undefined) {
+    fetchOptions.body = typeof options.body === "string" ? options.body : JSON.stringify(options.body);
   }
+  const response = await fetch(url, fetchOptions);
+  return {
+    ok: response.ok,
+    status: response.status,
+    json: () => response.json(),
+  };
+}
 
-  // Chamada via proxy (ambiente publicado)
+async function fetchViaProxyEndpoint(
+  proxyUrl: string,
+  url: string,
+  options: { method?: string; headers?: Record<string, string>; body?: unknown }
+): Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }> {
   const proxyEndpoint = `${proxyUrl.replace(/\/$/, "")}/api/drumwave-proxy`;
   const proxyResponse = await fetch(proxyEndpoint, {
     method: "POST",
@@ -124,7 +124,6 @@ export async function fetchViaProxy(
       body: options.body,
     }),
   });
-
   const responseText = await proxyResponse.text();
   let parsedBody: unknown;
   try {
@@ -132,13 +131,45 @@ export async function fetchViaProxy(
   } catch {
     parsedBody = responseText;
   }
-
-  // O proxy retorna o status HTTP upstream no corpo quando há erro de proxy
-  const upstreamStatus = proxyResponse.ok ? proxyResponse.status : proxyResponse.status;
-
   return {
     ok: proxyResponse.ok,
-    status: upstreamStatus,
+    status: proxyResponse.status,
     json: async () => parsedBody,
   };
+}
+
+/**
+ * Estratégia: sempre tenta chamada direta primeiro.
+ * Se a chamada direta falhar com 403/401 (IP não autorizado) e houver DATAPREV_PROXY_URL
+ * configurado, tenta via proxy como fallback.
+ * Isso garante que tanto o sandbox (IP autorizado) quanto o servidor publicado
+ * (IP pode não estar na allowlist) funcionem corretamente.
+ */
+export async function fetchViaProxy(
+  url: string,
+  options: { method?: string; headers?: Record<string, string>; body?: unknown }
+): Promise<{ ok: boolean; status: number; json: () => Promise<unknown> }> {
+  // 1. Sempre tenta chamada direta primeiro
+  try {
+    const directResult = await fetchDirect(url, options);
+    // Se a chamada direta funcionou (não é 401/403), retorna o resultado
+    if (directResult.status !== 401 && directResult.status !== 403) {
+      return directResult;
+    }
+    // Chamada direta retornou 401/403 — pode ser bloqueio de IP
+    const proxyUrl = process.env.DATAPREV_PROXY_URL;
+    if (!proxyUrl) {
+      // Sem proxy configurado, retorna o resultado direto (mesmo que seja 403)
+      return directResult;
+    }
+    // 2. Fallback: tenta via proxy
+    console.log(`[DrumwaveProxy] Chamada direta retornou ${directResult.status}, tentando via proxy: ${proxyUrl}`);
+    return await fetchViaProxyEndpoint(proxyUrl, url, options);
+  } catch (directErr) {
+    // Erro de rede na chamada direta — tenta via proxy se disponível
+    const proxyUrl = process.env.DATAPREV_PROXY_URL;
+    if (!proxyUrl) throw directErr;
+    console.log(`[DrumwaveProxy] Erro na chamada direta (${directErr instanceof Error ? directErr.message : directErr}), tentando via proxy: ${proxyUrl}`);
+    return await fetchViaProxyEndpoint(proxyUrl, url, options);
+  }
 }
