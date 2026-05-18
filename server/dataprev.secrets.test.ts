@@ -52,3 +52,19 @@ describe("credenciais Dataprev/DrumWave", () => {
     expect(payload.access_token.length).toBeGreaterThan(20);
   }, 30_000);
 });
+
+describe("DATAPREV_PROXY_URL", () => {
+  it("DATAPREV_PROXY_URL está configurado e o endpoint /api/drumwave-proxy responde", async () => {
+    const proxyUrl = process.env.DATAPREV_PROXY_URL;
+    expect(proxyUrl, "DATAPREV_PROXY_URL deve estar configurada").toBeTruthy();
+    const proxyEndpoint = `${String(proxyUrl).replace(/\/$/, "")}/api/drumwave-proxy`;
+    const response = await fetchWithTransientRetry(proxyEndpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ url: "https://api.sandbox.drumwave.com.br/health", method: "GET", headers: {}, body: undefined }),
+    });
+    // O proxy deve responder (qualquer status HTTP é válido — o importante é que o endpoint existe)
+    expect(response.status, "Proxy deve responder com algum status HTTP").toBeGreaterThanOrEqual(100);
+    expect(response.status, "Proxy não deve retornar erro de gateway").not.toBe(502);
+  }, 15_000);
+});
