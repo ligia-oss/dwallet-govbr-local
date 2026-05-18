@@ -733,6 +733,32 @@ function parseSchemaType(name: string, sid: string): { type: string; category: s
   return { type, category: cat.label };
 }
 
+// ─── Mapeamento de imagens temáticas por schema ─────────────────────────────
+const SCHEMA_IMAGES: Record<string, string> = {
+  // Rideshare / mobilidade
+  "rideshare": "/manus-storage/schema-rideshare-grid_fbe9c31f.jpeg",
+  "ride": "/manus-storage/schema-rideshare-grid_fbe9c31f.jpeg",
+  "transport": "/manus-storage/schema-rideshare-grid_fbe9c31f.jpeg",
+  "mobility": "/manus-storage/schema-rideshare-grid_fbe9c31f.jpeg",
+  "uber": "/manus-storage/schema-rideshare-grid_fbe9c31f.jpeg",
+  "taxi": "/manus-storage/schema-rideshare-grid_fbe9c31f.jpeg",
+  // Telecom
+  "telecom": "/manus-storage/schema-telecom-banner_87678963.webp",
+  "phone": "/manus-storage/schema-telecom-banner_87678963.webp",
+  "mobile": "/manus-storage/schema-telecom-banner_87678963.webp",
+  "subscription": "/manus-storage/schema-telecom-banner_87678963.webp",
+  "celular": "/manus-storage/schema-telecom-banner_87678963.webp",
+  "internet": "/manus-storage/schema-telecom-banner_87678963.webp",
+};
+
+function getSchemaImage(name: string): string | null {
+  const n = name.toLowerCase();
+  for (const [key, url] of Object.entries(SCHEMA_IMAGES)) {
+    if (n.includes(key)) return url;
+  }
+  return null;
+}
+
 // ─── SchemaCardList: lista visual de schemas com filtro ───────────────────────
 
 function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
@@ -750,7 +776,8 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
     const sid = pickText(item, ["id", "sid", "dsku", "planId", "schemaId", "valueSchemaSid"], "");
     const theme = detectSchemaCategory(name);
     const { type, category } = parseSchemaType(name, sid);
-    return { name, sid, theme, type, category, raw: item };
+    const image = getSchemaImage(name);
+    return { name, sid, theme, type, category, image, raw: item };
   }), [items]);
 
   // Coletar tipos e categorias únicos
@@ -858,6 +885,60 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
           )}
           {filtered.map((e, idx) => {
             const isSelected = selectedSid === e.sid && Boolean(e.sid);
+            if (e.image) {
+              // Card com imagem de fundo (layout fotográfico)
+              return (
+                <div
+                  key={idx}
+                  role={onSelect ? "button" : undefined}
+                  tabIndex={onSelect ? 0 : undefined}
+                  onClick={() => onSelect && e.sid && onSelect(e.sid, e.name)}
+                  onKeyDown={(ev) => ev.key === "Enter" && onSelect && e.sid && onSelect(e.sid, e.name)}
+                  className={`relative rounded-2xl overflow-hidden shadow-sm transition-all ${onSelect ? "cursor-pointer hover:shadow-lg active:scale-[0.98]" : ""}`}
+                  style={{
+                    outline: isSelected ? `3px solid ${e.theme.color}` : undefined,
+                    minHeight: 80,
+                  }}
+                >
+                  {/* Imagem de fundo */}
+                  <img
+                    src={e.image}
+                    alt={e.name}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: isSelected ? "brightness(0.85)" : "brightness(0.75)" }}
+                  />
+                  {/* Overlay gradiente */}
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.05) 100%)" }} />
+                  {/* Conteúdo sobreposto */}
+                  <div className="relative z-10 p-3 flex items-center gap-3">
+                    {/* Ícone em caixa branca */}
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow"
+                      style={{ background: "rgba(255,255,255,0.92)", color: e.theme.color }}
+                    >
+                      {e.theme.icon}
+                    </div>
+                    {/* Texto */}
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-xs font-bold text-white leading-tight drop-shadow">{e.name}</p>
+                        {isSelected && (
+                          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: e.theme.color, color: "white" }}>✓</span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.85)", color: "#334155" }}>{e.type}</span>
+                        <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.85)", color: "#334155" }}>{e.category}</span>
+                      </div>
+                      {e.sid && (
+                        <p className="text-[9px] font-mono text-white/60 truncate mt-0.5">{e.sid}</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            // Card sem imagem (layout padrão com ícone)
             return (
               <div
                 key={idx}
@@ -888,20 +969,8 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
                     )}
                   </div>
                   <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                    {/* Badge tipo */}
-                    <span
-                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: "#f1f5f9", color: "#475569" }}
-                    >
-                      {e.type}
-                    </span>
-                    {/* Badge categoria */}
-                    <span
-                      className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full"
-                      style={{ background: `${e.theme.color}15`, color: e.theme.color }}
-                    >
-                      {e.category}
-                    </span>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#f1f5f9", color: "#475569" }}>{e.type}</span>
+                    <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: `${e.theme.color}15`, color: e.theme.color }}>{e.category}</span>
                   </div>
                   {e.sid && (
                     <p className="text-[9px] font-mono text-slate-400 truncate mt-1">{e.sid}</p>
