@@ -746,6 +746,20 @@ function parseSchemaType(name: string, sid: string): { type: string; category: s
   return { type, category: cat.label };
 }
 
+// ─── Imagens nano banana para botões de tipo de schema ─────────────────────
+const SCHEMA_TYPE_IMAGES: Record<string, string> = {
+  standard: "/manus-storage/btn-schema-standard_c1e2fdd8.png",
+  custom: "/manus-storage/btn-schema-custom_a49e0dc6.png",
+  mobility: "/manus-storage/btn-schema-mobility_010c3215.png",
+  accept: "/manus-storage/btn-accept_cc2f32fc.png",
+  reject: "/manus-storage/btn-reject_1fb6d447.png",
+  dsp: "/manus-storage/btn-dsp-plan_fcea31aa.png",
+  offer: "/manus-storage/btn-offer_e949cbeb.png",
+  certificate: "/manus-storage/btn-certificate_4856fd87.png",
+  consent: "/manus-storage/btn-consent_73818536.png",
+  order: "/manus-storage/btn-order_6f22c6dc.png",
+};
+
 // ─── Mapeamento de imagens temáticas por schema ─────────────────────────────
 const SCHEMA_IMAGES: Record<string, string> = {
   // Rideshare / mobilidade
@@ -938,47 +952,69 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
             </button>
           )}
         </div>
-        {/* Tipos */}
+        {/* Tipos — cards nano banana */}
         {allTypes.length > 1 && (
           <div>
             <p className="text-[9px] font-semibold text-slate-400 uppercase mb-1">Tipo</p>
-            <div className="flex flex-wrap gap-1">
-              {allTypes.map(t => (
-                <button
-                  key={t}
-                  onClick={() => toggleType(t)}
-                  className="text-[9px] px-2 py-0.5 rounded-full border font-semibold transition-all"
-                  style={{
-                    background: selectedTypes.has(t) ? "#1351b4" : "white",
-                    color: selectedTypes.has(t) ? "white" : "#475569",
-                    borderColor: selectedTypes.has(t) ? "#1351b4" : "#cbd5e1",
-                  }}
-                >
-                  {t}
-                </button>
-              ))}
+            <div className="flex flex-wrap gap-1.5">
+              {allTypes.map(t => {
+                const isActive = selectedTypes.has(t);
+                const imgKey = t.toLowerCase().includes("standard") ? "standard"
+                  : t.toLowerCase().includes("custom") ? "custom"
+                  : t.toLowerCase().includes("mobil") || t.toLowerCase().includes("transport") ? "mobility"
+                  : t.toLowerCase().includes("event") ? "order"
+                  : t.toLowerCase().includes("perfil") || t.toLowerCase().includes("profile") ? "consent"
+                  : t.toLowerCase().includes("certif") ? "certificate"
+                  : t.toLowerCase().includes("assinatura") || t.toLowerCase().includes("subscri") ? "dsp"
+                  : t.toLowerCase().includes("tarifa") || t.toLowerCase().includes("price") ? "offer"
+                  : t.toLowerCase().includes("transac") ? "order"
+                  : "standard";
+                const img = SCHEMA_TYPE_IMAGES[imgKey];
+                return (
+                  <button
+                    key={t}
+                    onClick={() => toggleType(t)}
+                    className="relative overflow-hidden rounded-xl transition-all active:scale-95"
+                    style={{
+                      width: 64, height: 40,
+                      boxShadow: isActive ? "0 0 0 2px #1351b4, 0 2px 8px rgba(19,81,180,0.4)" : "0 1px 4px rgba(0,0,0,0.15)",
+                      opacity: isActive ? 1 : 0.75,
+                    }}
+                  >
+                    <img src={img} alt={t} className="absolute inset-0 w-full h-full object-cover" style={{ filter: isActive ? "brightness(0.85)" : "brightness(0.6) saturate(0.8)" }} />
+                    <div className="absolute inset-0" style={{ background: isActive ? "rgba(19,81,180,0.35)" : "rgba(0,0,0,0.45)" }} />
+                    <span className="relative z-10 text-[8px] font-bold text-white leading-tight px-1 text-center block w-full truncate">{t}</span>
+                    {isActive && <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-white flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full bg-[#1351b4]" /></div>}
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
-        {/* Categorias */}
+        {/* Categorias — cards nano banana */}
         {allCategories.length > 1 && (
           <div>
             <p className="text-[9px] font-semibold text-slate-400 uppercase mb-1">Categoria</p>
-            <div className="flex flex-wrap gap-1">
+            <div className="flex flex-wrap gap-1.5">
               {allCategories.map(c => {
+                const isActive = selectedCategories.has(c);
+                const img = getProductTypeImage(c);
                 const theme = detectSchemaCategory(c);
                 return (
                   <button
                     key={c}
                     onClick={() => toggleCategory(c)}
-                    className="text-[9px] px-2 py-0.5 rounded-full border font-semibold transition-all"
+                    className="relative overflow-hidden rounded-xl transition-all active:scale-95"
                     style={{
-                      background: selectedCategories.has(c) ? theme.color : "white",
-                      color: selectedCategories.has(c) ? "white" : "#475569",
-                      borderColor: selectedCategories.has(c) ? theme.color : "#cbd5e1",
+                      width: 64, height: 40,
+                      boxShadow: isActive ? `0 0 0 2px ${theme.color}, 0 2px 8px ${theme.color}66` : "0 1px 4px rgba(0,0,0,0.15)",
+                      opacity: isActive ? 1 : 0.75,
                     }}
                   >
-                    {c}
+                    <img src={img} alt={c} className="absolute inset-0 w-full h-full object-cover" style={{ filter: isActive ? "brightness(0.85)" : "brightness(0.6) saturate(0.8)" }} />
+                    <div className="absolute inset-0" style={{ background: isActive ? `${theme.color}55` : "rgba(0,0,0,0.45)" }} />
+                    <span className="relative z-10 text-[8px] font-bold text-white leading-tight px-1 text-center block w-full truncate">{c}</span>
+                    {isActive && <div className="absolute top-1 right-1 w-2.5 h-2.5 rounded-full bg-white flex items-center justify-center"><div className="w-1.5 h-1.5 rounded-full" style={{ background: theme.color }} /></div>}
                   </button>
                 );
               })}
@@ -2142,7 +2178,22 @@ export function HomologacaoPhoneMockup({
                     </div>
                   )}
                 </div>
-                {/* Tipo de registro */}
+                {/* Business dWallet ID */}
+                <div className="space-y-1">
+                  <label className="text-[10px] font-semibold text-[#1351b4]">ID da Business dWallet *</label>
+                  <input
+                    type="text"
+                    value={String(runState.businessDwalletId || runState.businessId || "")}
+                    placeholder="Capturado no passo 1 (ou informe manualmente)"
+                    onChange={e => onFieldChange("businessDwalletId", e.target.value)}
+                    className="w-full text-xs border rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-2 focus:border-transparent font-mono transition-shadow"
+                    style={{ borderColor: "#1351b440", "--tw-ring-color": "#1351b4" } as React.CSSProperties}
+                  />
+                  {!runState.businessDwalletId && !runState.businessId && (
+                    <p className="text-[9px] text-amber-600">⚠️ Execute o passo 1 para capturar automaticamente, ou informe o ID manualmente.</p>
+                  )}
+                </div>
+              {/* Tipo de registro */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
                   <span className="text-lg">🛒</span>
                   <div>
@@ -2154,7 +2205,7 @@ export function HomologacaoPhoneMockup({
               {/* Botão de confirmar */}
               <button
                 onClick={handleCta}
-                disabled={isExecuting || !selectedProductDsku}
+                disabled={isExecuting || !selectedProductDsku || (!runState.businessDwalletId && !runState.businessId)}
                 className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
                 style={{ background: colors.accent }}
               >
@@ -2242,8 +2293,121 @@ export function HomologacaoPhoneMockup({
             </div>
           )}
 
+          {/* CONFIRMAÇÃO: step7_accept_data_request — card nano banana */}
+          {!isGap && phase === "input" && actionId === "step7_accept_data_request" && (
+            <div className="p-4 space-y-3">
+              <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: 100 }}>
+                <img src={SCHEMA_TYPE_IMAGES.accept} alt="Aceitar" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(5,150,105,0.7) 0%, rgba(0,0,0,0.3) 100%)" }} />
+                <div className="relative z-10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200 mb-1">Aceitar solicitação</p>
+                  <p className="text-sm font-bold text-white leading-tight">Confirmar aceite da solicitação de dados</p>
+                  {runState.dataRequestId && <p className="text-[9px] font-mono text-white/70 mt-1">ID: {String(runState.dataRequestId)}</p>}
+                </div>
+              </div>
+              <button
+                onClick={handleCta}
+                disabled={isExecuting}
+                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                style={{ background: "#059669" }}
+              >
+                {isExecuting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
+                    Aceitando…
+                  </span>
+                ) : "✅ Aceitar solicitação"}
+              </button>
+            </div>
+          )}
+
+          {/* CONFIRMAÇÃO: step7_reject_data_request — card nano banana */}
+          {!isGap && phase === "input" && actionId === "step7_reject_data_request" && (
+            <div className="p-4 space-y-3">
+              <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: 100 }}>
+                <img src={SCHEMA_TYPE_IMAGES.reject} alt="Rejeitar" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(220,38,38,0.7) 0%, rgba(0,0,0,0.3) 100%)" }} />
+                <div className="relative z-10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-red-200 mb-1">Rejeitar solicitação</p>
+                  <p className="text-sm font-bold text-white leading-tight">Confirmar rejeição da solicitação de dados</p>
+                  {runState.dataRequestId && <p className="text-[9px] font-mono text-white/70 mt-1">ID: {String(runState.dataRequestId)}</p>}
+                </div>
+              </div>
+              <button
+                onClick={handleCta}
+                disabled={isExecuting}
+                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                style={{ background: "#dc2626" }}
+              >
+                {isExecuting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
+                    Rejeitando…
+                  </span>
+                ) : "❌ Rejeitar solicitação"}
+              </button>
+            </div>
+          )}
+
+          {/* CONFIRMAÇÃO: step10_create_dsp_account — card nano banana */}
+          {!isGap && phase === "input" && actionId === "step10_create_dsp_account" && (
+            <div className="p-4 space-y-3">
+              <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: 100 }}>
+                <img src={SCHEMA_TYPE_IMAGES.dsp} alt="Plano DSP" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.7) 0%, rgba(0,0,0,0.3) 100%)" }} />
+                <div className="relative z-10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200 mb-1">Aderir ao plano DSP</p>
+                  <p className="text-sm font-bold text-white leading-tight">Confirmar adesão ao Data Savings Plan</p>
+                  {runState.selectedDspId && <p className="text-[9px] font-mono text-white/70 mt-1">ID: {String(runState.selectedDspId)}</p>}
+                </div>
+              </div>
+              <button
+                onClick={handleCta}
+                disabled={isExecuting}
+                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                style={{ background: "#7c3aed" }}
+              >
+                {isExecuting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
+                    Aderindo…
+                  </span>
+                ) : "💾 Aderir ao plano DSP"}
+              </button>
+            </div>
+          )}
+
+          {/* CONFIRMAÇÃO: step13 (aceitar oferta) — card nano banana */}
+          {!isGap && phase === "input" && screen.stepId === 13 && (
+            <div className="p-4 space-y-3">
+              <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: 100 }}>
+                <img src={SCHEMA_TYPE_IMAGES.offer} alt="Oferta" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
+                <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(234,88,12,0.7) 0%, rgba(0,0,0,0.3) 100%)" }} />
+                <div className="relative z-10 p-4">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-orange-200 mb-1">Aceitar oferta</p>
+                  <p className="text-sm font-bold text-white leading-tight">Confirmar aceite da oferta do marketplace</p>
+                  {runState.offerId && <p className="text-[9px] font-mono text-white/70 mt-1">ID: {String(runState.offerId)}</p>}
+                  {!runState.offerId && <p className="text-[9px] text-orange-200 mt-1">⚠️ Nenhuma oferta selecionada — execute o passo 12 primeiro</p>}
+                </div>
+              </div>
+              <button
+                onClick={handleCta}
+                disabled={isExecuting || !runState.offerId}
+                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                style={{ background: "#ea580c" }}
+              >
+                {isExecuting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
+                    Aceitando…
+                  </span>
+                ) : "🤝 Aceitar oferta"}
+              </button>
+            </div>
+          )}
+
           {/* INPUT state */}
-          {!isGap && phase === "input" && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && (
+          {!isGap && phase === "input" && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && (
             <div className="p-4 space-y-3">
               {/* Previous result indicator */}
               {activeResult && (
