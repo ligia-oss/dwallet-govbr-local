@@ -1142,6 +1142,8 @@ export function HomologacaoPhoneMockup({
 }) {
   const screen = PHONE_SCREENS[stepId];
   const [phase, setPhase] = useState<PhoneMockupPhase>("input");
+  // When user explicitly clicks "Voltar ao formulário", prevent useEffect from overriding phase back to result
+  const [showInputOverride, setShowInputOverride] = useState(false);
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const prevActionIdRef = useRef<string | undefined>(actionId);
 
@@ -1177,7 +1179,11 @@ export function HomologacaoPhoneMockup({
   // Sync phase with execution state and result
   useEffect(() => {
     if (isExecuting) {
+      setShowInputOverride(false); // reset override when new execution starts
       setPhase("loading");
+    } else if (showInputOverride) {
+      // User explicitly clicked "Voltar ao formulário" — keep input phase
+      setPhase("input");
     } else if (activeResult?.ok && actionId && SIGNUP_ACTION_IDS.has(actionId)) {
       // Após signup bem-sucedido → tela "Código enviado"
       setPhase("email-sent");
@@ -1192,7 +1198,7 @@ export function HomologacaoPhoneMockup({
     } else {
       setPhase("input");
     }
-  }, [isExecuting, activeResult, actionId]);
+  }, [isExecuting, activeResult, actionId, showInputOverride]);
 
   // Auto-advance to next sub-action after successful result (1.8s delay)
   // Não auto-avança quando está nas telas especiais email-sent ou app-home
@@ -1225,6 +1231,7 @@ export function HomologacaoPhoneMockup({
   useEffect(() => {
     if (prevActionIdRef.current !== actionId) {
       prevActionIdRef.current = actionId;
+      setShowInputOverride(false); // reset override when action changes
       setPhase("input");
     }
   }, [actionId]);
@@ -1396,7 +1403,7 @@ export function HomologacaoPhoneMockup({
                 ) : null;
               })()}
               <button
-                onClick={() => setPhase("input")}
+                onClick={() => { setShowInputOverride(true); setPhase("input"); }}
                 className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
               >
                 ← Voltar ao formulário

@@ -210,3 +210,10 @@
 - [x] Produtos clicáveis: ao clicar, monta tela de confirmação com schema + produto selecionados
 - [x] Tela de confirmação com botão "Confirmar" que executa API de criar commercial value schema
 - [x] Executar testes, build e salvar checkpoint
+
+## Correção do Passo 0 (Gerar Token M2M)
+- [x] Diagnosticar: botão "← Voltar ao formulário" no mockup não funcionava (useEffect sobrescrevia fase de volta para "result")
+- [x] Corrigir: adicionar estado `showInputOverride` para permitir que o usuário volte ao formulário sem o useEffect sobrescrever
+- [x] Resetar `showInputOverride` quando nova execução inicia ou quando actionId muda
+- [x] Verificar no browser: botão "Gerar M2M Token" executa e gera token com sucesso
+- [x] 100 testes passando, build concluído, checkpoint salvo
