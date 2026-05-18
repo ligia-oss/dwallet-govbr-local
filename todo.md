@@ -217,3 +217,10 @@
 - [x] Resetar `showInputOverride` quando nova execução inicia ou quando actionId muda
 - [x] Verificar no browser: botão "Gerar M2M Token" executa e gera token com sucesso
 - [x] 100 testes passando, build concluído, checkpoint salvo
+
+## Cards de Produtos com Imagem de Fundo (Passo 4)
+- [x] Gerar imagens temáticas para produtos do passo 4 (mobilidade, telecom, finanças, saúde, energia, varejo, localização, perfil, dados genéricos)
+- [x] Adicionar mapeamento PRODUCT_IMAGES e função getProductImage no HomologacaoPhoneMockup.tsx
+- [x] Atualizar ProductCardList para usar o mesmo padrão de card fotográfico do SchemaCardList (imagem de fundo + overlay gradiente + ícone em caixa branca + texto branco + badges semitransparentes)
+- [x] Fallback: qualquer produto sem correspondência no mapeamento usa imagem genérica de dados digitais
+- [x] 100 testes passando, TypeScript sem erros, build concluído, checkpoint salvo

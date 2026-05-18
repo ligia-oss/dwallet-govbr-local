@@ -759,6 +759,81 @@ function getSchemaImage(name: string): string | null {
   return null;
 }
 
+// ─── Mapeamento de imagens temáticas por produto (passo 4) ───────────────────
+const PRODUCT_IMAGES: Record<string, string> = {
+  // Mobilidade / transporte / rideshare
+  "rideshare": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "ride": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "mobilidade": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "mobility": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "transport": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "transporte": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "uber": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "taxi": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "percurso": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  "viagem": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-mobilidade-isToMCt3XzkF39bFuTv7SK.webp",
+  // Telecom
+  "telecom": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-telecom-a8XbedSUYNFybMB8Ej9re9.webp",
+  "celular": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-telecom-a8XbedSUYNFybMB8Ej9re9.webp",
+  "internet": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-telecom-a8XbedSUYNFybMB8Ej9re9.webp",
+  "mobile": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-telecom-a8XbedSUYNFybMB8Ej9re9.webp",
+  "phone": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-telecom-a8XbedSUYNFybMB8Ej9re9.webp",
+  "subscription": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-telecom-a8XbedSUYNFybMB8Ej9re9.webp",
+  "assinatura": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-telecom-a8XbedSUYNFybMB8Ej9re9.webp",
+  // Finanças
+  "financ": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  "finança": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  "banking": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  "banco": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  "pagamento": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  "payment": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  "credit": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  "credito": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  "renda": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-financas-5UorXfffoBc7rQYPvSAp4j.webp",
+  // Saúde
+  "saude": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-saude-MHgGX5ERzCMs22bhiUfd7b.webp",
+  "health": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-saude-MHgGX5ERzCMs22bhiUfd7b.webp",
+  "medic": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-saude-MHgGX5ERzCMs22bhiUfd7b.webp",
+  "plano": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-saude-MHgGX5ERzCMs22bhiUfd7b.webp",
+  // Energia
+  "energia": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-energia-3u2CWgjLgUv5572wM8N8Yf.webp",
+  "energy": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-energia-3u2CWgjLgUv5572wM8N8Yf.webp",
+  "eletric": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-energia-3u2CWgjLgUv5572wM8N8Yf.webp",
+  "utilit": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-energia-3u2CWgjLgUv5572wM8N8Yf.webp",
+  // Varejo / compras
+  "varejo": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-varejo-VBZLGBu9DAqZfmSHjkt8no.webp",
+  "retail": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-varejo-VBZLGBu9DAqZfmSHjkt8no.webp",
+  "compra": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-varejo-VBZLGBu9DAqZfmSHjkt8no.webp",
+  "shopping": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-varejo-VBZLGBu9DAqZfmSHjkt8no.webp",
+  "loja": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-varejo-VBZLGBu9DAqZfmSHjkt8no.webp",
+  // Localização / GPS
+  "localiz": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-localizacao-koaLopwmFYVsVYC9V6ZJyA.webp",
+  "location": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-localizacao-koaLopwmFYVsVYC9V6ZJyA.webp",
+  "gps": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-localizacao-koaLopwmFYVsVYC9V6ZJyA.webp",
+  "mapa": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-localizacao-koaLopwmFYVsVYC9V6ZJyA.webp",
+  "map": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-localizacao-koaLopwmFYVsVYC9V6ZJyA.webp",
+  // Perfil / identidade
+  "perfil": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-perfil-m7BC4WvAfgPs8Gazt4Srdh.webp",
+  "profile": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-perfil-m7BC4WvAfgPs8Gazt4Srdh.webp",
+  "identidade": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-perfil-m7BC4WvAfgPs8Gazt4Srdh.webp",
+  "identity": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-perfil-m7BC4WvAfgPs8Gazt4Srdh.webp",
+  "usuario": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-perfil-m7BC4WvAfgPs8Gazt4Srdh.webp",
+  "user": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-perfil-m7BC4WvAfgPs8Gazt4Srdh.webp",
+  // Dados genéricos (fallback para produtos sem categoria específica)
+  "dados": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-dados-nXRHAz3G2x35FBa84bcxBD.webp",
+  "data": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-dados-nXRHAz3G2x35FBa84bcxBD.webp",
+  "digital": "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-dados-nXRHAz3G2x35FBa84bcxBD.webp",
+};
+
+function getProductImage(name: string, category?: string): string | null {
+  const n = (name + " " + (category ?? "")).toLowerCase();
+  for (const [key, url] of Object.entries(PRODUCT_IMAGES)) {
+    if (n.includes(key)) return url;
+  }
+  // Fallback: imagem de dados genéricos para qualquer produto
+  return "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-dados-nXRHAz3G2x35FBa84bcxBD.webp";
+}
+
 // ─── SchemaCardList: lista visual de schemas com filtro ───────────────────────
 
 function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
@@ -1092,7 +1167,63 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
               const dsku = pickText(item, ["dsku", "id", "sid", "productId", "sku"], "");
               const category = pickText(item, ["category", "type", "group"], "");
               const theme = detectSchemaCategory(name + " " + category);
+              const image = getProductImage(name, category);
               const isSelected = selectedProductDsku === dsku && Boolean(dsku);
+              if (image) {
+                // Card com imagem de fundo (layout fotográfico)
+                return (
+                  <div
+                    key={idx}
+                    role={onProductSelect ? "button" : undefined}
+                    tabIndex={onProductSelect ? 0 : undefined}
+                    onClick={() => onProductSelect && dsku && onProductSelect(dsku, name)}
+                    onKeyDown={(ev) => ev.key === "Enter" && onProductSelect && dsku && onProductSelect(dsku, name)}
+                    className={`relative rounded-2xl overflow-hidden shadow-sm transition-all ${onProductSelect ? "cursor-pointer hover:shadow-lg active:scale-[0.98]" : ""}`}
+                    style={{
+                      outline: isSelected ? `3px solid ${theme.color}` : undefined,
+                      minHeight: 80,
+                    }}
+                  >
+                    {/* Imagem de fundo */}
+                    <img
+                      src={image}
+                      alt={name}
+                      className="absolute inset-0 w-full h-full object-cover"
+                      style={{ filter: isSelected ? "brightness(0.85)" : "brightness(0.75)" }}
+                    />
+                    {/* Overlay gradiente */}
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.05) 100%)" }} />
+                    {/* Conteúdo sobreposto */}
+                    <div className="relative z-10 p-3 flex items-center gap-3">
+                      {/* Ícone em caixa branca */}
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow"
+                        style={{ background: "rgba(255,255,255,0.92)", color: theme.color }}
+                      >
+                        {theme.icon}
+                      </div>
+                      {/* Texto */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <p className="text-xs font-bold text-white leading-tight drop-shadow">{name}</p>
+                          {isSelected && (
+                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: theme.color, color: "white" }}>✓</span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-1 flex-wrap">
+                          {category && (
+                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.85)", color: "#334155" }}>{category}</span>
+                          )}
+                          {dsku && (
+                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.75)", color: "#334155" }}>{dsku}</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              // Card sem imagem (layout padrão com ícone)
               return (
                 <div
                   key={idx}
