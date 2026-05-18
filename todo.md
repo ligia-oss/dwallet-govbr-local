@@ -224,3 +224,16 @@
 - [x] Atualizar ProductCardList para usar o mesmo padrão de card fotográfico do SchemaCardList (imagem de fundo + overlay gradiente + ícone em caixa branca + texto branco + badges semitransparentes)
 - [x] Fallback: qualquer produto sem correspondência no mapeamento usa imagem genérica de dados digitais
 - [x] 100 testes passando, TypeScript sem erros, build concluído, checkpoint salvo
+
+## Sprint — IDs, Value Schema e Otimizações
+
+- [x] Persistir IDs capturados (businessDwalletId, personDwalletId, etc.) no runState e auto-preencher campos das APIs seguintes
+- [x] Restaurar nomes adequados nos botões de value schema (labels corretos conforme solicitado anteriormente)
+- [x] Garantir passo 0 sempre funcional: tela especial dedicada no mockup, botão sempre visível, status do token exibido
+- [x] Revisar e otimizar o código do mockup (passo 0 isolado em tela especial, sem conflito com INPUT/RESULT genérico)
+- [x] Garantir que todos os passos funcionam corretamente no servidor publicado
+
+- [x] Atualizar nomes dos tipos de value schema para labels mais descritivos em português (ex: "Padrão de Dados", "Evento de Dados", "Perfil de Usuário", etc.)
+- [x] Adicionar painel de IDs capturados no INPUT state genérico, mostrando quais IDs já foram capturados de passos anteriores
+- [x] Garantir que IDs capturados (businessDwalletId, personDwalletId, etc.) são usados automaticamente nas APIs seguintes
+- [x] Revisar robustez do passo 0 (M2M token) — tela especial dedicada, botão sempre visível, sem dependência de phase/showInputOverride

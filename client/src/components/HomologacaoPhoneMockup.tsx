@@ -737,15 +737,17 @@ function detectSchemaCategory(name: string): { label: string; color: string; ico
 // Extrai tipo e categoria de um schema a partir do nome/id
 function parseSchemaType(name: string, sid: string): { type: string; category: string } {
   const combined = (name + " " + sid).toLowerCase();
-  // Tipo: inferido pelo padrão do nome
-  let type = "Standard";
-  if (combined.includes("event") || combined.includes("evento")) type = "Evento";
-  else if (combined.includes("profile") || combined.includes("perfil")) type = "Perfil";
-  else if (combined.includes("transaction") || combined.includes("transac")) type = "Transação";
-  else if (combined.includes("subscription") || combined.includes("assinatura")) type = "Assinatura";
-  else if (combined.includes("location") || combined.includes("localiza")) type = "Localização";
-  else if (combined.includes("fare") || combined.includes("tarifa") || combined.includes("price")) type = "Tarifa";
-  else if (combined.includes("certificate") || combined.includes("certificado")) type = "Certificado";
+  // Tipo: inferido pelo padrão do nome — labels descritivos em português
+  let type = "Padrão de Dados";
+  if (combined.includes("event") || combined.includes("evento")) type = "Evento de Dados";
+  else if (combined.includes("profile") || combined.includes("perfil")) type = "Perfil de Usuário";
+  else if (combined.includes("transaction") || combined.includes("transac")) type = "Transação Financeira";
+  else if (combined.includes("subscription") || combined.includes("assinatura")) type = "Assinatura / Plano";
+  else if (combined.includes("location") || combined.includes("localiza")) type = "Dados de Localização";
+  else if (combined.includes("fare") || combined.includes("tarifa") || combined.includes("price")) type = "Tarifa / Preço";
+  else if (combined.includes("certificate") || combined.includes("certificado")) type = "Certificado Digital";
+  else if (combined.includes("custom")) type = "Schema Personalizado";
+  else if (combined.includes("mobil") || combined.includes("transport") || combined.includes("ride")) type = "Mobilidade";
   // Categoria: inferida pelo domínio
   const cat = detectSchemaCategory(name);
   return { type, category: cat.label };
@@ -1772,6 +1774,72 @@ export function HomologacaoPhoneMockup({
 
         {/* Screen content */}
         <div className="overflow-y-auto" style={{ maxHeight: 390 }}>
+          {/* PASSO 0 — Tela especial de autenticação M2M */}
+          {!isGap && stepId === 0 && (
+            <div className="p-4 space-y-3">
+              {/* Status do token */}
+              <div className={`rounded-2xl p-4 border ${
+                activeResult?.ok ? "bg-emerald-50 border-emerald-200" :
+                activeResult && !activeResult.ok ? "bg-red-50 border-red-200" :
+                "bg-amber-50 border-amber-200"
+              }`}>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">{activeResult?.ok ? "🟢" : activeResult ? "🔴" : "🟡"}</span>
+                  <span className="text-sm font-bold text-slate-900">
+                    {activeResult?.ok ? "Token M2M ativo" : activeResult ? "Falha na autenticação" : "Token não gerado"}
+                  </span>
+                </div>
+{(() => {
+                  if (!activeResult?.ok || !activeResult.stateUpdates?.tokenHandle) return null;
+                  const handle = String(activeResult.stateUpdates.tokenHandle);
+                  return (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[9px] font-semibold text-slate-500">Token Handle:</span>
+                        <span className="text-[9px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded truncate">
+                          {handle.slice(0, 14)}…{handle.slice(-8)}
+                        </span>
+                      </div>
+                      <p className="text-[9px] text-slate-500 leading-4">Todas as chamadas protegidas usarão este token como Bearer.</p>
+                    </div>
+                  );
+                })()}
+                {activeResult && !activeResult.ok && (
+                  <p className="text-[9px] text-red-700 leading-4">{activeResult.message ?? "Verifique as credenciais e tente novamente."}</p>
+                )}
+                {!activeResult && (
+                  <p className="text-[9px] text-amber-700 leading-4">Execute a autenticação para liberar todas as chamadas protegidas da jornada.</p>
+                )}
+              </div>
+
+              {/* Botão CTA — sempre visível */}
+              <button
+                onClick={() => onExecute("step0_m2m_auth")}
+                disabled={isExecuting}
+                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                style={{ background: colors.accent }}
+              >
+                {isExecuting ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                      <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+                      <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
+                    </svg>
+                    Gerando token…
+                  </span>
+                ) : activeResult?.ok ? "🔄 Regenerar M2M Token" : "🔑 Gerar M2M Token"}
+              </button>
+
+              {/* Informativo */}
+              <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
+                <p className="text-[9px] font-bold uppercase tracking-wide text-[#1351b4] mb-1.5">ℹ️ Sobre o Passo 0</p>
+                <p className="text-[9px] text-slate-600 leading-4">
+                  Este passo é um pré-requisito técnico. O token M2M não é visível ao usuário final — ele é usado internamente para autenticar todas as chamadas à API Dataprev.
+                </p>
+              </div>
+            </div>
+          )}
+
           {/* GAP state */}
           {isGap && (
             <div className="p-4 space-y-3">
@@ -1788,7 +1856,7 @@ export function HomologacaoPhoneMockup({
           )}
 
           {/* LOADING state */}
-          {!isGap && phase === "loading" && (
+          {!isGap && phase === "loading" && stepId !== 0 && (
             <div className="p-4 flex flex-col items-center justify-center gap-4 py-12">
               <div
                 className="w-12 h-12 rounded-full border-4 border-t-transparent animate-spin"
@@ -1802,7 +1870,7 @@ export function HomologacaoPhoneMockup({
           )}
 
           {/* RESULT state */}
-          {!isGap && phase === "result" && activeResult && (
+          {!isGap && phase === "result" && activeResult && stepId !== 0 && (
             <div className="p-4 space-y-3">
               <ResponseRenderer
                 result={activeResult}
@@ -2476,7 +2544,7 @@ export function HomologacaoPhoneMockup({
           )}
 
           {/* INPUT state */}
-          {!isGap && phase === "input" && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && (
+          {!isGap && phase === "input" && stepId !== 0 && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && (
             <div className="p-4 space-y-3">
               {/* Previous result indicator */}
               {activeResult && (
@@ -2491,6 +2559,87 @@ export function HomologacaoPhoneMockup({
                   {activeResult.ok ? "✅ Ver último resultado →" : "❌ Ver último erro →"}
                 </button>
               )}
+
+              {/* Painel de IDs capturados — mostra IDs de passos anteriores */}
+              {(() => {
+                // Mapeamento: quais IDs são relevantes por passo
+                const capturedIdMap: Record<number, Array<{ key: string; label: string; fromStep: number; fromStepLabel: string }>> = {
+                  4: [
+                    { key: "businessDwalletId", label: "Business dWallet ID", fromStep: 1, fromStepLabel: "Passo 1" },
+                    { key: "valueSchemaSid", label: "Schema selecionado", fromStep: 3, fromStepLabel: "Passo 3" },
+                  ],
+                  6: [
+                    { key: "businessDwalletId", label: "Business dWallet ID", fromStep: 1, fromStepLabel: "Passo 1" },
+                    { key: "personDwalletId", label: "Personal dWallet ID", fromStep: 2, fromStepLabel: "Passo 2" },
+                    { key: "valueSchemaSid", label: "Schema selecionado", fromStep: 3, fromStepLabel: "Passo 3" },
+                  ],
+                  7: [
+                    { key: "dataRequestId", label: "ID da solicitação", fromStep: 6, fromStepLabel: "Passo 6" },
+                    { key: "businessDwalletId", label: "Business dWallet ID", fromStep: 1, fromStepLabel: "Passo 1" },
+                  ],
+                  8: [
+                    { key: "personDwalletId", label: "Personal dWallet ID", fromStep: 2, fromStepLabel: "Passo 2" },
+                  ],
+                  10: [
+                    { key: "personDwalletId", label: "Personal dWallet ID", fromStep: 2, fromStepLabel: "Passo 2" },
+                    { key: "selectedDspId", label: "DSP selecionado", fromStep: 10, fromStepLabel: "Passo 10" },
+                  ],
+                  12: [
+                    { key: "personDwalletId", label: "Personal dWallet ID", fromStep: 2, fromStepLabel: "Passo 2" },
+                  ],
+                  13: [
+                    { key: "offerId", label: "ID da oferta", fromStep: 12, fromStepLabel: "Passo 12" },
+                    { key: "personDwalletId", label: "Personal dWallet ID", fromStep: 2, fromStepLabel: "Passo 2" },
+                  ],
+                  14: [
+                    { key: "businessDwalletId", label: "Business dWallet ID", fromStep: 1, fromStepLabel: "Passo 1" },
+                    { key: "personDwalletId", label: "Personal dWallet ID", fromStep: 2, fromStepLabel: "Passo 2" },
+                  ],
+                  15: [
+                    { key: "businessDwalletId", label: "Business dWallet ID", fromStep: 1, fromStepLabel: "Passo 1" },
+                    { key: "personDwalletId", label: "Personal dWallet ID", fromStep: 2, fromStepLabel: "Passo 2" },
+                  ],
+                };
+                const relevantIds = capturedIdMap[screen.stepId];
+                if (!relevantIds || relevantIds.length === 0) return null;
+                const captured = relevantIds.filter(item => {
+                  const val = runState[item.key];
+                  return val !== undefined && val !== null && String(val).trim() !== "";
+                });
+                const missing = relevantIds.filter(item => {
+                  const val = runState[item.key];
+                  return val === undefined || val === null || String(val).trim() === "";
+                });
+                if (captured.length === 0 && missing.length === 0) return null;
+                return (
+                  <div className="rounded-2xl border p-3 space-y-2" style={{ borderColor: captured.length === relevantIds.length ? "#bbf7d0" : "#fde68a", background: captured.length === relevantIds.length ? "#f0fdf4" : "#fffbeb" }}>
+                    <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: captured.length === relevantIds.length ? "#15803d" : "#92400e" }}>
+                      {captured.length === relevantIds.length ? "✅ IDs capturados" : "⚠️ IDs necessários"}
+                    </p>
+                    <div className="space-y-1.5">
+                      {relevantIds.map(item => {
+                        const val = runState[item.key];
+                        const hasCaptured = val !== undefined && val !== null && String(val).trim() !== "";
+                        const displayVal = hasCaptured ? String(val) : "";
+                        const truncated = displayVal.length > 20 ? `${displayVal.slice(0, 8)}…${displayVal.slice(-6)}` : displayVal;
+                        return (
+                          <div key={item.key} className="flex items-center justify-between gap-2">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                              <span className="text-[9px]">{hasCaptured ? "✅" : "⚠️"}</span>
+                              <span className="text-[9px] font-semibold text-slate-700 truncate">{item.label}</span>
+                            </div>
+                            {hasCaptured ? (
+                              <span className="text-[9px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded shrink-0">{truncated}</span>
+                            ) : (
+                              <span className="text-[9px] text-amber-600 shrink-0">Execute {item.fromStepLabel}</span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })()}
 
               {/* Form fields */}
               {hasFields && (
