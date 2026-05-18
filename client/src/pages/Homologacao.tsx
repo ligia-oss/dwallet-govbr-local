@@ -763,6 +763,10 @@ export default function Homologacao() {
                     // Auto-advance: phoneActionId auto-derives from stepResults state
                     // No explicit action needed here — state update triggers re-render
                   }}
+                  onStepChange={(targetStepId) => {
+                    // Navegação automática entre passos (ex: passo 3 → 4, passo 5 → 6)
+                    setActiveStep(targetStepId);
+                  }}
                   lang={lang}
                 />
               </div>

@@ -237,3 +237,15 @@
 - [x] Adicionar painel de IDs capturados no INPUT state genérico, mostrando quais IDs já foram capturados de passos anteriores
 - [x] Garantir que IDs capturados (businessDwalletId, personDwalletId, etc.) são usados automaticamente nas APIs seguintes
 - [x] Revisar robustez do passo 0 (M2M token) — tela especial dedicada, botão sempre visível, sem dependência de phase/showInputOverride
+
+## Sprint — Renomeação Schemas, Navegação 3→4→5→6 e Imagens Nano Banana
+
+- [x] Renomear value schemas do passo 3: rideshare-fares→Tarifas das Viagens, rideshare-rider-profile→Perfil do Motorista, rideshare-rides→Corridas, rideshare-saved-location→Locais Favoritos, telecom-subscription→Planos de Telefonia (PT e EN)
+- [x] Clicar em schema no passo 3 seleciona, salva valueSchemaSid e navega direto para passo 4 (onStepChange(4) com delay 350ms)
+- [x] Gerar imagens nano banana temáticas para produtos do passo 4 (banco, telecom, aviação, saúde, redes sociais)
+- [x] Botões de produto no passo 4 com imagens nano banana temáticas via PRODUCT_FRIENDLY_NAMES
+- [x] Clique no produto do passo 4: salva seleção, executa API step4_add_dsku_to_cart, monta tela de confirmação com botão "Criar produto" que executa step4_create_commercial_value_schema
+- [x] Passo 5: botões com nomes amigáveis (Banco Bank, Telecel, Voa Leve, Mais Saúde, TicTac) + imagens nano banana temáticas acima do nome retornado pela API
+- [x] Clique no produto do passo 5 navega para tela do passo 6 com produto selecionado e botão "Solicitar dados" que executa API do passo 6 (onStepChange(6) com delay 350ms)
+- [x] Passo 0 robusto: tela especial dedicada, botão sempre visível, status em tempo real, sem dependência de phase/showInputOverride
+- [x] 105 testes passando, TypeScript sem erros, servidor rodando

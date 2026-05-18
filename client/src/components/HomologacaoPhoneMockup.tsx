@@ -767,6 +767,61 @@ const SCHEMA_TYPE_IMAGES: Record<string, string> = {
   order: "/manus-storage/btn-order_6f22c6dc.png",
 };
 
+// ─── Mapeamento de nomes amigáveis para schemas específicos ─────────────────
+// Chave: parte do nome/sid retornado pela API (case-insensitive match)
+const SCHEMA_FRIENDLY_NAMES: Record<string, string> = {
+  // PT-BR
+  "rideshare-fares": "Tarifas das Viagens",
+  "rideshare-rider-profile": "Perfil do Motorista",
+  "rideshare-rides": "Corridas",
+  "rideshare-saved-location": "Locais Favoritos no Aplicativo de Corrida",
+  "ridershare-saved-location": "Locais Favoritos no Aplicativo de Corrida",
+  "telecom-subscription": "Planos de Telefonia",
+  "telecom-subcription": "Planos de Telefonia",
+  // EN
+  "rideshare-fares-en": "Ride Fares",
+  "rideshare-rider-profile-en": "Driver Profile",
+  "rideshare-rides-en": "Rides",
+  "rideshare-saved-location-en": "Saved Locations in Ride App",
+  "telecom-subscription-en": "Telecom Plans",
+};
+
+/**
+ * Retorna o nome amigável de um schema a partir do seu nome/sid.
+ * Faz match parcial (case-insensitive) contra as chaves do mapeamento.
+ */
+function getSchemaFriendlyName(name: string, sid: string): string {
+  const combined = (name + " " + sid).toLowerCase();
+  for (const [key, friendly] of Object.entries(SCHEMA_FRIENDLY_NAMES)) {
+    if (combined.includes(key.toLowerCase())) return friendly;
+  }
+  return name; // fallback: nome original
+}
+
+// ─── Mapeamento de nomes amigáveis para produtos específicos do passo 5 ──────
+const PRODUCT_FRIENDLY_NAMES: Record<string, { brand: string; image: string }> = {
+  "Test_Product_7Or1uUrK8": {
+    brand: "Banco Bank",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-bank_dwallet-Aa3qWjKo2dRpv4bLySqdPS.webp",
+  },
+  "Test_Product_2kTqoH7lc": {
+    brand: "Telecel",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-telecom_dwallet-kFKLJsnRS6j8u9k3ToSSXc.webp",
+  },
+  "Test_Product_1ZAPwXOmu": {
+    brand: "Voa Leve",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-airline_dwallet-QQFqFWDXeziDWBzcfUtAoN.webp",
+  },
+  "Test_Product_MEOxuE71": {
+    brand: "Mais Saúde",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-health_dwallet-VSQ3DhZXMU53Y57VqZTuEU.webp",
+  },
+  "Test_Product_8uP2LoThy": {
+    brand: "TicTac",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-social_dwallet-7jTjZbkFSG6xbNWJxSthAv.webp",
+  },
+};
+
 // ─── Mapeamento de imagens temáticas por schema ─────────────────────────────
 const SCHEMA_IMAGES: Record<string, string> = {
   // Rideshare / mobilidade
@@ -910,14 +965,16 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
 
-  // Enriquecer items com metadados
+  // Enriquecer items com metadados — usar nomes amigáveis quando disponíveis
   const enriched = useMemo(() => items.map((item, idx) => {
-    const name = pickText(item, ["name", "title", "label", "displayName", "description"], `Schema ${idx + 1}`);
+    const rawName = pickText(item, ["name", "title", "label", "displayName", "description"], `Schema ${idx + 1}`);
     const sid = pickText(item, ["id", "sid", "dsku", "planId", "schemaId", "valueSchemaSid"], "");
-    const theme = detectSchemaCategory(name);
-    const { type, category } = parseSchemaType(name, sid);
-    const image = getSchemaImage(name);
-    return { name, sid, theme, type, category, image, raw: item };
+    // Usar nome amigável se disponível
+    const name = getSchemaFriendlyName(rawName, sid);
+    const theme = detectSchemaCategory(rawName); // usar rawName para detectar categoria
+    const { type, category } = parseSchemaType(rawName, sid); // usar rawName para detectar tipo
+    const image = getSchemaImage(rawName);
+    return { name, rawName, sid, theme, type, category, image, raw: item };
   }), [items]);
 
   // Coletar tipos e categorias únicos
@@ -1157,14 +1214,18 @@ function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
-  // Enriquecer items
+  // Enriquecer items — usar nomes amigáveis do PRODUCT_FRIENDLY_NAMES quando disponíveis
   const enriched = useMemo(() => items.map((item, idx) => {
-    const name = pickText(item, ["name", "title", "label", "displayName", "description"], `Produto ${idx + 1}`);
+    const rawName = pickText(item, ["name", "title", "label", "displayName", "description"], `Produto ${idx + 1}`);
     const dsku = pickText(item, ["dsku", "id", "sid", "productId", "sku"], "");
     const category = pickText(item, ["category", "type", "group"], "");
+    // Usar nome amigável se disponível
+    const friendly = PRODUCT_FRIENDLY_NAMES[dsku];
+    const name = friendly ? friendly.brand : rawName;
     const theme = detectSchemaCategory(name + " " + category);
-    const image = getProductImage(name, category);
-    return { name, dsku, category, theme, image, raw: item };
+    // Usar imagem do PRODUCT_FRIENDLY_NAMES se disponível, senão usar getProductImage
+    const image = friendly ? friendly.image : getProductImage(rawName, category);
+    return { name, rawName, dsku, category, theme, image, raw: item };
   }), [items]);
 
   // Coletar categorias únicas
@@ -1278,6 +1339,10 @@ function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku
                         <p className="text-xs font-bold text-white leading-tight drop-shadow">{e.name}</p>
                         {isSelected && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: e.theme.color, color: "white" }}>✓</span>}
                       </div>
+                      {/* Nome original da API abaixo do nome amigável */}
+                      {e.rawName && e.rawName !== e.name && (
+                        <p className="text-[9px] font-mono text-white/60 truncate mt-0.5">{e.rawName}</p>
+                      )}
                       <div className="flex items-center gap-1 mt-1 flex-wrap">
                         {e.category && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.85)", color: "#334155" }}>{e.category}</span>}
                         {e.dsku && <span className="text-[9px] font-mono px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.75)", color: "#334155" }}>{e.dsku}</span>}
@@ -1307,6 +1372,10 @@ function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku
                     <p className="text-xs font-bold text-slate-900 truncate leading-tight">{e.name}</p>
                     {isSelected && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: e.theme.color, color: "white" }}>✓ Selecionado</span>}
                   </div>
+                  {/* Nome original da API abaixo do nome amigável */}
+                  {e.rawName && e.rawName !== e.name && (
+                    <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">{e.rawName}</p>
+                  )}
                   {e.category && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full mt-1 inline-block" style={{ background: `${e.theme.color}15`, color: e.theme.color }}>{e.category}</span>}
                   {e.dsku && <p className="text-[9px] font-mono text-slate-400 truncate mt-1">{e.dsku}</p>}
                 </div>
@@ -1356,7 +1425,8 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
   const allItems = extractItems(body);
   // Para exibição genérica limitamos a 5; schemas e produtos têm lista completa
   const isSchemaStep = screen.stepId === 3;
-  const isProductStep = screen.stepId === 4;
+  // Passo 4 (step4_list_products) e passo 5 (step5_list_business_products) são passos de produto
+  const isProductStep = screen.stepId === 4 || screen.stepId === 5;
   const items = (isSchemaStep || isProductStep) ? allItems : allItems.slice(0, 5);
 
   const stateUpdates = result.stateUpdates as Record<string, unknown> | undefined;
@@ -1477,7 +1547,7 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
         </div>
       )}
 
-      {/* Lista de produtos com cards visuais e filtros nano banana (passo 4 — step4_list_products) */}
+      {/* Lista de produtos com cards visuais e filtros nano banana (passo 4 e passo 5) */}
       {isProductStep && result.ok && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Produtos disponíveis</p>
@@ -1551,6 +1621,7 @@ export function HomologacaoPhoneMockup({
   onFieldChange,
   onExecute,
   onAutoAdvance,
+  onStepChange,
   lang = "pt",
 }: {
   stepId: number;
@@ -1563,6 +1634,8 @@ export function HomologacaoPhoneMockup({
   onFieldChange: (key: string, value: string) => void;
   onExecute: (actionId: string) => void;
   onAutoAdvance?: (nextActionId: string) => void;
+  /** Navega para outro passo da jornada (ex: passo 3 → 4) */
+  onStepChange?: (stepId: number) => void;
   lang?: "pt" | "en";
 }) {
   const screen = PHONE_SCREENS[stepId];
@@ -1578,19 +1651,28 @@ export function HomologacaoPhoneMockup({
   const [selectedProductDsku, setSelectedProductDsku] = useState<string>("");
   const [selectedProductName, setSelectedProductName] = useState<string>("");
 
-  // Quando um schema é selecionado: salva no runState e avança para o próximo passo
+  // Quando um schema é selecionado: salva no runState e navega para o passo 4
   const handleSchemaSelect = (sid: string, name: string) => {
+    const friendlyName = getSchemaFriendlyName(name, sid);
     setSelectedSchemaSid(sid);
-    setSelectedSchemaName(name);
+    setSelectedSchemaName(friendlyName);
     onFieldChange("valueSchemaSid", sid);
+    onFieldChange("selectedSchemaName", friendlyName);
+    // Navegar automaticamente para o passo 4 após selecionar o schema
+    if (onStepChange) {
+      setTimeout(() => onStepChange(4), 350);
+    }
   };
 
-  // Quando um produto é selecionado: salva no runState e avança para step4_add_dsku_to_cart
+  // Quando um produto é selecionado no passo 4: salva no runState e avança para step4_add_dsku_to_cart
   const handleProductSelect = (dsku: string, name: string) => {
+    // Usar nome amigável se disponível (passo 4 usa ProductCardList genérico)
+    const friendly = PRODUCT_FRIENDLY_NAMES[dsku];
+    const displayName = friendly ? friendly.brand : name;
     setSelectedProductDsku(dsku);
-    setSelectedProductName(name);
+    setSelectedProductName(displayName);
     onFieldChange("selectedProductDsku", dsku);
-    onFieldChange("selectedProductName", name);
+    onFieldChange("selectedProductName", displayName);
     // Avançar para a ação de adicionar ao carrinho
     if (onAutoAdvance && stepActions) {
       const cartAction = stepActions.find(a => a.id === "step4_add_dsku_to_cart");
@@ -1598,6 +1680,20 @@ export function HomologacaoPhoneMockup({
         onAutoAdvance(cartAction.id);
         setPhase("input");
       }
+    }
+  };
+
+  // Quando um produto é selecionado no passo 5: salva no runState e navega para o passo 6
+  const handleProductSelectStep5 = (dsku: string, name: string) => {
+    const friendly = PRODUCT_FRIENDLY_NAMES[dsku];
+    const displayName = friendly ? friendly.brand : name;
+    setSelectedProductDsku(dsku);
+    setSelectedProductName(displayName);
+    onFieldChange("selectedProductDsku", dsku);
+    onFieldChange("selectedProductName", displayName);
+    // Navegar automaticamente para o passo 6 após selecionar o produto
+    if (onStepChange) {
+      setTimeout(() => onStepChange(6), 350);
     }
   };
 
@@ -1878,8 +1974,12 @@ export function HomologacaoPhoneMockup({
                 runState={runState}
                 onSchemaSelect={screen.stepId === 3 ? handleSchemaSelect : undefined}
                 selectedSchemaSid={screen.stepId === 3 ? selectedSchemaSid : undefined}
-                onProductSelect={screen.stepId === 4 && actionId === "step4_list_products" ? handleProductSelect : undefined}
-                selectedProductDsku={screen.stepId === 4 ? selectedProductDsku : undefined}
+                onProductSelect={
+                  (screen.stepId === 4 && actionId === "step4_list_products") ? handleProductSelect :
+                  screen.stepId === 5 ? handleProductSelectStep5 :
+                  undefined
+                }
+                selectedProductDsku={(screen.stepId === 4 || screen.stepId === 5) ? selectedProductDsku : undefined}
               />
               {/* Auto-advance hint for multi-step */}
               {stepActions && stepActions.length > 1 && activeResult.ok && (() => {
