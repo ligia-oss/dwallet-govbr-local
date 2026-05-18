@@ -847,6 +847,37 @@ function getProductImage(name: string, category?: string): string | null {
   return "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/product-dados-nXRHAz3G2x35FBa84bcxBD.webp";
 }
 
+// ─── Imagens nano banana para botões de tipo de produto ─────────────────────
+const PRODUCT_TYPE_IMAGES: Record<string, string> = {
+  mobilidade: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-mobilidade-M6SPZ9pB8EJpsZKSWyh44Z.webp",
+  telecom: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-telecom-N3cquc5zpCGoiwPtNkDqv3.webp",
+  financas: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-financas-RayqJKUa2CUhek265eTXWL.webp",
+  saude: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-saude-4B7F6iZL6zDMPFLLDsznMT.webp",
+  energia: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-energia-CCXt2ApAU6sRqoTZCsqBq7.webp",
+  varejo: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-varejo-DqkgLMpcK3DFykdfPdV3rq.webp",
+  localizacao: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-localizacao-QiKJ7n42QEtHSomyXXDZqu.webp",
+  perfil: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-perfil-WG76BFipdHuHyYtK6TywQR.webp",
+  dados: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-dados-hYRmDL5yg3VTVmmbEACm6j.webp",
+};
+const PRODUCT_TYPE_KEYWORDS: Record<string, string[]> = {
+  mobilidade: ["mobil", "transport", "transit", "veicul", "carro", "onibus", "frota", "logist"],
+  telecom: ["telecom", "celular", "telefon", "5g", "4g", "signal", "operadora", "sinal", "rede"],
+  financas: ["financ", "banc", "credit", "credito", "renda", "pagamento", "invest", "seguro", "pix"],
+  saude: ["saude", "health", "medic", "plano", "hospital", "clinica", "farmac"],
+  energia: ["energia", "energy", "eletric", "utilit", "luz", "gas", "agua"],
+  varejo: ["varejo", "retail", "compra", "shopping", "loja", "produto", "comercio"],
+  localizacao: ["localiz", "location", "gps", "mapa", "map", "geo", "coordena"],
+  perfil: ["perfil", "profile", "identidade", "identity", "usuario", "user", "biometr"],
+  dados: ["dados", "data", "digital", "analytics", "insight", "relatorio"],
+};
+function getProductTypeImage(label: string): string {
+  const l = label.toLowerCase();
+  for (const [key, keywords] of Object.entries(PRODUCT_TYPE_KEYWORDS)) {
+    if (keywords.some(k => l.includes(k))) return PRODUCT_TYPE_IMAGES[key];
+  }
+  return PRODUCT_TYPE_IMAGES.dados;
+}
+
 // ─── SchemaCardList: lista visual de schemas com filtro ───────────────────────
 
 function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
@@ -1073,6 +1104,178 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
   );
 }
 
+// ─── ProductCardList: lista de produtos com filtros visuais nano banana ──────────────────
+
+function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku }: {
+  items: Record<string, unknown>[];
+  pickText: (r: Record<string, unknown>, keys: string[], fallback: string) => string;
+  onProductSelect?: (dsku: string, name: string) => void;
+  selectedProductDsku?: string;
+}) {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Enriquecer items
+  const enriched = useMemo(() => items.map((item, idx) => {
+    const name = pickText(item, ["name", "title", "label", "displayName", "description"], `Produto ${idx + 1}`);
+    const dsku = pickText(item, ["dsku", "id", "sid", "productId", "sku"], "");
+    const category = pickText(item, ["category", "type", "group"], "");
+    const theme = detectSchemaCategory(name + " " + category);
+    const image = getProductImage(name, category);
+    return { name, dsku, category, theme, image, raw: item };
+  }), [items]);
+
+  // Coletar categorias únicas
+  const allCategories = useMemo(() => Array.from(new Set(enriched.map(e => e.category).filter(Boolean))).sort(), [enriched]);
+
+  // Filtrar
+  const filtered = useMemo(() => selectedCategory
+    ? enriched.filter(e => e.category === selectedCategory)
+    : enriched,
+  [enriched, selectedCategory]);
+
+  return (
+    <div className="space-y-2">
+      {/* Filtros de categoria com imagens nano banana */}
+      {allCategories.length > 1 && (
+        <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-1.5">
+          <div className="flex items-center justify-between">
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Filtrar por categoria</p>
+            {selectedCategory && (
+              <button
+                onClick={() => setSelectedCategory(null)}
+                className="text-[9px] text-[#1351b4] font-semibold underline"
+              >
+                Limpar
+              </button>
+            )}
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {allCategories.map(cat => {
+              const isActive = selectedCategory === cat;
+              const typeImg = getProductTypeImage(cat);
+              return (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(isActive ? null : cat)}
+                  className="relative overflow-hidden rounded-xl transition-all active:scale-[0.96]"
+                  style={{
+                    width: 72,
+                    height: 48,
+                    outline: isActive ? "2px solid #1351b4" : "2px solid transparent",
+                    boxShadow: isActive ? "0 0 0 1px #1351b4" : "0 1px 3px rgba(0,0,0,0.15)",
+                  }}
+                >
+                  {/* Imagem nano banana de fundo */}
+                  <img
+                    src={typeImg}
+                    alt={cat}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: isActive ? "brightness(0.7)" : "brightness(0.6)" }}
+                  />
+                  {/* Overlay */}
+                  <div
+                    className="absolute inset-0"
+                    style={{ background: isActive ? "rgba(19,81,180,0.45)" : "rgba(0,0,0,0.35)" }}
+                  />
+                  {/* Label */}
+                  <div className="relative z-10 flex flex-col items-center justify-center h-full px-1">
+                    {isActive && (
+                      <span className="text-[8px] font-bold text-white leading-none mb-0.5">✓</span>
+                    )}
+                    <p className="text-[8px] font-bold text-white text-center leading-tight drop-shadow line-clamp-2">{cat}</p>
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Contagem */}
+      {allCategories.length > 1 && (
+        <p className="text-[9px] text-slate-400 text-right">
+          {filtered.length} de {enriched.length} produto(s)
+        </p>
+      )}
+
+      {/* Cards de produtos */}
+      {filtered.length === 0 ? (
+        <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-center">
+          <p className="text-xs text-slate-400">Nenhum produto nesta categoria.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {onProductSelect && (
+            <p className="text-[9px] text-slate-500 text-center mb-1">Toque em um produto para selecioná-lo</p>
+          )}
+          {filtered.map((e, idx) => {
+            const isSelected = selectedProductDsku === e.dsku && Boolean(e.dsku);
+            if (e.image) {
+              return (
+                <div
+                  key={idx}
+                  role={onProductSelect ? "button" : undefined}
+                  tabIndex={onProductSelect ? 0 : undefined}
+                  onClick={() => onProductSelect && e.dsku && onProductSelect(e.dsku, e.name)}
+                  onKeyDown={(ev) => ev.key === "Enter" && onProductSelect && e.dsku && onProductSelect(e.dsku, e.name)}
+                  className={`relative rounded-2xl overflow-hidden shadow-sm transition-all ${onProductSelect ? "cursor-pointer hover:shadow-lg active:scale-[0.98]" : ""}`}
+                  style={{
+                    outline: isSelected ? `3px solid ${e.theme.color}` : undefined,
+                    minHeight: 80,
+                  }}
+                >
+                  <img src={e.image} alt={e.name} className="absolute inset-0 w-full h-full object-cover" style={{ filter: isSelected ? "brightness(0.85)" : "brightness(0.75)" }} />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.05) 100%)" }} />
+                  <div className="relative z-10 p-3 flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow" style={{ background: "rgba(255,255,255,0.92)", color: e.theme.color }}>
+                      {e.theme.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5 flex-wrap">
+                        <p className="text-xs font-bold text-white leading-tight drop-shadow">{e.name}</p>
+                        {isSelected && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: e.theme.color, color: "white" }}>✓</span>}
+                      </div>
+                      <div className="flex items-center gap-1 mt-1 flex-wrap">
+                        {e.category && <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.85)", color: "#334155" }}>{e.category}</span>}
+                        {e.dsku && <span className="text-[9px] font-mono px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.75)", color: "#334155" }}>{e.dsku}</span>}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            }
+            return (
+              <div
+                key={idx}
+                role={onProductSelect ? "button" : undefined}
+                tabIndex={onProductSelect ? 0 : undefined}
+                onClick={() => onProductSelect && e.dsku && onProductSelect(e.dsku, e.name)}
+                onKeyDown={(ev) => ev.key === "Enter" && onProductSelect && e.dsku && onProductSelect(e.dsku, e.name)}
+                className={`rounded-xl border bg-white p-3 flex items-start gap-3 shadow-sm transition-all ${onProductSelect ? "cursor-pointer hover:shadow-md active:scale-[0.98]" : ""}`}
+                style={{
+                  borderColor: isSelected ? e.theme.color : `${e.theme.color}30`,
+                  background: isSelected ? `${e.theme.color}08` : "white",
+                  outline: isSelected ? `2px solid ${e.theme.color}` : undefined,
+                }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: `${e.theme.color}15`, color: e.theme.color }}>{e.theme.icon}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center justify-between gap-1">
+                    <p className="text-xs font-bold text-slate-900 truncate leading-tight">{e.name}</p>
+                    {isSelected && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: e.theme.color, color: "white" }}>✓ Selecionado</span>}
+                  </div>
+                  {e.category && <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full mt-1 inline-block" style={{ background: `${e.theme.color}15`, color: e.theme.color }}>{e.category}</span>}
+                  {e.dsku && <p className="text-[9px] font-mono text-slate-400 truncate mt-1">{e.dsku}</p>}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSchemaSid, onProductSelect, selectedProductDsku }: {
   result: ActionResult;
   screen: PhoneScreenConfig;
@@ -1167,114 +1370,16 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
         </div>
       )}
 
-      {/* Lista de produtos com cards visuais (passo 4 — step4_list_products) */}
+      {/* Lista de produtos com cards visuais e filtros nano banana (passo 4 — step4_list_products) */}
       {isProductStep && result.ok && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Produtos disponíveis</p>
-          {onProductSelect && (
-            <p className="text-[9px] text-slate-500 text-center mb-2">Toque em um produto para selecioná-lo</p>
-          )}
-          <div className="space-y-2">
-            {items.map((item, idx) => {
-              const name = pickText(item, ["name", "title", "label", "displayName", "description"], `Produto ${idx + 1}`);
-              const dsku = pickText(item, ["dsku", "id", "sid", "productId", "sku"], "");
-              const category = pickText(item, ["category", "type", "group"], "");
-              const theme = detectSchemaCategory(name + " " + category);
-              const image = getProductImage(name, category);
-              const isSelected = selectedProductDsku === dsku && Boolean(dsku);
-              if (image) {
-                // Card com imagem de fundo (layout fotográfico)
-                return (
-                  <div
-                    key={idx}
-                    role={onProductSelect ? "button" : undefined}
-                    tabIndex={onProductSelect ? 0 : undefined}
-                    onClick={() => onProductSelect && dsku && onProductSelect(dsku, name)}
-                    onKeyDown={(ev) => ev.key === "Enter" && onProductSelect && dsku && onProductSelect(dsku, name)}
-                    className={`relative rounded-2xl overflow-hidden shadow-sm transition-all ${onProductSelect ? "cursor-pointer hover:shadow-lg active:scale-[0.98]" : ""}`}
-                    style={{
-                      outline: isSelected ? `3px solid ${theme.color}` : undefined,
-                      minHeight: 80,
-                    }}
-                  >
-                    {/* Imagem de fundo */}
-                    <img
-                      src={image}
-                      alt={name}
-                      className="absolute inset-0 w-full h-full object-cover"
-                      style={{ filter: isSelected ? "brightness(0.85)" : "brightness(0.75)" }}
-                    />
-                    {/* Overlay gradiente */}
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0.05) 100%)" }} />
-                    {/* Conteúdo sobreposto */}
-                    <div className="relative z-10 p-3 flex items-center gap-3">
-                      {/* Ícone em caixa branca */}
-                      <div
-                        className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0 shadow"
-                        style={{ background: "rgba(255,255,255,0.92)", color: theme.color }}
-                      >
-                        {theme.icon}
-                      </div>
-                      {/* Texto */}
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <p className="text-xs font-bold text-white leading-tight drop-shadow">{name}</p>
-                          {isSelected && (
-                            <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: theme.color, color: "white" }}>✓</span>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-1 mt-1 flex-wrap">
-                          {category && (
-                            <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.85)", color: "#334155" }}>{category}</span>
-                          )}
-                          {dsku && (
-                            <span className="text-[9px] font-mono px-2 py-0.5 rounded-full" style={{ background: "rgba(255,255,255,0.75)", color: "#334155" }}>{dsku}</span>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              }
-              // Card sem imagem (layout padrão com ícone)
-              return (
-                <div
-                  key={idx}
-                  role={onProductSelect ? "button" : undefined}
-                  tabIndex={onProductSelect ? 0 : undefined}
-                  onClick={() => onProductSelect && dsku && onProductSelect(dsku, name)}
-                  onKeyDown={(ev) => ev.key === "Enter" && onProductSelect && dsku && onProductSelect(dsku, name)}
-                  className={`rounded-xl border bg-white p-3 flex items-start gap-3 shadow-sm transition-all ${onProductSelect ? "cursor-pointer hover:shadow-md active:scale-[0.98]" : ""}`}
-                  style={{
-                    borderColor: isSelected ? theme.color : `${theme.color}30`,
-                    background: isSelected ? `${theme.color}08` : "white",
-                    outline: isSelected ? `2px solid ${theme.color}` : undefined,
-                  }}
-                >
-                  <div
-                    className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
-                    style={{ background: `${theme.color}15`, color: theme.color }}
-                  >
-                    {theme.icon}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between gap-1">
-                      <p className="text-xs font-bold text-slate-900 truncate leading-tight">{name}</p>
-                      {isSelected && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full shrink-0" style={{ background: theme.color, color: "white" }}>✓ Selecionado</span>
-                      )}
-                    </div>
-                    {category && (
-                      <span className="text-[9px] font-semibold px-1.5 py-0.5 rounded-full mt-1 inline-block" style={{ background: `${theme.color}15`, color: theme.color }}>{category}</span>
-                    )}
-                    {dsku && (
-                      <p className="text-[9px] font-mono text-slate-400 truncate mt-1">{dsku}</p>
-                    )}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
+          <ProductCardList
+            items={items}
+            pickText={pickText}
+            onProductSelect={onProductSelect}
+            selectedProductDsku={selectedProductDsku}
+          />
           {onProductSelect && selectedProductDsku && (
             <div className="mt-2 rounded-xl px-3 py-2 text-center" style={{ background: "#1351b410", border: "1px solid #1351b430" }}>
               <p className="text-[9px] font-semibold text-[#1351b4]">Produto selecionado! Confirme abaixo para criar o Commercial Value Schema.</p>

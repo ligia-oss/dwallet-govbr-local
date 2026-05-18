@@ -532,7 +532,7 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Cria a carteira/entidade empresarial associada ao colaborador autenticado.",
     buildBody: state => ({ name: state.businessName || `Empresa Dataprev Local ${state.runId}`, cnpj: state.businessCnpj, address: { state: state.businessState || "SP" }, website: state.businessWebsite || undefined, phoneNumber: state.businessPhone || undefined }),
-    onSuccess: body => ({ businessId: findFirst(body, ["businessId", "id", "uuid"]), businessDwalletId: findFirst(body, ["dWalletId"]) }),
+    onSuccess: body => ({ businessId: findFirst(body, ["businessId", "id", "uuid"]), businessDwalletId: findFirst(body, ["dWalletId", "dwalletId", "walletId", "dwallet_id", "wallet_id", "dWallet"]) }),
   },
   {
     id: "step2_person_signup",
@@ -621,7 +621,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "Adiciona o dSKU selecionado ao carrinho da Business dWallet (prg-cart). Requer o ID da BdW (businessDwalletId) capturado no passo 1.",
-    buildPath: state => `/v1/marketplace/cart/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || ""))}/add`,
+    buildPath: state => `/v1/marketplace/cart/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}/add`,
     buildBody: state => ({
       itemType: "dsku-registration-annual",
       itemId: state.selectedProductDsku || state.dsku,
@@ -941,7 +941,7 @@ function missingPrerequisite(action: JourneyAction, state: RunState) {
   if (action.id === "step1_employee_verify_code" && !(state.employeeVerificationCode || state.businessOtp)) return "Informe o código recebido por e-mail para confirmar o colaborador Business.";
   if (action.id === "step2_person_verify_code" && !(state.personVerificationCode || state.otp)) return "Informe o código recebido por e-mail para confirmar a pessoa física.";
   if (action.id === "step4_add_dsku_to_cart" && !(state.selectedProductDsku || state.dsku)) return "Selecione um produto na lista antes de adicioná-lo ao carrinho.";
-  if (action.id === "step4_add_dsku_to_cart" && !state.businessDwalletId) return "Crie a entidade empresarial (passo 1) para obter o ID da Business dWallet necessário para o carrinho.";
+  if (action.id === "step4_add_dsku_to_cart" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o ID da Business dWallet necessário para o carrinho.";
   if (action.id === "step4_create_commercial_value_schema" && !(state.selectedProductDsku || state.dsku)) return "Adicione um produto ao carrinho antes de criar o Commercial Value Schema.";
   if (action.id === "step4_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema (passo 3) antes de criar o Commercial Value Schema.";
   if (action.requiresUser === "employee" && !getStoredToken(String(state.employeeTokenHandle || ""))) return "Execute primeiro o login do colaborador Business para gerar um token de usuário no servidor.";
