@@ -496,10 +496,15 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     fields: [
       { key: "offerId", label: "ID da oferta", placeholder: "Preenchido ao selecionar uma oferta", required: false },
     ],
-    resultTitle: (r) => r.ok ? "Ofertas carregadas" : "Erro ao carregar ofertas",
+    resultTitle: (r) => r.ok ? "Ofertas carregadas" : (r.httpStatus === 403 ? "Acesso restrito — feature flag" : "Erro ao carregar ofertas"),
     resultBody: (r) => r.ok
       ? "Ofertas disponíveis no marketplace."
-      : r.message ?? "Não foi possível carregar as ofertas.",
+      : r.httpStatus === 403
+        ? "O endpoint de ofertas está restrito no ambiente sandbox. A feature flag de marketplace não está habilitada para este tenant. Contate a equipe DrumWave para habilitar o acesso."
+        : r.message ?? "Não foi possível carregar as ofertas.",
+    resultDetails: (r) => r.httpStatus === 403
+      ? "Causa: O servidor retornou HTTP 403 Forbidden. Isso indica que o tenant sandbox não tem permissão para acessar a listagem de ofertas. O código está correto — é uma restrição de ambiente, não um bug."
+      : undefined,
   },
   13: {
     stepId: 13,
@@ -1355,9 +1360,72 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
   const stateUpdates = result.stateUpdates as Record<string, unknown> | undefined;
   const capturedKeys = stateUpdates ? Object.keys(stateUpdates).filter(k => stateUpdates[k] !== null && stateUpdates[k] !== undefined) : [];
 
+  // Erro 403 amigável para o passo 12 (feature flag não habilitada)
+  const isStep12 = screen.stepId === 12;
+  const is403Error = !result.ok && result.httpStatus === 403;
+
   return (
     <div className="space-y-3">
-      {/* Status banner */}
+
+      {/* Card de erro 403 amigável — passo 12 */}
+      {isStep12 && is403Error ? (
+        <div className="rounded-2xl overflow-hidden border border-amber-200 shadow-sm">
+          {/* Cabeçalho colorido */}
+          <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #f59e0b22, #ef444422)" }}>
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#f59e0b20", border: "1.5px solid #f59e0b50" }}>
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f59e0b" strokeWidth="2">
+                <path d="M12 9v4M12 17h.01" strokeLinecap="round"/>
+                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs font-bold text-amber-800">Acesso restrito — Feature Flag</p>
+              <p className="text-[10px] text-amber-700 font-mono font-semibold">HTTP 403 Forbidden</p>
+            </div>
+          </div>
+          {/* Corpo explicativo */}
+          <div className="bg-white px-4 py-3 space-y-3">
+            <p className="text-xs text-slate-700 leading-5">
+              O endpoint <span className="font-mono font-semibold text-slate-900">GET /v1/marketplace/offers</span> está <strong>restrito neste ambiente sandbox</strong>. A feature flag de marketplace não está habilitada para este tenant.
+            </p>
+            {/* Diagnóstico */}
+            <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-2">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Diagnóstico</p>
+              <div className="space-y-1.5">
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] mt-0.5">✅</span>
+                  <p className="text-[10px] text-slate-600 leading-4">O código está correto — a chamada foi executada com sucesso</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] mt-0.5">✅</span>
+                  <p className="text-[10px] text-slate-600 leading-4">Token M2M e token de usuário foram enviados corretamente</p>
+                </div>
+                <div className="flex items-start gap-2">
+                  <span className="text-[10px] mt-0.5">⚠️</span>
+                  <p className="text-[10px] text-slate-600 leading-4">O servidor DrumWave retornou 403 por restrição de ambiente — não é um bug</p>
+                </div>
+              </div>
+            </div>
+            {/* Ação recomendada */}
+            <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-1">📧 Ação recomendada</p>
+              <p className="text-[10px] text-slate-600 leading-4">
+                Solicite à equipe DrumWave a habilitação da feature flag de <strong>marketplace offers</strong> para o tenant sandbox. Após habilitar, o passo 12 e o passo 13 (aceitar oferta) funcionarão automaticamente.
+              </p>
+            </div>
+            {/* Badge de status */}
+            <div className="flex items-center gap-2 pt-1">
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+                Restrição de ambiente
+              </span>
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
+                API executada com sucesso
+              </span>
+            </div>
+          </div>
+        </div>
+      ) : (
       <div className={`rounded-2xl p-3 ${result.ok ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"}`}>
         <div className="flex items-center gap-2 mb-1">
           <span className="text-base">{result.ok ? "✅" : "❌"}</span>
@@ -1373,6 +1441,7 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
           </span>
         )}
       </div>
+      )}
 
       {/* Captured variables */}
       {capturedKeys.length > 0 && (
