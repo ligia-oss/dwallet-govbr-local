@@ -945,7 +945,12 @@ function missingPrerequisite(action: JourneyAction, state: RunState) {
   if (action.id === "step4_create_commercial_value_schema" && !(state.selectedProductDsku || state.dsku)) return "Adicione um produto ao carrinho antes de criar o Commercial Value Schema.";
   if (action.id === "step4_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema (passo 3) antes de criar o Commercial Value Schema.";
   if (action.requiresUser === "employee" && !getStoredToken(String(state.employeeTokenHandle || ""))) return "Execute primeiro o login do colaborador Business para gerar um token de usuário no servidor.";
-  if (action.requiresUser === "person" && !getStoredToken(String(state.personTokenHandle || ""))) return "Execute primeiro o login da pessoa física para gerar um token de usuário no servidor.";
+  if (action.requiresUser === "person" && !getStoredToken(String(state.personTokenHandle || ""))) {
+    if (state.personTokenHandle) {
+      return "O token de sessão da pessoa física não está mais disponível no servidor (pode ter expirado após reinicialização). Execute novamente o passo 2 (login da pessoa física) para renovar o token.";
+    }
+    return "Execute primeiro o login da pessoa física (passo 2) para gerar um token de usuário no servidor.";
+  }
   if (action.id === "step1_business_create" && !state.employeeTokenHandle) return "Token do colaborador Business indisponível.";
   if (action.id === "step6_create_data_request" && !state.businessId) return "Crie a entidade empresarial antes de solicitar dados.";
   if (action.id === "step7_list_business_requests" && !state.businessId) return "Crie a entidade empresarial antes de listar solicitações.";

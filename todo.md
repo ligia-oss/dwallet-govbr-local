@@ -249,3 +249,14 @@
 - [x] Clique no produto do passo 5 navega para tela do passo 6 com produto selecionado e botão "Solicitar dados" que executa API do passo 6 (onStepChange(6) com delay 350ms)
 - [x] Passo 0 robusto: tela especial dedicada, botão sempre visível, status em tempo real, sem dependência de phase/showInputOverride
 - [x] 105 testes passando, TypeScript sem erros, servidor rodando
+
+## Sprint — Passo 5 Imagens, Tela Confirmação, Passo 7 Multi-seleção, Passo 12 Fix
+
+- [x] Gerar 5 imagens nano banana temáticas para produtos do passo 5 (banco, telecom, cia aérea, saúde, redes sociais)
+- [x] Passo 5: substituir nomes SKUs por Banco Bank/Telecel/Voa Leve/Mais Saúde/TicTac com imagens nano banana
+- [x] Passo 5→6: tela de confirmação com ícone do SKU selecionado + botão "Enviar solicitação" que executa API passo 6
+- [x] Passo 7: tela inicial mostra resposta de step7_list_business_requests com registros de solicitações pendentes
+- [x] Passo 7: multi-seleção de registros com pdWalletId/CPF/nome, botões "Aceitar" e "Recusar" ao final
+- [x] Passo 7: aceitar → step7_accept_data_request, recusar → step7_reject_data_request com registros selecionados
+- [x] Passo 7: tela de resposta da API após aceitar/recusar
+- [x] Passo 12: mensagem de erro melhorada distinguindo token nunca gerado vs expirado após reinicialização do servidor

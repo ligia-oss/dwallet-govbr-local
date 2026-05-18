@@ -802,23 +802,23 @@ function getSchemaFriendlyName(name: string, sid: string): string {
 const PRODUCT_FRIENDLY_NAMES: Record<string, { brand: string; image: string }> = {
   "Test_Product_7Or1uUrK8": {
     brand: "Banco Bank",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-bank_dwallet-Aa3qWjKo2dRpv4bLySqdPS.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-banco-bank-8tWRWVzKdCi448oPRExUHq.webp",
   },
   "Test_Product_2kTqoH7lc": {
     brand: "Telecel",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-telecom_dwallet-kFKLJsnRS6j8u9k3ToSSXc.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-telecel-cijcbW4X6E3UpDfAgZQCUC.webp",
   },
   "Test_Product_1ZAPwXOmu": {
     brand: "Voa Leve",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-airline_dwallet-QQFqFWDXeziDWBzcfUtAoN.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-voa-leve-PG8phdMggNKPTf8LWhi4zg.webp",
   },
   "Test_Product_MEOxuE71": {
     brand: "Mais Saúde",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-health_dwallet-VSQ3DhZXMU53Y57VqZTuEU.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-mais-saude-bapqcZkAkignCAiQL9hYQU.webp",
   },
   "Test_Product_8uP2LoThy": {
     brand: "TicTac",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/btn-product-social_dwallet-7jTjZbkFSG6xbNWJxSthAv.webp",
+    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/sku-tictac-3krwdwwYhdsMdgtJGkxmEG.webp",
   },
 };
 
@@ -1651,6 +1651,29 @@ export function HomologacaoPhoneMockup({
   const [selectedProductDsku, setSelectedProductDsku] = useState<string>("");
   const [selectedProductName, setSelectedProductName] = useState<string>("");
 
+  // Seleção múltipla de solicitações (passo 7)
+  const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
+
+  // Toggle de seleção de solicitação no passo 7
+  const handleToggleRequest = (requestId: string) => {
+    setSelectedRequestIds(prev =>
+      prev.includes(requestId) ? prev.filter(id => id !== requestId) : [...prev, requestId]
+    );
+  };
+
+  // Aceitar ou rejeitar solicitações selecionadas no passo 7
+  const handleRequestAction = (action: "accept" | "reject") => {
+    if (selectedRequestIds.length === 0) return;
+    // Salvar o primeiro ID selecionado no runState como dataRequestId
+    onFieldChange("dataRequestId", selectedRequestIds[0]);
+    // Avançar para a ação correspondente
+    const targetActionId = action === "accept" ? "step7_accept_data_request" : "step7_reject_data_request";
+    if (onAutoAdvance) {
+      onAutoAdvance(targetActionId);
+      setPhase("input");
+    }
+  };
+
   // Quando um schema é selecionado: salva no runState e navega para o passo 4
   const handleSchemaSelect = (sid: string, name: string) => {
     const friendlyName = getSchemaFriendlyName(name, sid);
@@ -1966,7 +1989,7 @@ export function HomologacaoPhoneMockup({
           )}
 
           {/* RESULT state */}
-          {!isGap && phase === "result" && activeResult && stepId !== 0 && (
+          {!isGap && phase === "result" && activeResult && stepId !== 0 && actionId !== "step7_list_business_requests" && (
             <div className="p-4 space-y-3">
               <ResponseRenderer
                 result={activeResult}
@@ -2530,6 +2553,181 @@ export function HomologacaoPhoneMockup({
             </div>
           )}
 
+          {/* CONFIRMAÇÃO: passo 6 — tela com ícone do produto selecionado e botão Enviar solicitação */}
+          {!isGap && phase === "input" && screen.stepId === 6 && actionId === "step6_create_data_request" && (() => {
+            const productDsku = String(runState.selectedProductDsku ?? selectedProductDsku ?? "");
+            const productName = String(runState.selectedProductName ?? selectedProductName ?? "");
+            const friendly = productDsku ? PRODUCT_FRIENDLY_NAMES[productDsku] : null;
+            const displayName = friendly ? friendly.brand : productName || productDsku;
+            const productImage = friendly ? friendly.image : (productName ? getProductImage(productName, "") : null);
+            return (
+              <div className="p-4 space-y-3">
+                {/* Card do produto selecionado */}
+                <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+                  {productImage ? (
+                    <div className="relative" style={{ minHeight: 120 }}>
+                      <img src={productImage} alt={displayName} className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.65)" }} />
+                      <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%)" }} />
+                      <div className="relative z-10 p-4 flex flex-col justify-end h-full">
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-white/70 mb-0.5">Produto selecionado</p>
+                        <p className="text-base font-bold text-white leading-tight">{displayName}</p>
+                        {productDsku && <p className="text-[9px] font-mono text-white/60 mt-0.5">{productDsku}</p>}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-slate-50 p-4">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Produto selecionado</p>
+                      {displayName ? (
+                        <p className="text-sm font-bold text-slate-900">{displayName}</p>
+                      ) : (
+                        <p className="text-xs text-amber-600">⚠️ Nenhum produto selecionado. Volte ao passo 5.</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+                {/* Info da empresa */}
+                {runState.businessDwalletId && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
+                    <span className="text-lg">🏢</span>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Empresa destinatária</p>
+                      <p className="text-[9px] font-mono text-slate-700 truncate">{String(runState.businessDwalletId).slice(0, 16)}…</p>
+                    </div>
+                  </div>
+                )}
+                {/* Botão Enviar solicitação */}
+                <button
+                  onClick={handleCta}
+                  disabled={isExecuting || !displayName}
+                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                  style={{ background: colors.accent }}
+                >
+                  {isExecuting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
+                      Enviando…
+                    </span>
+                  ) : "📤 Enviar solicitação"}
+                </button>
+                <button
+                  onClick={() => { if (onStepChange) onStepChange(5); }}
+                  className="w-full text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors py-1"
+                >
+                  ← Voltar e escolher outro produto
+                </button>
+              </div>
+            );
+          })()}
+
+          {/* RESULTADO: step7_list_business_requests — lista de solicitações com multi-seleção */}
+          {!isGap && phase === "result" && actionId === "step7_list_business_requests" && activeResult && (() => {
+            // Extrair lista de solicitações da resposta
+            const body = activeResult.responseBody as Record<string, unknown> | unknown[] | null | undefined;
+            const requests: Array<Record<string, unknown>> = (() => {
+              if (Array.isArray(body)) return body as Array<Record<string, unknown>>;
+              if (body && typeof body === "object") {
+                const vals = Object.values(body as Record<string, unknown>);
+                const firstArr = vals.find(v => Array.isArray(v));
+                if (firstArr) return firstArr as Array<Record<string, unknown>>;
+              }
+              return [];
+            })();
+            const hasRequests = requests.length > 0;
+            return (
+              <div className="p-4 space-y-3">
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
+                    <p className="text-xs font-bold text-slate-800">Solicitações pendentes</p>
+                    <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: hasRequests ? "#fef3c7" : "#f1f5f9", color: hasRequests ? "#92400e" : "#64748b" }}>
+                      {requests.length} {requests.length === 1 ? "registro" : "registros"}
+                    </span>
+                  </div>
+                  {hasRequests ? (
+                    <div className="divide-y divide-slate-100">
+                      {requests.map((req, idx) => {
+                        const reqId = String(req.id ?? req.requestId ?? req.dataRequestId ?? req.request_id ?? `req-${idx}`);
+                        const personId = String(req.personId ?? req.person_id ?? req.pdwalletId ?? req.requester ?? "");
+                        const cpf = String(req.cpf ?? req.document ?? req.taxId ?? "");
+                        const name = String(req.name ?? req.personName ?? req.requesterName ?? "");
+                        const status = String(req.status ?? "pending");
+                        const isSelected = selectedRequestIds.includes(reqId);
+                        return (
+                          <button
+                            key={reqId}
+                            onClick={() => handleToggleRequest(reqId)}
+                            className="w-full text-left px-4 py-3 flex items-start gap-3 transition-colors"
+                            style={{ background: isSelected ? "#eff6ff" : "white" }}
+                          >
+                            {/* Checkbox visual */}
+                            <div
+                              className="mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0"
+                              style={{ borderColor: isSelected ? "#1351b4" : "#cbd5e1", background: isSelected ? "#1351b4" : "white" }}
+                            >
+                              {isSelected && (
+                                <svg viewBox="0 0 12 12" width="8" height="8" fill="none">
+                                  <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                </svg>
+                              )}
+                            </div>
+                            {/* Dados da solicitação */}
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5 mb-0.5">
+                                <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">ID PdWallet</span>
+                                <span className="text-[9px] font-mono text-slate-600 truncate">{personId || reqId}</span>
+                              </div>
+                              {(cpf || name) && (
+                                <p className="text-[9px] text-slate-500 truncate">{[name, cpf].filter(Boolean).join(" · ")}</p>
+                              )}
+                              <div className="flex items-center gap-1 mt-0.5">
+                                <span className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "#fef3c7", color: "#92400e" }}>{status}</span>
+                                <span className="text-[8px] font-mono text-slate-400 truncate">{reqId.slice(0, 12)}…</span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-6 text-center">
+                      <p className="text-sm font-bold text-slate-500">Nenhuma solicitação pendente</p>
+                      <p className="text-xs text-slate-400 mt-1">Execute o passo 6 para criar uma solicitação.</p>
+                    </div>
+                  )}
+                </div>
+                {/* Botões aceitar/recusar */}
+                {hasRequests && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => handleRequestAction("accept")}
+                      disabled={selectedRequestIds.length === 0}
+                      className="rounded-xl py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                      style={{ background: selectedRequestIds.length > 0 ? "#059669" : "#94a3b8" }}
+                    >
+                      ✅ Aceitar
+                    </button>
+                    <button
+                      onClick={() => handleRequestAction("reject")}
+                      disabled={selectedRequestIds.length === 0}
+                      className="rounded-xl py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                      style={{ background: selectedRequestIds.length > 0 ? "#dc2626" : "#94a3b8" }}
+                    >
+                      ❌ Recusar
+                    </button>
+                  </div>
+                )}
+                {selectedRequestIds.length > 0 && (
+                  <p className="text-[9px] text-center text-slate-500">{selectedRequestIds.length} selecionada(s) — escolha uma ação acima</p>
+                )}
+                <button
+                  onClick={() => { setShowInputOverride(true); setPhase("input"); }}
+                  className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                >
+                  ← Voltar ao formulário
+                </button>
+              </div>
+            );
+          })()}
+
           {/* CONFIRMAÇÃO: step7_accept_data_request — card nano banana */}
           {!isGap && phase === "input" && actionId === "step7_accept_data_request" && (
             <div className="p-4 space-y-3">
@@ -2644,7 +2842,7 @@ export function HomologacaoPhoneMockup({
           )}
 
           {/* INPUT state */}
-          {!isGap && phase === "input" && stepId !== 0 && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && (
+          {!isGap && phase === "input" && stepId !== 0 && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && !(screen.stepId === 6 && actionId === "step6_create_data_request") && (
             <div className="p-4 space-y-3">
               {/* Previous result indicator */}
               {activeResult && (
