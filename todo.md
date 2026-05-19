@@ -300,3 +300,5 @@
 - [x] Passo 7 (refactor total): lista selecionável de IDs gerados no Passo 6 com checkbox por item
 - [x] Passo 7 (refactor total): botões Aceitar/Rejeitar fixos abaixo da lista executam PATCH com accept/reject para IDs selecionados
 - [x] Passo 7 (refactor total): tela autocontida com estados idle/selecting/executing/done independente do phase global
+- [x] Passo 7 (fix final): botão "Listar Solicitações" chama API GET real step7_list_business_requests e exibe data.page[] como cards selecionáveis
+- [x] Passo 7 (fix final): botões Aceitar/Rejeitar executam PATCH step7_accept/reject para cada ID selecionado e removem da lista após processamento

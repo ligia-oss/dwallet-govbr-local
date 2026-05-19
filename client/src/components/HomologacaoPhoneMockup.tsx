@@ -1718,7 +1718,9 @@ export function HomologacaoPhoneMockup({
   // "done" = resultado do PATCH
   const [step7Phase, setStep7Phase] = useState<"idle" | "selecting" | "executing" | "done">("idle");
   const [step7SelectedIds, setStep7SelectedIds] = useState<string[]>([]);
-  const [step7ListedIds, setStep7ListedIds] = useState<string[]>([]);
+  // Objetos completos retornados pela API GET step7_list_business_requests
+  type Step7Request = { id: string; senderType?: string; sender?: { name?: string; cpf?: string; _id?: string }; status?: string; schemaId?: string };
+  const [step7ListedRequests, setStep7ListedRequests] = useState<Step7Request[]>([]);
   const [step7BatchResult, setStep7BatchResult] = useState<{
     ok: boolean;
     message?: string;
@@ -1740,18 +1742,45 @@ export function HomologacaoPhoneMockup({
     );
   };
 
-  // Listar solicitações do passo 6 (sem API)
+  // Listar solicitações chamando a API GET real step7_list_business_requests
   const handleStep7List = () => {
-    const accumulated: string[] = (() => {
-      try { return JSON.parse(String(runState.dataRequestIds ?? "[]")) as string[]; } catch { return []; }
-    })();
-    const current = runState.dataRequestId ? String(runState.dataRequestId) : "";
-    const all = current && !accumulated.includes(current) ? [...accumulated, current] : accumulated;
-    setStep7ListedIds(all);
     setStep7SelectedIds([]);
     setStep7BatchResult(null);
-    setStep7Phase("selecting");
+    // Chama a API GET — a resposta será capturada pelo useEffect abaixo via activeResult
+    onExecute("step7_list_business_requests");
   };
+
+  // Capturar resposta da API GET step7_list_business_requests e popular a lista
+  const prevListResultRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!activeResult) return;
+    if (activeResult.actionId !== "step7_list_business_requests") return;
+    if (!activeResult.ok) return;
+    // Evitar re-processar o mesmo resultado
+    const resultKey = activeResult.executedAt ?? JSON.stringify(activeResult.responseBody);
+    if (prevListResultRef.current === resultKey) return;
+    prevListResultRef.current = resultKey;
+    // Extrair data.page[] da resposta
+    const body = activeResult.responseBody as Record<string, unknown> | undefined;
+    const page = (body?.data as Record<string, unknown>)?.page;
+    if (Array.isArray(page) && page.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const requests = (page as any[]).map((item: any) => ({
+        id: String(item.id ?? item._id ?? ""),
+        senderType: item.senderType,
+        sender: item.sender,
+        status: item.status,
+        schemaId: item.schemaId,
+      })).filter(r => r.id);
+      setStep7ListedRequests(requests);
+      setStep7SelectedIds([]);
+      setStep7Phase("selecting");
+    } else {
+      // Resposta vazia ou sem page[]
+      setStep7ListedRequests([]);
+      setStep7Phase("selecting");
+    }
+  }, [activeResult]);
 
   // Aceitar ou rejeitar solicitações selecionadas no passo 7
   const handleStep7Action = async (action: "accept" | "reject") => {
@@ -1782,6 +1811,8 @@ export function HomologacaoPhoneMockup({
   const selectedRequestIds = step7SelectedIds;
   const batchResult = step7BatchResult;
   const isBatchExecuting = step7Phase === "executing";
+  // Alias para compatibilidade: IDs dos requests listados
+  const step7ListedIds = step7ListedRequests.map(r => r.id);
 
   // Quando um schema é selecionado: salva no runState e navega para o passo 4
   const handleSchemaSelect = (sid: string, name: string) => {
@@ -2852,55 +2883,43 @@ export function HomologacaoPhoneMockup({
 
             // ── TELA IDLE: botão Listar Solicitações ──────────────────────────
             if (step7Phase === "idle") {
-              const accumulated: string[] = (() => {
-                try { return JSON.parse(String(runState.dataRequestIds ?? "[]")) as string[]; } catch { return []; }
-              })();
-              const current = runState.dataRequestId ? String(runState.dataRequestId) : "";
-              const previewIds = current && !accumulated.includes(current) ? [...accumulated, current] : accumulated;
               return (
-                <div className="p-4 space-y-3">
+                <div className="p-4 space-y-4">
                   {/* Cabeçalho */}
                   <div className="rounded-2xl bg-[#1351b4] p-4 text-white">
                     <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200 mb-1">Passo 7 — Business dWallet</p>
                     <p className="text-sm font-bold leading-tight">Solicitações de dados recebidas</p>
-                    <p className="text-[9px] text-blue-200 mt-1">Gerencie as solicitações enviadas pelas pessoas.</p>
+                    <p className="text-[9px] text-blue-200 mt-1">Consulte e gerencie as solicitações enviadas pelas pessoas.</p>
                   </div>
 
-                  {/* Preview dos IDs acumulados */}
-                  <div className="rounded-xl border overflow-hidden" style={{ borderColor: previewIds.length > 0 ? "#bbf7d0" : "#fde68a", background: previewIds.length > 0 ? "#f0fdf4" : "#fffbeb" }}>
-                    <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: previewIds.length > 0 ? "#bbf7d0" : "#fde68a" }}>
-                      <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: previewIds.length > 0 ? "#15803d" : "#92400e" }}>
-                        {previewIds.length > 0 ? `${previewIds.length} solicitação(s) do Passo 6` : "⚠️ Nenhuma solicitação gerada"}
-                      </p>
-                      {previewIds.length > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#dcfce7", color: "#15803d" }}>{previewIds.length}</span>}
-                    </div>
-                    {previewIds.length > 0 ? (
-                      <div className="divide-y" style={{ borderColor: "#bbf7d0" }}>
-                        {previewIds.slice(0, 3).map((id, idx) => (
-                          <div key={id} className="px-3 py-1.5 flex items-center gap-2">
-                            <span className="text-[8px] font-bold text-emerald-600 shrink-0">#{idx + 1}</span>
-                            <p className="text-[8px] font-mono text-slate-600 truncate flex-1">{id}</p>
-                          </div>
-                        ))}
-                        {previewIds.length > 3 && <div className="px-3 py-1 text-[8px] text-slate-400">+{previewIds.length - 3} mais...</div>}
-                      </div>
-                    ) : (
-                      <div className="px-3 py-2">
-                        <p className="text-[9px] text-amber-700">Execute o Passo 6 para criar solicitações. Os IDs ficam acumulados até o reset do teste.</p>
-                      </div>
-                    )}
+                  {/* Descrição */}
+                  <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+                    <p className="text-[10px] text-slate-600 leading-relaxed">
+                      Clique em <strong>Listar Solicitações</strong> para consultar as solicitações de dados pendentes recebidas pela empresa na API.
+                    </p>
+                    <p className="text-[9px] text-slate-400 mt-1.5">
+                      Após listar, selecione uma ou mais solicitações e clique em <strong>Aceitar</strong> ou <strong>Rejeitar</strong>.
+                    </p>
                   </div>
 
-                  {/* Botão Listar Solicitações */}
+                  {/* Botão Listar Solicitações — chama API GET real */}
                   <button
                     onClick={handleStep7List}
-                    className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+                    disabled={isExecuting}
+                    className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
                     style={{ background: "#1351b4" }}
                   >
-                    <span className="flex items-center justify-center gap-2">
-                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="white"/><rect x="3" y="9" width="10" height="2" rx="1" fill="white"/><rect x="3" y="13" width="12" height="2" rx="1" fill="white"/></svg>
-                      Listar Solicitações
-                    </span>
+                    {isExecuting ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin" viewBox="0 0 20 20" width="15" height="15" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
+                        Consultando API...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="white"/><rect x="3" y="9" width="10" height="2" rx="1" fill="white"/><rect x="3" y="13" width="12" height="2" rx="1" fill="white"/></svg>
+                        Listar Solicitações
+                      </span>
+                    )}
                   </button>
                 </div>
               );
@@ -2964,10 +2983,13 @@ export function HomologacaoPhoneMockup({
 
                   {hasRequests ? (
                     <div className="px-3 py-2 space-y-2">
-                      {step7ListedIds.map((reqId, idx) => {
+                      {step7ListedRequests.map((req, idx) => {
+                        const reqId = req.id;
                         const isSelected = step7SelectedIds.includes(reqId);
                         const batchItemResult = step7BatchResult?.results.find(r => r.dataRequestId === reqId);
                         const isDoneState = step7Phase === "done";
+                        const senderName = req.sender?.name ?? req.sender?._id ?? "";
+                        const senderCpf = req.sender?.cpf ?? "";
                         return (
                           <button
                             key={reqId}
@@ -3009,19 +3031,27 @@ export function HomologacaoPhoneMockup({
                                   </svg>
                                 ) : null}
                               </div>
-                              {/* Dados da solicitação */}
+                              {/* Dados da solicitação — ricos com dados da API */}
                               <div className="min-w-0 flex-1">
-                                <p className="text-[10px] font-bold text-slate-800 leading-tight truncate">
-                                  {runState.selectedSchemaName ? String(runState.selectedSchemaName) : "Solicitação de dados"}
-                                </p>
-                                <p className="text-[8px] font-mono text-slate-500 truncate mt-0.5">
-                                  ID: {reqId.slice(0, 20)}…
+                                <div className="flex items-center gap-1.5 mb-0.5">
+                                  <span className="text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide" style={{ background: "#dbeafe", color: "#1d4ed8" }}>
+                                    {req.senderType ?? "Person"}
+                                  </span>
+                                  <span className="text-[7px] text-slate-400">#{idx + 1}</span>
+                                </div>
+                                {senderName && (
+                                  <p className="text-[10px] font-bold text-slate-800 leading-tight truncate">{senderName}</p>
+                                )}
+                                {senderCpf && (
+                                  <p className="text-[8px] text-slate-500 truncate">CPF: {senderCpf}</p>
+                                )}
+                                <p className="text-[8px] font-mono text-slate-400 truncate mt-0.5">
+                                  {reqId.slice(0, 24)}…
                                 </p>
                                 <div className="flex items-center gap-1 mt-1">
                                   <span className="text-[7px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide" style={{ background: batchItemResult ? (batchItemResult.ok ? "#dcfce7" : "#fee2e2") : "#fef3c7", color: batchItemResult ? (batchItemResult.ok ? "#15803d" : "#991b1b") : "#92400e" }}>
-                                    {batchItemResult ? (batchItemResult.ok ? "processado" : "erro") : "pendente"}
+                                    {batchItemResult ? (batchItemResult.ok ? "✅ processado" : "❌ erro") : req.status ?? "pending"}
                                   </span>
-                                  <span className="text-[7px] text-slate-400">#{idx + 1}</span>
                                 </div>
                               </div>
                             </div>
@@ -3034,8 +3064,9 @@ export function HomologacaoPhoneMockup({
                       <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94a3b8" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                       </div>
-                      <p className="text-xs font-bold text-slate-500">Nenhuma solicitação gerada</p>
-                      <p className="text-[9px] text-slate-400 mt-1">Execute o Passo 6 para criar solicitações de dados.</p>
+                      <p className="text-xs font-bold text-slate-500">Nenhuma solicitação pendente</p>
+                      <p className="text-[9px] text-slate-400 mt-1">A API não retornou solicitações pendentes para esta empresa.</p>
+                      <button onClick={() => setStep7Phase("idle")} className="mt-3 text-[9px] font-bold text-blue-600 underline">Tentar novamente</button>
                     </div>
                   )}
                 </div>
