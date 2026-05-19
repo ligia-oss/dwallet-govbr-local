@@ -302,3 +302,7 @@
 - [x] Passo 7 (refactor total): tela autocontida com estados idle/selecting/executing/done independente do phase global
 - [x] Passo 7 (fix final): botão "Listar Solicitações" chama API GET real step7_list_business_requests e exibe data.page[] como cards selecionáveis
 - [x] Passo 7 (fix final): botões Aceitar/Rejeitar executam PATCH step7_accept/reject para cada ID selecionado e removem da lista após processamento
+- [x] Passo 10: tela autocontida com 4 etapas sequenciais (listar DSP → detalhe drill-down → enroll DSP → listar commercial DSP)
+- [x] Passo 10: ao clicar em card de DSP, executar API de detalhe e exibir drill-down inline abaixo do card
+- [x] Passo 10: seleção de apenas um DSP por vez (radio), ao selecionar executar API enroll DSP gerando commercial DSP
+- [x] Passo 10: botão para listar commercial DSPs após enroll bem-sucedido

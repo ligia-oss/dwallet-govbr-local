@@ -1814,6 +1814,114 @@ export function HomologacaoPhoneMockup({
   // Alias para compatibilidade: IDs dos requests listados
   const step7ListedIds = step7ListedRequests.map(r => r.id);
 
+  // ─────────────────────────────────────────────────────────────────────────────
+  // PASSO 10 — Fluxo sequencial: listar DSPs → detalhe → enroll → commercial
+  // ─────────────────────────────────────────────────────────────────────────────
+  type Step10DspItem = { id: string; name?: string; description?: string; type?: string; [key: string]: unknown };
+  type Step10Phase = "idle" | "listing" | "detail" | "enrolling" | "commercial";
+  const [step10Phase, setStep10Phase] = useState<Step10Phase>("idle");
+  const [step10Dsps, setStep10Dsps] = useState<Step10DspItem[]>([]); // lista de DSPs retornados
+  const [step10SelectedDspId, setStep10SelectedDspId] = useState<string>(""); // DSP selecionado (radio)
+  const [step10ExpandedDspId, setStep10ExpandedDspId] = useState<string>(""); // DSP com drill-down aberto
+  const [step10DspDetails, setStep10DspDetails] = useState<Record<string, unknown> | null>(null); // detalhe do DSP expandido
+  const [step10CommercialDsps, setStep10CommercialDsps] = useState<Step10DspItem[]>([]); // commercial DSPs
+  const [step10EnrollResult, setStep10EnrollResult] = useState<{ ok: boolean; message?: string; dspAccountId?: string } | null>(null);
+
+  // Reset do passo 10 quando muda de passo
+  const prevStep10Ref = useRef<number>(stepId);
+  useEffect(() => {
+    if (prevStep10Ref.current !== stepId) {
+      prevStep10Ref.current = stepId;
+      if (stepId !== 10) {
+        setStep10Phase("idle");
+        setStep10Dsps([]);
+        setStep10SelectedDspId("");
+        setStep10ExpandedDspId("");
+        setStep10DspDetails(null);
+        setStep10CommercialDsps([]);
+        setStep10EnrollResult(null);
+      }
+    }
+  }, [stepId]);
+
+  // Capturar respostas da API do passo 10 via activeResult
+  const prevStep10ResultRef = useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!activeResult) return;
+    const resultKey = activeResult.actionId + (activeResult.executedAt ?? "");
+    if (prevStep10ResultRef.current === resultKey) return;
+    prevStep10ResultRef.current = resultKey;
+
+    if (!activeResult.ok) return;
+    const body = activeResult.responseBody as Record<string, unknown> | undefined;
+
+    // Capturar lista de DSPs standard ou commercial
+    if (activeResult.actionId === "step10_standard_dsps" || activeResult.actionId === "step10_commercial_dsps") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const extractList = (b: any): Step10DspItem[] => {
+        if (!b) return [];
+        if (Array.isArray(b)) return b;
+        if (b.data && Array.isArray(b.data)) return b.data;
+        if (b.data?.page && Array.isArray(b.data.page)) return b.data.page;
+        if (b.page && Array.isArray(b.page)) return b.page;
+        if (b.items && Array.isArray(b.items)) return b.items;
+        return [];
+      };
+      const list = extractList(body);
+      if (activeResult.actionId === "step10_commercial_dsps") {
+        setStep10CommercialDsps(list);
+        setStep10Phase("commercial");
+      } else {
+        setStep10Dsps(list);
+        setStep10Phase("listing");
+      }
+    }
+
+    // Capturar detalhe do DSP
+    if (activeResult.actionId === "step10_dsp_details") {
+      setStep10DspDetails(body ?? null);
+      setStep10Phase("detail");
+    }
+
+    // Capturar resultado do enroll
+    if (activeResult.actionId === "step10_create_dsp_account") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const b = body as any;
+      const dspAccountId = b?.id ?? b?.accountId ?? b?.dspAccountId ?? b?.data?.id ?? "";
+      setStep10EnrollResult({ ok: true, message: "Conta DSP criada com sucesso.", dspAccountId: String(dspAccountId) });
+      setStep10Phase("enrolling");
+    }
+  }, [activeResult]);
+
+  // Quando o usuário clica em um card de DSP: expande/colapsa o drill-down e executa a API de detalhe
+  const handleStep10DspClick = (dspId: string) => {
+    if (step10ExpandedDspId === dspId) {
+      setStep10ExpandedDspId("");
+      return;
+    }
+    setStep10ExpandedDspId(dspId);
+    setStep10DspDetails(null);
+    onFieldChange("selectedDspId", dspId);
+    onExecute("step10_dsp_details");
+  };
+
+  // Quando o usuário seleciona um DSP (radio): salva no runState e executa enroll
+  const handleStep10DspSelect = (dspId: string) => {
+    setStep10SelectedDspId(dspId);
+    onFieldChange("selectedDspId", dspId);
+    onExecute("step10_create_dsp_account");
+  };
+
+  // Quando o usuário clica em Listar Commercial DSPs
+  const handleStep10ListCommercial = () => {
+    onExecute("step10_commercial_dsps");
+  };
+
+  // Quando o usuário clica em Listar DSPs (standard)
+  const handleStep10ListDsps = () => {
+    onExecute("step10_standard_dsps");
+  };
+
   // Quando um schema é selecionado: salva no runState e navega para o passo 4
   const handleSchemaSelect = (sid: string, name: string) => {
     const friendlyName = getSchemaFriendlyName(name, sid);
@@ -3192,8 +3300,219 @@ export function HomologacaoPhoneMockup({
             </div>
           )}
 
+          {/* PASSO 10 — Tela autocontida: listar DSPs → detalhe → enroll → commercial */}
+          {!isGap && screen.stepId === 10 && (() => {
+            const isExec = isExecuting;
+
+            // ── IDLE: botão Listar DSPs ─────────────────────────────────────────
+            if (step10Phase === "idle") {
+              return (
+                <div className="p-4 space-y-4">
+                  <div className="rounded-2xl bg-[#7c3aed] p-4 text-white">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200 mb-1">Passo 10 — Personal dWallet</p>
+                    <p className="text-sm font-bold leading-tight">Data Savings Plans (DSP)</p>
+                    <p className="text-[9px] text-purple-200 mt-1">Consulte, visualize detalhes e adira a um plano DSP.</p>
+                  </div>
+                  <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
+                    <p className="text-[10px] text-slate-600 leading-relaxed">Clique em <strong>Listar DSPs</strong> para consultar os planos de poupança de dados disponíveis.</p>
+                    <p className="text-[9px] text-slate-400 mt-1.5">Após listar, clique em um DSP para ver detalhes e selecione um para aderir.</p>
+                  </div>
+                  <button
+                    onClick={handleStep10ListDsps}
+                    disabled={isExec}
+                    className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                    style={{ background: "#7c3aed" }}
+                  >
+                    {isExec ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin" viewBox="0 0 20 20" width="15" height="15" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
+                        Consultando API...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="white"/><rect x="3" y="9" width="10" height="2" rx="1" fill="white"/><rect x="3" y="13" width="12" height="2" rx="1" fill="white"/></svg>
+                        Listar DSPs
+                      </span>
+                    )}
+                  </button>
+                </div>
+              );
+            }
+
+            // ── LISTING / DETAIL: lista de DSPs com drill-down ──────────────────
+            if (step10Phase === "listing" || step10Phase === "detail") {
+              return (
+                <div className="flex flex-col" style={{ height: 390 }}>
+                  {/* Cabeçalho fixo */}
+                  <div className="shrink-0 bg-[#7c3aed] px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200">Passo 10 — DSPs disponíveis</p>
+                    <p className="text-[11px] font-bold text-white">{step10Dsps.length} plano(s) encontrado(s)</p>
+                    <p className="text-[9px] text-purple-200 mt-0.5">Clique para ver detalhes · Selecione para aderir</p>
+                  </div>
+
+                  {/* Lista scrollável */}
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {step10Dsps.length === 0 ? (
+                      <div className="text-center py-6">
+                        <p className="text-[10px] text-slate-400">Nenhum DSP encontrado na API.</p>
+                        <button onClick={handleStep10ListDsps} className="mt-2 text-[9px] text-purple-600 underline">Tentar novamente</button>
+                      </div>
+                    ) : step10Dsps.map(dsp => {
+                      const isExpanded = step10ExpandedDspId === dsp.id;
+                      const isSelected = step10SelectedDspId === dsp.id;
+                      const dspName = String(dsp.name ?? dsp.id ?? "DSP");
+                      const dspDesc = String(dsp.description ?? "");
+                      return (
+                        <div key={dsp.id} className="rounded-xl border overflow-hidden transition-all" style={{ borderColor: isSelected ? "#7c3aed" : "#e2e8f0", background: isSelected ? "#faf5ff" : "white" }}>
+                          {/* Card principal — clique expande drill-down */}
+                          <button
+                            className="w-full px-3 py-2.5 flex items-center gap-2 text-left"
+                            onClick={() => handleStep10DspClick(dsp.id)}
+                          >
+                            <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold" style={{ background: "#7c3aed" }}>DSP</div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[10px] font-bold text-slate-800 truncate">{dspName}</p>
+                              {dspDesc && <p className="text-[8px] text-slate-400 truncate">{dspDesc}</p>}
+                              <p className="text-[8px] font-mono text-slate-300 truncate">{dsp.id}</p>
+                            </div>
+                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" className={`shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                          </button>
+
+                          {/* Drill-down: detalhe do DSP */}
+                          {isExpanded && (
+                            <div className="border-t px-3 py-2 bg-slate-50" style={{ borderColor: "#e2e8f0" }}>
+                              {isExec && !step10DspDetails ? (
+                                <div className="flex items-center gap-2 py-1">
+                                  <svg className="animate-spin" viewBox="0 0 20 20" width="12" height="12" fill="none"><circle cx="10" cy="10" r="7" stroke="#7c3aed" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
+                                  <p className="text-[9px] text-slate-400">Carregando detalhes...</p>
+                                </div>
+                              ) : step10DspDetails ? (
+                                <div className="space-y-1">
+                                  <p className="text-[9px] font-bold text-purple-700 mb-1">Detalhes do plano</p>
+                                  {Object.entries(step10DspDetails).slice(0, 8).map(([k, v]) => (
+                                    <div key={k} className="flex gap-1">
+                                      <span className="text-[8px] font-semibold text-slate-500 shrink-0 w-20 truncate">{k}:</span>
+                                      <span className="text-[8px] text-slate-700 truncate flex-1">{String(v ?? "")}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : (
+                                <p className="text-[9px] text-slate-400">Clique novamente para recarregar os detalhes.</p>
+                              )}
+
+                              {/* Botão de seleção (radio) para enroll */}
+                              <button
+                                onClick={() => handleStep10DspSelect(dsp.id)}
+                                disabled={isExec}
+                                className="mt-2 w-full rounded-lg py-1.5 text-[10px] font-bold text-white disabled:opacity-60 transition-all active:scale-95"
+                                style={{ background: isSelected ? "#059669" : "#7c3aed" }}
+                              >
+                                {isExec && isSelected ? (
+                                  <span className="flex items-center justify-center gap-1">
+                                    <svg className="animate-spin" viewBox="0 0 20 20" width="11" height="11" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
+                                    Aderindo...
+                                  </span>
+                                ) : isSelected ? "✓ Selecionado — Aderir a este DSP" : "Selecionar e Aderir"}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            }
+
+            // ── ENROLLING: resultado do enroll + botão listar commercial ────────
+            if (step10Phase === "enrolling") {
+              return (
+                <div className="p-4 space-y-3">
+                  <div className="rounded-2xl p-4" style={{ background: step10EnrollResult?.ok ? "#f0fdf4" : "#fef2f2", border: `1px solid ${step10EnrollResult?.ok ? "#bbf7d0" : "#fecaca"}` }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: step10EnrollResult?.ok ? "#15803d" : "#dc2626" }}>
+                      {step10EnrollResult?.ok ? "✅ Enroll realizado" : "❌ Falha no enroll"}
+                    </p>
+                    <p className="text-[11px] font-bold" style={{ color: step10EnrollResult?.ok ? "#166534" : "#991b1b" }}>
+                      {step10EnrollResult?.message ?? ""}
+                    </p>
+                    {step10EnrollResult?.dspAccountId && (
+                      <p className="text-[8px] font-mono mt-1" style={{ color: "#15803d" }}>Conta DSP: {step10EnrollResult.dspAccountId}</p>
+                    )}
+                  </div>
+
+                  {/* Botão listar commercial DSPs */}
+                  <button
+                    onClick={handleStep10ListCommercial}
+                    disabled={isExec}
+                    className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                    style={{ background: "#1351b4" }}
+                  >
+                    {isExec ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin" viewBox="0 0 20 20" width="15" height="15" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
+                        Consultando...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="white"/><rect x="3" y="9" width="10" height="2" rx="1" fill="white"/><rect x="3" y="13" width="12" height="2" rx="1" fill="white"/></svg>
+                        Listar Commercial DSPs
+                      </span>
+                    )}
+                  </button>
+
+                  {/* Voltar para lista */}
+                  <button
+                    onClick={() => { setStep10Phase("listing"); setStep10EnrollResult(null); }}
+                    className="w-full rounded-xl px-4 py-2 text-[10px] font-semibold text-slate-500 border border-slate-200 transition-all active:scale-95"
+                  >
+                    ← Voltar para lista de DSPs
+                  </button>
+                </div>
+              );
+            }
+
+            // ── COMMERCIAL: lista de commercial DSPs ─────────────────────────────
+            if (step10Phase === "commercial") {
+              return (
+                <div className="flex flex-col" style={{ height: 390 }}>
+                  <div className="shrink-0 bg-[#1351b4] px-4 py-3">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200">Passo 10 — Commercial DSPs</p>
+                    <p className="text-[11px] font-bold text-white">{step10CommercialDsps.length} commercial DSP(s) encontrado(s)</p>
+                  </div>
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2">
+                    {step10CommercialDsps.length === 0 ? (
+                      <div className="text-center py-6">
+                        <p className="text-[10px] text-slate-400">Nenhum commercial DSP encontrado.</p>
+                      </div>
+                    ) : step10CommercialDsps.map((cdsp, idx) => (
+                      <div key={cdsp.id ?? idx} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[8px] font-bold" style={{ background: "#1351b4" }}>C{idx + 1}</div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-[10px] font-bold text-slate-800 truncate">{String(cdsp.name ?? cdsp.id ?? "Commercial DSP")}</p>
+                            <p className="text-[8px] font-mono text-slate-300 truncate">{cdsp.id}</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  <div className="shrink-0 p-3 border-t border-slate-100">
+                    <button
+                      onClick={() => { setStep10Phase("listing"); }}
+                      className="w-full rounded-xl px-4 py-2 text-[10px] font-semibold text-slate-500 border border-slate-200 transition-all active:scale-95"
+                    >
+                      ← Voltar para lista de DSPs
+                    </button>
+                  </div>
+                </div>
+              );
+            }
+
+            return null;
+          })()}
+
           {/* CONFIRMAÇÃO: step10_create_dsp_account — card nano banana */}
-          {!isGap && phase === "input" && actionId === "step10_create_dsp_account" && (
+          {!isGap && phase === "input" && actionId === "step10_create_dsp_account" && screen.stepId !== 10 && (
             <div className="p-4 space-y-3">
               <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: 100 }}>
                 <img src={SCHEMA_TYPE_IMAGES.dsp} alt="Plano DSP" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
