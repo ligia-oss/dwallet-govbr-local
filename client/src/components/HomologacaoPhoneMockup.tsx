@@ -1981,7 +1981,7 @@ export function HomologacaoPhoneMockup({
         </div>
 
         {/* Screen content */}
-        <div className="overflow-y-auto" style={{ maxHeight: 390 }}>
+        <div className={phase === "result" && actionId === "step7_list_business_requests" ? "" : "overflow-y-auto"} style={{ maxHeight: 390 }}>
           {/* PASSO 0 — Tela especial de autenticação M2M */}
           {!isGap && stepId === 0 && (
             <div className="p-4 space-y-3">
@@ -2819,9 +2819,9 @@ export function HomologacaoPhoneMockup({
             );
           })()}
 
-          {/* RESULTADO: step7_list_business_requests — lista de solicitações com multi-seleção e batch */}
+          {/* RESULTADO: step7_list_business_requests — tela de solicitações com botões fixos na parte inferior */}
           {!isGap && phase === "result" && actionId === "step7_list_business_requests" && activeResult && (() => {
-            // Extrair lista de solicitações da resposta
+            // Extrair lista de solicitações da resposta da API GET
             const body = activeResult.responseBody as Record<string, unknown> | unknown[] | null | undefined;
             const requests: Array<Record<string, unknown>> = (() => {
               if (Array.isArray(body)) return body as Array<Record<string, unknown>>;
@@ -2833,7 +2833,7 @@ export function HomologacaoPhoneMockup({
               return [];
             })();
             const hasRequests = requests.length > 0;
-            // Determinar imagem temática baseada no schema selecionado no passo 3
+            // Imagem temática baseada no schema selecionado no passo 3
             const schemaName = String(runState.selectedSchemaName ?? runState.valueSchemaSid ?? "").toLowerCase();
             const schemaImg = schemaName.includes("tarifa") || schemaName.includes("corrida") || schemaName.includes("motorista") || schemaName.includes("local") || schemaName.includes("rideshare")
               ? SCHEMA_TYPE_IMAGES.mobility
@@ -2841,98 +2841,122 @@ export function HomologacaoPhoneMockup({
               ? SCHEMA_TYPE_IMAGES.standard
               : SCHEMA_TYPE_IMAGES.consent;
             return (
-              <div className="p-4 space-y-3">
-                {/* Banner temático do schema */}
-                {runState.selectedSchemaName && (
-                  <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: 60 }}>
-                    <img src={schemaImg} alt="Schema" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.5)" }} />
-                    <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(19,81,180,0.6) 0%, rgba(0,0,0,0.3) 100%)" }} />
-                    <div className="relative z-10 px-4 py-3">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-blue-200">Dados solicitados</p>
-                      <p className="text-xs font-bold text-white leading-tight">{String(runState.selectedSchemaName)}</p>
+              <div className="flex flex-col" style={{ height: 390 }}>
+                {/* Cabeçalho com schema e contador */}
+                <div className="relative overflow-hidden shrink-0" style={{ minHeight: 58 }}>
+                  <img src={schemaImg} alt="Schema" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.45)" }} />
+                  <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(19,81,180,0.65) 0%, rgba(0,0,0,0.35) 100%)" }} />
+                  <div className="relative z-10 px-4 py-3 flex items-center justify-between">
+                    <div>
+                      <p className="text-[8px] font-bold uppercase tracking-wide text-blue-200">Solicitações recebidas</p>
+                      <p className="text-[11px] font-bold text-white leading-tight">
+                        {runState.selectedSchemaName ? String(runState.selectedSchemaName) : "Dados pessoais"}
+                      </p>
                     </div>
+                    <span className="text-[9px] font-bold px-2 py-1 rounded-full" style={{ background: hasRequests ? "rgba(254,243,199,0.9)" : "rgba(241,245,249,0.9)", color: hasRequests ? "#92400e" : "#64748b" }}>
+                      {requests.length} {requests.length === 1 ? "item" : "itens"}
+                    </span>
                   </div>
-                )}
-                {/* Resultado do batch (quando executado) */}
-                {batchResult && (
-                  <div className="rounded-2xl border overflow-hidden" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2", background: batchResult.ok ? "#f0fdf4" : "#fff5f5" }}>
-                    <div className="px-4 py-3 border-b" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2", background: batchResult.ok ? "#dcfce7" : "#fee2e2" }}>
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm">{batchResult.ok ? "✅" : "❌"}</span>
-                        <p className="text-xs font-bold" style={{ color: batchResult.ok ? "#065f46" : "#991b1b" }}>
+                </div>
+
+                {/* Lista de solicitações — scrollable */}
+                <div className="flex-1 overflow-y-auto bg-[#f8fafc]">
+                  {/* Resultado do batch (quando executado) */}
+                  {batchResult && (
+                    <div className="mx-3 mt-3 rounded-xl border overflow-hidden" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2", background: batchResult.ok ? "#f0fdf4" : "#fff5f5" }}>
+                      <div className="px-3 py-2 border-b flex items-center gap-2" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2", background: batchResult.ok ? "#dcfce7" : "#fee2e2" }}>
+                        <span className="text-xs">{batchResult.ok ? "✅" : "❌"}</span>
+                        <p className="text-[10px] font-bold" style={{ color: batchResult.ok ? "#065f46" : "#991b1b" }}>
                           {batchResult.action === "accept" ? "Aceite" : "Recusa"} {batchResult.ok ? "concluído" : "com erros"}
                         </p>
+                        <button
+                          onClick={() => { setBatchResult(null); setSelectedRequestIds([]); }}
+                          className="ml-auto text-[9px] font-semibold px-2 py-0.5 rounded-full"
+                          style={{ background: "rgba(0,0,0,0.08)", color: batchResult.ok ? "#065f46" : "#991b1b" }}
+                        >
+                          Refazer
+                        </button>
                       </div>
-                      {batchResult.message && <p className="text-[9px] mt-0.5" style={{ color: batchResult.ok ? "#047857" : "#b91c1c" }}>{batchResult.message}</p>}
-                    </div>
-                    <div className="divide-y" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2" }}>
                       {batchResult.results.map((r, i) => (
-                        <div key={i} className="px-4 py-2 flex items-center gap-2">
+                        <div key={i} className="px-3 py-1.5 flex items-center gap-2 border-b last:border-0" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2" }}>
                           <span className="text-[10px]">{r.ok ? "✅" : "❌"}</span>
-                          <div className="min-w-0 flex-1">
-                            <p className="text-[9px] font-mono text-slate-600 truncate">{r.dataRequestId.slice(0, 16)}…</p>
-                            {r.message && <p className="text-[8px] text-slate-400 truncate">{r.message}</p>}
-                          </div>
+                          <p className="text-[8px] font-mono text-slate-600 truncate flex-1">{r.dataRequestId.slice(0, 18)}…</p>
                           {r.httpStatus && <span className="text-[8px] font-mono text-slate-400">{r.httpStatus}</span>}
                         </div>
                       ))}
                     </div>
-                  </div>
-                )}
-                {/* Lista de solicitações */}
-                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
-                  <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
-                    <p className="text-xs font-bold text-slate-800">Solicitações pendentes</p>
-                    <span className="text-[9px] font-semibold px-2 py-0.5 rounded-full" style={{ background: hasRequests ? "#fef3c7" : "#f1f5f9", color: hasRequests ? "#92400e" : "#64748b" }}>
-                      {requests.length} {requests.length === 1 ? "registro" : "registros"}
-                    </span>
-                  </div>
+                  )}
+
                   {hasRequests ? (
-                    <div className="divide-y divide-slate-100">
+                    <div className="px-3 py-2 space-y-2">
                       {requests.map((req, idx) => {
                         const reqId = String(req.id ?? req.requestId ?? req.dataRequestId ?? req.request_id ?? `req-${idx}`);
                         const personId = String(req.personId ?? req.person_id ?? req.pdwalletId ?? req.requester ?? "");
                         const cpf = String(req.cpf ?? req.document ?? req.taxId ?? "");
                         const name = String(req.name ?? req.personName ?? req.requesterName ?? "");
+                        const schemaLabel = String(req.schemaName ?? req.schema ?? req.dataType ?? req.type ?? "");
                         const status = String(req.status ?? "pending");
                         const isSelected = selectedRequestIds.includes(reqId);
-                        // Verificar se este request já foi processado no batch
                         const batchItemResult = batchResult?.results.find(r => r.dataRequestId === reqId);
                         return (
                           <button
                             key={reqId}
                             onClick={() => !batchResult && handleToggleRequest(reqId)}
                             disabled={!!batchResult}
-                            className="w-full text-left px-4 py-3 flex items-start gap-3 transition-colors disabled:cursor-default"
-                            style={{ background: batchItemResult ? (batchItemResult.ok ? "#f0fdf4" : "#fff5f5") : isSelected ? "#eff6ff" : "white" }}
+                            className="w-full text-left rounded-xl border-2 p-3 transition-all active:scale-[0.98] disabled:cursor-default"
+                            style={{
+                              borderColor: batchItemResult
+                                ? (batchItemResult.ok ? "#059669" : "#dc2626")
+                                : isSelected ? "#1351b4" : "#e2e8f0",
+                              background: batchItemResult
+                                ? (batchItemResult.ok ? "#f0fdf4" : "#fff5f5")
+                                : isSelected ? "#eff6ff" : "white",
+                            }}
                           >
-                            {/* Ícone temático do schema */}
-                            <div
-                              className="mt-0.5 w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0 border-2"
-                              style={{ borderColor: batchItemResult ? (batchItemResult.ok ? "#059669" : "#dc2626") : isSelected ? "#1351b4" : "#cbd5e1" }}
-                            >
-                              {batchItemResult ? (
-                                <span className="text-[10px]">{batchItemResult.ok ? "✅" : "❌"}</span>
-                              ) : isSelected ? (
-                                <svg viewBox="0 0 12 12" width="8" height="8" fill="none">
-                                  <path d="M2 6l3 3 5-5" stroke="#1351b4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                </svg>
-                              ) : (
-                                <div className="w-2 h-2 rounded-full" style={{ background: "#cbd5e1" }} />
-                              )}
-                            </div>
-                            {/* Dados da solicitação */}
-                            <div className="min-w-0 flex-1">
-                              <div className="flex items-center gap-1.5 mb-0.5">
-                                <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">ID PdWallet</span>
-                                <span className="text-[9px] font-mono text-slate-600 truncate">{personId || reqId}</span>
+                            <div className="flex items-start gap-2.5">
+                              {/* Checkbox / status icon */}
+                              <div
+                                className="mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0"
+                                style={{
+                                  borderColor: batchItemResult
+                                    ? (batchItemResult.ok ? "#059669" : "#dc2626")
+                                    : isSelected ? "#1351b4" : "#cbd5e1",
+                                  background: batchItemResult
+                                    ? (batchItemResult.ok ? "#059669" : "#dc2626")
+                                    : isSelected ? "#1351b4" : "white",
+                                }}
+                              >
+                                {batchItemResult ? (
+                                  <svg viewBox="0 0 12 12" width="8" height="8" fill="none">
+                                    {batchItemResult.ok
+                                      ? <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                      : <path d="M3 3l6 6M9 3l-6 6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
+                                    }
+                                  </svg>
+                                ) : isSelected ? (
+                                  <svg viewBox="0 0 12 12" width="8" height="8" fill="none">
+                                    <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  </svg>
+                                ) : null}
                               </div>
-                              {(cpf || name) && (
-                                <p className="text-[9px] text-slate-500 truncate">{[name, cpf].filter(Boolean).join(" · ")}</p>
-                              )}
-                              <div className="flex items-center gap-1 mt-0.5">
-                                <span className="text-[8px] px-1.5 py-0.5 rounded-full font-semibold" style={{ background: "#fef3c7", color: "#92400e" }}>{status}</span>
-                                <span className="text-[8px] font-mono text-slate-400 truncate">{reqId.slice(0, 12)}…</span>
+                              {/* Dados da solicitação */}
+                              <div className="min-w-0 flex-1">
+                                {/* Linha 1: schema ou tipo de dado */}
+                                <p className="text-[10px] font-bold text-slate-800 leading-tight truncate">
+                                  {schemaLabel || runState.selectedSchemaName || "Solicitação de dados"}
+                                </p>
+                                {/* Linha 2: ID da pessoa */}
+                                <p className="text-[8px] font-mono text-slate-500 truncate mt-0.5">
+                                  {personId ? `PdW: ${personId.slice(0, 14)}…` : `ID: ${reqId.slice(0, 14)}…`}
+                                </p>
+                                {/* Linha 3: nome/cpf se disponível */}
+                                {(name || cpf) && (
+                                  <p className="text-[8px] text-slate-400 truncate">{[name, cpf].filter(Boolean).join(" · ")}</p>
+                                )}
+                                {/* Linha 4: status badge */}
+                                <div className="flex items-center gap-1 mt-1">
+                                  <span className="text-[7px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide" style={{ background: "#fef3c7", color: "#92400e" }}>{status}</span>
+                                </div>
                               </div>
                             </div>
                           </button>
@@ -2940,63 +2964,75 @@ export function HomologacaoPhoneMockup({
                       })}
                     </div>
                   ) : (
-                    <div className="px-4 py-6 text-center">
-                      <p className="text-sm font-bold text-slate-500">Nenhuma solicitação pendente</p>
-                      <p className="text-xs text-slate-400 mt-1">Execute o passo 6 para criar uma solicitação.</p>
+                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                      <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
+                        <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94a3b8" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
+                      </div>
+                      <p className="text-xs font-bold text-slate-500">Nenhuma solicitação pendente</p>
+                      <p className="text-[9px] text-slate-400 mt-1">Execute o passo 6 para criar uma solicitação de dados.</p>
                     </div>
                   )}
                 </div>
-                {/* Botões aceitar/recusar — só exibir se ainda não executou batch */}
-                {hasRequests && !batchResult && (
-                  <div className="space-y-2">
+
+                {/* Rodapé fixo com botões Aceitar / Recusar */}
+                <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-3 space-y-2">
+                  {selectedRequestIds.length > 0 && !batchResult && (
+                    <p className="text-[9px] text-center font-semibold" style={{ color: "#1351b4" }}>
+                      {selectedRequestIds.length} {selectedRequestIds.length === 1 ? "solicitação selecionada" : "solicitações selecionadas"}
+                    </p>
+                  )}
+                  {!batchResult && (
                     <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => handleRequestAction("accept")}
-                        disabled={selectedRequestIds.length === 0 || isBatchExecuting}
-                        className="rounded-xl py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-                        style={{ background: selectedRequestIds.length > 0 && !isBatchExecuting ? "#059669" : "#94a3b8" }}
+                        disabled={selectedRequestIds.length === 0 || isBatchExecuting || !hasRequests}
+                        className="rounded-xl py-2.5 text-[11px] font-bold text-white shadow-sm transition-all active:scale-95"
+                        style={{
+                          background: selectedRequestIds.length > 0 && !isBatchExecuting && hasRequests
+                            ? "#059669"
+                            : "#94a3b8",
+                          opacity: selectedRequestIds.length === 0 || !hasRequests ? 0.5 : 1,
+                        }}
                       >
                         {isBatchExecuting ? (
                           <span className="flex items-center justify-center gap-1">
-                            <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                            …
+                            <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
                           </span>
-                        ) : "✅ Aceitar"}
+                        ) : (
+                          <span className="flex items-center justify-center gap-1">
+                            <svg viewBox="0 0 16 16" width="11" height="11" fill="none"><path d="M3 8l3.5 3.5 6.5-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            Aceitar
+                          </span>
+                        )}
                       </button>
                       <button
                         onClick={() => handleRequestAction("reject")}
-                        disabled={selectedRequestIds.length === 0 || isBatchExecuting}
-                        className="rounded-xl py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-                        style={{ background: selectedRequestIds.length > 0 && !isBatchExecuting ? "#dc2626" : "#94a3b8" }}
+                        disabled={selectedRequestIds.length === 0 || isBatchExecuting || !hasRequests}
+                        className="rounded-xl py-2.5 text-[11px] font-bold text-white shadow-sm transition-all active:scale-95"
+                        style={{
+                          background: selectedRequestIds.length > 0 && !isBatchExecuting && hasRequests
+                            ? "#dc2626"
+                            : "#94a3b8",
+                          opacity: selectedRequestIds.length === 0 || !hasRequests ? 0.5 : 1,
+                        }}
                       >
                         {isBatchExecuting ? (
                           <span className="flex items-center justify-center gap-1">
-                            <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                            …
+                            <svg className="animate-spin" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
                           </span>
-                        ) : "❌ Recusar"}
+                        ) : (
+                          <span className="flex items-center justify-center gap-1">
+                            <svg viewBox="0 0 16 16" width="11" height="11" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
+                            Recusar
+                          </span>
+                        )}
                       </button>
                     </div>
-                    {selectedRequestIds.length > 0 && (
-                      <p className="text-[9px] text-center text-slate-500">{selectedRequestIds.length} selecionada(s) — escolha uma ação acima</p>
-                    )}
-                  </div>
-                )}
-                {/* Botão para limpar resultado e tentar novamente */}
-                {batchResult && (
-                  <button
-                    onClick={() => { setBatchResult(null); setSelectedRequestIds([]); }}
-                    className="w-full text-xs font-semibold text-[#1351b4] py-2 rounded-2xl border border-[#1351b4]/30 bg-[#1351b4]/5 hover:bg-[#1351b4]/10 transition-colors"
-                  >
-                    🔄 Selecionar novamente
-                  </button>
-                )}
-                <button
-                  onClick={() => { setShowInputOverride(true); setPhase("input"); }}
-                  className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-                >
-                  ← Voltar ao formulário
-                </button>
+                  )}
+                  {!batchResult && !hasRequests && (
+                    <p className="text-[9px] text-center text-slate-400">Nenhuma solicitação para processar</p>
+                  )}
+                </div>
               </div>
             );
           })()}

@@ -292,3 +292,4 @@
 - [x] Passo 7: implementar onBatchExecute no Homologacao.tsx usando trpc.dataprev.executeBatchAction
 - [x] Passo 7: armazenar dataRequestId no runState após batch bem-sucedido para uso nos passos seguintes
 - [x] Passo 7: registrar resultado do batch no stepResults para evidência na aba Evidências
+- [x] Passo 7: reescrever tela com layout flex fixo (cabeçalho temático + lista scrollável + botões Aceitar/Recusar fixos na parte inferior)
