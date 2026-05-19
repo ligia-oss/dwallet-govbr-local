@@ -698,7 +698,7 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Atualiza a solicitação como aceita usando o ID funcional retornado pela criação ou listagem.",
     buildPath: state => `/v1/dwallet/data-request/${state.dataRequestId}`,
-    buildBody: () => ({ command: "accept" }),
+    buildBody: () => ({ actionId: "accepted" }),
   },
   {
     id: "step7_reject_data_request",
@@ -712,7 +712,7 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Atualiza a solicitação como rejeitada usando o ID funcional retornado pela criação ou listagem.",
     buildPath: state => `/v1/dwallet/data-request/${state.dataRequestId}`,
-    buildBody: () => ({ command: "reject" }),
+    buildBody: () => ({ actionId: "rejected" }),
   },
   {
     id: "step8_person_certificates",
