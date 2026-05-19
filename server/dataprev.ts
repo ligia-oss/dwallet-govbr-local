@@ -1127,6 +1127,28 @@ export const dataprevRouter = router({
       if (!action) throw new Error(`Ação não mapeada: ${input.actionId}`);
       return execute(action, (input.state || {}) as RunState, input.credentials);
     }),
+  executeBatchAction: publicProcedure
+    .input(z.object({
+      actionId: z.string(),
+      dataRequestIds: z.array(z.string()).min(1),
+      state: runStateSchema.optional(),
+      credentials: credentialsInputSchema,
+    }))
+    .mutation(async ({ input }) => {
+      const action = actions.find(item => item.id === input.actionId);
+      if (!action) throw new Error(`Ação não mapeada: ${input.actionId}`);
+      const results = [];
+      for (const requestId of input.dataRequestIds) {
+        const stateWithId = { ...(input.state || {}), dataRequestId: requestId } as RunState;
+        const result = await execute(action, stateWithId, input.credentials);
+        results.push({ dataRequestId: requestId, ...result });
+      }
+      return {
+        ok: results.every(r => r.ok),
+        results,
+        message: `${results.filter(r => r.ok).length}/${results.length} solicitações processadas com sucesso.`,
+      };
+    }),
   clearM2MToken: publicProcedure
     .input(z.object({ credentials: credentialsInputSchema }).optional())
     .mutation(async ({ input }) => {

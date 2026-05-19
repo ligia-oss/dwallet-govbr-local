@@ -308,6 +308,7 @@ export default function Homologacao() {
   // Mutations
   const authenticateM2M = trpc.dataprev.authenticateM2M.useMutation();
   const executeAction = trpc.dataprev.executeAction.useMutation();
+  const executeBatchAction = trpc.dataprev.executeBatchAction.useMutation();
   const clearM2MToken = trpc.dataprev.clearM2MToken.useMutation();
 
   // Persist state changes
@@ -578,6 +579,48 @@ export default function Homologacao() {
     }
     handleExecuteAction(actionId, activeStep);
   };
+  // Handler for batch execute (passo 7 — aceitar/rejeitar múltiplos requests)
+  const handleBatchExecute = async (actionId: string, dataRequestIds: string[]) => {
+    if (hasPartialCredentials) {
+      toast.error(t.credsMissing);
+      throw new Error(t.credsMissing);
+    }
+    const execCredentials = hasAllCredentials
+      ? { baseUrl: creds.baseUrl, apiKey: creds.apiKey, clientId: creds.clientId, clientSecret: creds.clientSecret }
+      : {};
+    const result = await executeBatchAction.mutateAsync({
+      actionId,
+      dataRequestIds,
+      state: runState,
+      credentials: execCredentials,
+    });
+    // Armazenar o primeiro dataRequestId aceito no runState para uso nos passos seguintes
+    if (result.ok && dataRequestIds[0]) {
+      setRunState(prev => ({ ...prev, dataRequestId: dataRequestIds[0] }));
+    }
+    // Registrar resultado no stepResults para evidência
+    const batchEvidence: ActionResult = {
+      actionId,
+      actionTitle: actionId === "step7_accept_data_request" ? "Aceitar solicitações (batch)" : "Rejeitar solicitações (batch)",
+      status: result.ok ? "done" : "failed",
+      ok: result.ok,
+      message: result.message,
+      responseBody: result.results,
+      executedAt: new Date().toISOString(),
+    };
+    setStepResults(prev => {
+      const existing = prev.find(r => r.stepId === activeStep);
+      if (existing) {
+        const filtered = existing.results.filter(r => r.actionId !== actionId);
+        return prev.map(r => r.stepId === activeStep
+          ? { ...r, results: [...filtered, batchEvidence], completedAt: new Date().toISOString() }
+          : r
+        );
+      }
+      return [...prev, { stepId: activeStep, results: [batchEvidence], completedAt: new Date().toISOString() }];
+    });
+    return result;
+  };
 
   return (
     <div className="min-h-screen bg-[#f0f4fa] govbr-app">
@@ -767,6 +810,7 @@ export default function Homologacao() {
                     // Navegação automática entre passos (ex: passo 3 → 4, passo 5 → 6)
                     setActiveStep(targetStepId);
                   }}
+                  onBatchExecute={handleBatchExecute}
                   lang={lang}
                 />
               </div>

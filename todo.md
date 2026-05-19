@@ -275,3 +275,20 @@
 - [x] Ao clicar na oferta, salva offerId no runState e navega para passo 13 (onStepChange(13) com delay 350ms)
 - [x] URLs das imagens atualizadas para /manus-storage/ com hash correto
 - [x] 105 testes passando
+
+## Sprint — Passo 7: URLs Corretas e Tela Temática por Request
+
+- [ ] Verificar e corrigir URL da API GET do passo 7 para https://api.sandbox.drumwave.com.br/v1/dwallet/business/
+- [ ] Verificar e corrigir URL da API PATCH do passo 7 para https://api.sandbox.drumwave.com.br/v1/dwallet/data-request/ com comando accept ou reject
+- [ ] Tela de resposta do passo 7: para cada requestId retornado, criar botão temático baseado no dado solicitado (schema selecionado no passo 3)
+- [ ] Multi-seleção de requests com botões "Aceitar" e "Recusar" ao final
+- [ ] Ao clicar "Aceitar" executar PATCH com accept nos requestIds selecionados; ao clicar "Recusar" executar PATCH com reject
+- [ ] Exibir resposta da API PATCH após aceitar/recusar
+
+- [x] Passo 7: adicionar prop onBatchExecute ao HomologacaoPhoneMockup para delegar ao pai
+- [x] Passo 7: atualizar handleRequestAction para chamar onBatchExecute com todos os IDs selecionados
+- [x] Passo 7: exibir banner temático do schema selecionado no passo 3 na tela de solicitações
+- [x] Passo 7: exibir resultado do batch inline na tela (sem navegar para step7_accept/reject)
+- [x] Passo 7: implementar onBatchExecute no Homologacao.tsx usando trpc.dataprev.executeBatchAction
+- [x] Passo 7: armazenar dataRequestId no runState após batch bem-sucedido para uso nos passos seguintes
+- [x] Passo 7: registrar resultado do batch no stepResults para evidência na aba Evidências

@@ -1675,6 +1675,7 @@ export function HomologacaoPhoneMockup({
   onExecute,
   onAutoAdvance,
   onStepChange,
+  onBatchExecute,
   lang = "pt",
 }: {
   stepId: number;
@@ -1689,6 +1690,12 @@ export function HomologacaoPhoneMockup({
   onAutoAdvance?: (nextActionId: string) => void;
   /** Navega para outro passo da jornada (ex: passo 3 → 4) */
   onStepChange?: (stepId: number) => void;
+  /** Executa ação em batch para múltiplos dataRequestIds (passo 7) */
+  onBatchExecute?: (actionId: string, dataRequestIds: string[]) => Promise<{
+    ok: boolean;
+    message?: string;
+    results: Array<{ dataRequestId: string; ok: boolean; message?: string; httpStatus?: number }>;
+  }>;
   lang?: "pt" | "en";
 }) {
   const screen = PHONE_SCREENS[stepId];
@@ -1706,6 +1713,14 @@ export function HomologacaoPhoneMockup({
 
   // Seleção múltipla de solicitações (passo 7)
   const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
+  // Resultado do batch de aceitar/rejeitar (passo 7)
+  const [batchResult, setBatchResult] = useState<{
+    ok: boolean;
+    message?: string;
+    action: "accept" | "reject";
+    results: Array<{ dataRequestId: string; ok: boolean; message?: string; httpStatus?: number }>;
+  } | null>(null);
+  const [isBatchExecuting, setIsBatchExecuting] = useState(false);
 
   // Toggle de seleção de solicitação no passo 7
   const handleToggleRequest = (requestId: string) => {
@@ -1715,15 +1730,36 @@ export function HomologacaoPhoneMockup({
   };
 
   // Aceitar ou rejeitar solicitações selecionadas no passo 7
-  const handleRequestAction = (action: "accept" | "reject") => {
+  const handleRequestAction = async (action: "accept" | "reject") => {
     if (selectedRequestIds.length === 0) return;
-    // Salvar o primeiro ID selecionado no runState como dataRequestId
-    onFieldChange("dataRequestId", selectedRequestIds[0]);
-    // Avançar para a ação correspondente
     const targetActionId = action === "accept" ? "step7_accept_data_request" : "step7_reject_data_request";
-    if (onAutoAdvance) {
-      onAutoAdvance(targetActionId);
-      setPhase("input");
+    if (onBatchExecute) {
+      setIsBatchExecuting(true);
+      setBatchResult(null);
+      try {
+        const result = await onBatchExecute(targetActionId, selectedRequestIds);
+        setBatchResult({ ...result, action });
+        // Salvar o primeiro ID aceito no runState
+        if (result.ok && selectedRequestIds[0]) {
+          onFieldChange("dataRequestId", selectedRequestIds[0]);
+        }
+      } catch (err) {
+        setBatchResult({
+          ok: false,
+          action,
+          message: err instanceof Error ? err.message : "Erro desconhecido",
+          results: [],
+        });
+      } finally {
+        setIsBatchExecuting(false);
+      }
+    } else {
+      // Fallback: navegar para ação individual (comportamento anterior)
+      onFieldChange("dataRequestId", selectedRequestIds[0]);
+      if (onAutoAdvance) {
+        onAutoAdvance(targetActionId);
+        setPhase("input");
+      }
     }
   };
 
@@ -2783,7 +2819,7 @@ export function HomologacaoPhoneMockup({
             );
           })()}
 
-          {/* RESULTADO: step7_list_business_requests — lista de solicitações com multi-seleção */}
+          {/* RESULTADO: step7_list_business_requests — lista de solicitações com multi-seleção e batch */}
           {!isGap && phase === "result" && actionId === "step7_list_business_requests" && activeResult && (() => {
             // Extrair lista de solicitações da resposta
             const body = activeResult.responseBody as Record<string, unknown> | unknown[] | null | undefined;
@@ -2797,8 +2833,53 @@ export function HomologacaoPhoneMockup({
               return [];
             })();
             const hasRequests = requests.length > 0;
+            // Determinar imagem temática baseada no schema selecionado no passo 3
+            const schemaName = String(runState.selectedSchemaName ?? runState.valueSchemaSid ?? "").toLowerCase();
+            const schemaImg = schemaName.includes("tarifa") || schemaName.includes("corrida") || schemaName.includes("motorista") || schemaName.includes("local") || schemaName.includes("rideshare")
+              ? SCHEMA_TYPE_IMAGES.mobility
+              : schemaName.includes("telecom") || schemaName.includes("telefonia") || schemaName.includes("plano")
+              ? SCHEMA_TYPE_IMAGES.standard
+              : SCHEMA_TYPE_IMAGES.consent;
             return (
               <div className="p-4 space-y-3">
+                {/* Banner temático do schema */}
+                {runState.selectedSchemaName && (
+                  <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: 60 }}>
+                    <img src={schemaImg} alt="Schema" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.5)" }} />
+                    <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(19,81,180,0.6) 0%, rgba(0,0,0,0.3) 100%)" }} />
+                    <div className="relative z-10 px-4 py-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-blue-200">Dados solicitados</p>
+                      <p className="text-xs font-bold text-white leading-tight">{String(runState.selectedSchemaName)}</p>
+                    </div>
+                  </div>
+                )}
+                {/* Resultado do batch (quando executado) */}
+                {batchResult && (
+                  <div className="rounded-2xl border overflow-hidden" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2", background: batchResult.ok ? "#f0fdf4" : "#fff5f5" }}>
+                    <div className="px-4 py-3 border-b" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2", background: batchResult.ok ? "#dcfce7" : "#fee2e2" }}>
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{batchResult.ok ? "✅" : "❌"}</span>
+                        <p className="text-xs font-bold" style={{ color: batchResult.ok ? "#065f46" : "#991b1b" }}>
+                          {batchResult.action === "accept" ? "Aceite" : "Recusa"} {batchResult.ok ? "concluído" : "com erros"}
+                        </p>
+                      </div>
+                      {batchResult.message && <p className="text-[9px] mt-0.5" style={{ color: batchResult.ok ? "#047857" : "#b91c1c" }}>{batchResult.message}</p>}
+                    </div>
+                    <div className="divide-y" style={{ borderColor: batchResult.ok ? "#d1fae5" : "#fee2e2" }}>
+                      {batchResult.results.map((r, i) => (
+                        <div key={i} className="px-4 py-2 flex items-center gap-2">
+                          <span className="text-[10px]">{r.ok ? "✅" : "❌"}</span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[9px] font-mono text-slate-600 truncate">{r.dataRequestId.slice(0, 16)}…</p>
+                            {r.message && <p className="text-[8px] text-slate-400 truncate">{r.message}</p>}
+                          </div>
+                          {r.httpStatus && <span className="text-[8px] font-mono text-slate-400">{r.httpStatus}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Lista de solicitações */}
                 <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                   <div className="px-4 py-3 border-b border-slate-100 flex items-center justify-between">
                     <p className="text-xs font-bold text-slate-800">Solicitações pendentes</p>
@@ -2815,22 +2896,29 @@ export function HomologacaoPhoneMockup({
                         const name = String(req.name ?? req.personName ?? req.requesterName ?? "");
                         const status = String(req.status ?? "pending");
                         const isSelected = selectedRequestIds.includes(reqId);
+                        // Verificar se este request já foi processado no batch
+                        const batchItemResult = batchResult?.results.find(r => r.dataRequestId === reqId);
                         return (
                           <button
                             key={reqId}
-                            onClick={() => handleToggleRequest(reqId)}
-                            className="w-full text-left px-4 py-3 flex items-start gap-3 transition-colors"
-                            style={{ background: isSelected ? "#eff6ff" : "white" }}
+                            onClick={() => !batchResult && handleToggleRequest(reqId)}
+                            disabled={!!batchResult}
+                            className="w-full text-left px-4 py-3 flex items-start gap-3 transition-colors disabled:cursor-default"
+                            style={{ background: batchItemResult ? (batchItemResult.ok ? "#f0fdf4" : "#fff5f5") : isSelected ? "#eff6ff" : "white" }}
                           >
-                            {/* Checkbox visual */}
+                            {/* Ícone temático do schema */}
                             <div
-                              className="mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0"
-                              style={{ borderColor: isSelected ? "#1351b4" : "#cbd5e1", background: isSelected ? "#1351b4" : "white" }}
+                              className="mt-0.5 w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0 border-2"
+                              style={{ borderColor: batchItemResult ? (batchItemResult.ok ? "#059669" : "#dc2626") : isSelected ? "#1351b4" : "#cbd5e1" }}
                             >
-                              {isSelected && (
+                              {batchItemResult ? (
+                                <span className="text-[10px]">{batchItemResult.ok ? "✅" : "❌"}</span>
+                              ) : isSelected ? (
                                 <svg viewBox="0 0 12 12" width="8" height="8" fill="none">
-                                  <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+                                  <path d="M2 6l3 3 5-5" stroke="#1351b4" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
                                 </svg>
+                              ) : (
+                                <div className="w-2 h-2 rounded-full" style={{ background: "#cbd5e1" }} />
                               )}
                             </div>
                             {/* Dados da solicitação */}
@@ -2858,29 +2946,50 @@ export function HomologacaoPhoneMockup({
                     </div>
                   )}
                 </div>
-                {/* Botões aceitar/recusar */}
-                {hasRequests && (
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={() => handleRequestAction("accept")}
-                      disabled={selectedRequestIds.length === 0}
-                      className="rounded-xl py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-                      style={{ background: selectedRequestIds.length > 0 ? "#059669" : "#94a3b8" }}
-                    >
-                      ✅ Aceitar
-                    </button>
-                    <button
-                      onClick={() => handleRequestAction("reject")}
-                      disabled={selectedRequestIds.length === 0}
-                      className="rounded-xl py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
-                      style={{ background: selectedRequestIds.length > 0 ? "#dc2626" : "#94a3b8" }}
-                    >
-                      ❌ Recusar
-                    </button>
+                {/* Botões aceitar/recusar — só exibir se ainda não executou batch */}
+                {hasRequests && !batchResult && (
+                  <div className="space-y-2">
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        onClick={() => handleRequestAction("accept")}
+                        disabled={selectedRequestIds.length === 0 || isBatchExecuting}
+                        className="rounded-xl py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                        style={{ background: selectedRequestIds.length > 0 && !isBatchExecuting ? "#059669" : "#94a3b8" }}
+                      >
+                        {isBatchExecuting ? (
+                          <span className="flex items-center justify-center gap-1">
+                            <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
+                            …
+                          </span>
+                        ) : "✅ Aceitar"}
+                      </button>
+                      <button
+                        onClick={() => handleRequestAction("reject")}
+                        disabled={selectedRequestIds.length === 0 || isBatchExecuting}
+                        className="rounded-xl py-3 text-sm font-bold text-white shadow-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all active:scale-95"
+                        style={{ background: selectedRequestIds.length > 0 && !isBatchExecuting ? "#dc2626" : "#94a3b8" }}
+                      >
+                        {isBatchExecuting ? (
+                          <span className="flex items-center justify-center gap-1">
+                            <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
+                            …
+                          </span>
+                        ) : "❌ Recusar"}
+                      </button>
+                    </div>
+                    {selectedRequestIds.length > 0 && (
+                      <p className="text-[9px] text-center text-slate-500">{selectedRequestIds.length} selecionada(s) — escolha uma ação acima</p>
+                    )}
                   </div>
                 )}
-                {selectedRequestIds.length > 0 && (
-                  <p className="text-[9px] text-center text-slate-500">{selectedRequestIds.length} selecionada(s) — escolha uma ação acima</p>
+                {/* Botão para limpar resultado e tentar novamente */}
+                {batchResult && (
+                  <button
+                    onClick={() => { setBatchResult(null); setSelectedRequestIds([]); }}
+                    className="w-full text-xs font-semibold text-[#1351b4] py-2 rounded-2xl border border-[#1351b4]/30 bg-[#1351b4]/5 hover:bg-[#1351b4]/10 transition-colors"
+                  >
+                    🔄 Selecionar novamente
+                  </button>
                 )}
                 <button
                   onClick={() => { setShowInputOverride(true); setPhase("input"); }}
