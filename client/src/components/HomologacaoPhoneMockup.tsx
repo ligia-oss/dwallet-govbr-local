@@ -1711,57 +1711,77 @@ export function HomologacaoPhoneMockup({
   const [selectedProductDsku, setSelectedProductDsku] = useState<string>("");
   const [selectedProductName, setSelectedProductName] = useState<string>("");
 
-  // Seleção múltipla de solicitações (passo 7)
-  const [selectedRequestIds, setSelectedRequestIds] = useState<string[]>([]);
-  // Resultado do batch de aceitar/rejeitar (passo 7)
-  const [batchResult, setBatchResult] = useState<{
+  // ─── Passo 7: estado local autocontido ──────────────────────────────────────
+  // "idle" = tela inicial com botão Listar
+  // "selecting" = lista de IDs com checkboxes + botões Aceitar/Rejeitar
+  // "executing" = PATCH em andamento
+  // "done" = resultado do PATCH
+  const [step7Phase, setStep7Phase] = useState<"idle" | "selecting" | "executing" | "done">("idle");
+  const [step7SelectedIds, setStep7SelectedIds] = useState<string[]>([]);
+  const [step7ListedIds, setStep7ListedIds] = useState<string[]>([]);
+  const [step7BatchResult, setStep7BatchResult] = useState<{
     ok: boolean;
     message?: string;
     action: "accept" | "reject";
     results: Array<{ dataRequestId: string; ok: boolean; message?: string; httpStatus?: number }>;
   } | null>(null);
-  const [isBatchExecuting, setIsBatchExecuting] = useState(false);
+
+  // Reset do passo 7 quando muda de passo
+  const prevStepIdRef = useRef<number>(stepId);
+  if (prevStepIdRef.current !== stepId) {
+    prevStepIdRef.current = stepId;
+    // Reset será feito via useEffect abaixo
+  }
 
   // Toggle de seleção de solicitação no passo 7
   const handleToggleRequest = (requestId: string) => {
-    setSelectedRequestIds(prev =>
+    setStep7SelectedIds(prev =>
       prev.includes(requestId) ? prev.filter(id => id !== requestId) : [...prev, requestId]
     );
   };
 
+  // Listar solicitações do passo 6 (sem API)
+  const handleStep7List = () => {
+    const accumulated: string[] = (() => {
+      try { return JSON.parse(String(runState.dataRequestIds ?? "[]")) as string[]; } catch { return []; }
+    })();
+    const current = runState.dataRequestId ? String(runState.dataRequestId) : "";
+    const all = current && !accumulated.includes(current) ? [...accumulated, current] : accumulated;
+    setStep7ListedIds(all);
+    setStep7SelectedIds([]);
+    setStep7BatchResult(null);
+    setStep7Phase("selecting");
+  };
+
   // Aceitar ou rejeitar solicitações selecionadas no passo 7
-  const handleRequestAction = async (action: "accept" | "reject") => {
-    if (selectedRequestIds.length === 0) return;
+  const handleStep7Action = async (action: "accept" | "reject") => {
+    if (step7SelectedIds.length === 0) return;
     const targetActionId = action === "accept" ? "step7_accept_data_request" : "step7_reject_data_request";
-    if (onBatchExecute) {
-      setIsBatchExecuting(true);
-      setBatchResult(null);
-      try {
-        const result = await onBatchExecute(targetActionId, selectedRequestIds);
-        setBatchResult({ ...result, action });
-        // Salvar o primeiro ID aceito no runState
-        if (result.ok && selectedRequestIds[0]) {
-          onFieldChange("dataRequestId", selectedRequestIds[0]);
-        }
-      } catch (err) {
-        setBatchResult({
-          ok: false,
-          action,
-          message: err instanceof Error ? err.message : "Erro desconhecido",
-          results: [],
-        });
-      } finally {
-        setIsBatchExecuting(false);
+    if (!onBatchExecute) return;
+    setStep7Phase("executing");
+    setStep7BatchResult(null);
+    try {
+      const result = await onBatchExecute(targetActionId, step7SelectedIds);
+      setStep7BatchResult({ ...result, action });
+      if (result.ok && step7SelectedIds[0]) {
+        onFieldChange("dataRequestId", step7SelectedIds[0]);
       }
-    } else {
-      // Fallback: navegar para ação individual (comportamento anterior)
-      onFieldChange("dataRequestId", selectedRequestIds[0]);
-      if (onAutoAdvance) {
-        onAutoAdvance(targetActionId);
-        setPhase("input");
-      }
+    } catch (err) {
+      setStep7BatchResult({
+        ok: false,
+        action,
+        message: err instanceof Error ? err.message : "Erro desconhecido",
+        results: [],
+      });
+    } finally {
+      setStep7Phase("done");
     }
   };
+
+  // Legado: manter para compatibilidade com código que ainda usa selectedRequestIds
+  const selectedRequestIds = step7SelectedIds;
+  const batchResult = step7BatchResult;
+  const isBatchExecuting = step7Phase === "executing";
 
   // Quando um schema é selecionado: salva no runState e navega para o passo 4
   const handleSchemaSelect = (sid: string, name: string) => {
@@ -1981,7 +2001,7 @@ export function HomologacaoPhoneMockup({
         </div>
 
         {/* Screen content */}
-        <div className={phase === "result" && actionId === "step7_list_business_requests" ? "" : "overflow-y-auto"} style={{ maxHeight: 390 }}>
+        <div className={screen.stepId === 7 ? "" : "overflow-y-auto"} style={{ maxHeight: 390 }}>
           {/* PASSO 0 — Tela especial de autenticação M2M */}
           {!isGap && stepId === 0 && (
             <div className="p-4 space-y-3">
@@ -2819,28 +2839,83 @@ export function HomologacaoPhoneMockup({
             );
           })()}
 
-          {/* RESULTADO: step7_list_business_requests — tela de solicitações com botões fixos na parte inferior */}
-          {!isGap && phase === "result" && actionId === "step7_list_business_requests" && activeResult && (() => {
-            // Extrair lista de solicitações da resposta da API GET
-            const body = activeResult.responseBody as Record<string, unknown> | unknown[] | null | undefined;
-            const requests: Array<Record<string, unknown>> = (() => {
-              if (Array.isArray(body)) return body as Array<Record<string, unknown>>;
-              if (body && typeof body === "object") {
-                const vals = Object.values(body as Record<string, unknown>);
-                const firstArr = vals.find(v => Array.isArray(v));
-                if (firstArr) return firstArr as Array<Record<string, unknown>>;
-              }
-              return [];
-            })();
-            const hasRequests = requests.length > 0;
-            // Imagem temática baseada no schema selecionado no passo 3
-            const schemaName = String(runState.selectedSchemaName ?? runState.valueSchemaSid ?? "").toLowerCase();
-            const schemaImg = schemaName.includes("tarifa") || schemaName.includes("corrida") || schemaName.includes("motorista") || schemaName.includes("local") || schemaName.includes("rideshare")
-              ? SCHEMA_TYPE_IMAGES.mobility
-              : schemaName.includes("telecom") || schemaName.includes("telefonia") || schemaName.includes("plano")
-              ? SCHEMA_TYPE_IMAGES.standard
-              : SCHEMA_TYPE_IMAGES.consent;
-            return (
+          {/* ═══════════════════════════════════════════════════════════════════
+               PASSO 7 — TELA ÚNICA AUTOCONTIDA
+               Fluxo: idle → selecting → executing → done
+               Não depende de phase/actionId globais
+          ═══════════════════════════════════════════════════════════════════ */}
+          {!isGap && screen.stepId === 7 && (() => {
+            const hasIds = step7ListedIds.length > 0;
+            const isExecutingBatch = step7Phase === "executing";
+            const isDone = step7Phase === "done";
+            const isSelecting = step7Phase === "selecting" || isDone;
+
+            // ── TELA IDLE: botão Listar Solicitações ──────────────────────────
+            if (step7Phase === "idle") {
+              const accumulated: string[] = (() => {
+                try { return JSON.parse(String(runState.dataRequestIds ?? "[]")) as string[]; } catch { return []; }
+              })();
+              const current = runState.dataRequestId ? String(runState.dataRequestId) : "";
+              const previewIds = current && !accumulated.includes(current) ? [...accumulated, current] : accumulated;
+              return (
+                <div className="p-4 space-y-3">
+                  {/* Cabeçalho */}
+                  <div className="rounded-2xl bg-[#1351b4] p-4 text-white">
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200 mb-1">Passo 7 — Business dWallet</p>
+                    <p className="text-sm font-bold leading-tight">Solicitações de dados recebidas</p>
+                    <p className="text-[9px] text-blue-200 mt-1">Gerencie as solicitações enviadas pelas pessoas.</p>
+                  </div>
+
+                  {/* Preview dos IDs acumulados */}
+                  <div className="rounded-xl border overflow-hidden" style={{ borderColor: previewIds.length > 0 ? "#bbf7d0" : "#fde68a", background: previewIds.length > 0 ? "#f0fdf4" : "#fffbeb" }}>
+                    <div className="px-3 py-2 border-b flex items-center justify-between" style={{ borderColor: previewIds.length > 0 ? "#bbf7d0" : "#fde68a" }}>
+                      <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: previewIds.length > 0 ? "#15803d" : "#92400e" }}>
+                        {previewIds.length > 0 ? `${previewIds.length} solicitação(s) do Passo 6` : "⚠️ Nenhuma solicitação gerada"}
+                      </p>
+                      {previewIds.length > 0 && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: "#dcfce7", color: "#15803d" }}>{previewIds.length}</span>}
+                    </div>
+                    {previewIds.length > 0 ? (
+                      <div className="divide-y" style={{ borderColor: "#bbf7d0" }}>
+                        {previewIds.slice(0, 3).map((id, idx) => (
+                          <div key={id} className="px-3 py-1.5 flex items-center gap-2">
+                            <span className="text-[8px] font-bold text-emerald-600 shrink-0">#{idx + 1}</span>
+                            <p className="text-[8px] font-mono text-slate-600 truncate flex-1">{id}</p>
+                          </div>
+                        ))}
+                        {previewIds.length > 3 && <div className="px-3 py-1 text-[8px] text-slate-400">+{previewIds.length - 3} mais...</div>}
+                      </div>
+                    ) : (
+                      <div className="px-3 py-2">
+                        <p className="text-[9px] text-amber-700">Execute o Passo 6 para criar solicitações. Os IDs ficam acumulados até o reset do teste.</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Botão Listar Solicitações */}
+                  <button
+                    onClick={handleStep7List}
+                    className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+                    style={{ background: "#1351b4" }}
+                  >
+                    <span className="flex items-center justify-center gap-2">
+                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="white"/><rect x="3" y="9" width="10" height="2" rx="1" fill="white"/><rect x="3" y="13" width="12" height="2" rx="1" fill="white"/></svg>
+                      Listar Solicitações
+                    </span>
+                  </button>
+                </div>
+              );
+            }
+
+            // ── TELA SELECTING/DONE: lista com checkboxes + botões ─────────────
+            if (isSelecting) {
+              const hasRequests = hasIds;
+              const schemaName = String(runState.selectedSchemaName ?? runState.valueSchemaSid ?? "").toLowerCase();
+              const schemaImg = schemaName.includes("tarifa") || schemaName.includes("corrida") || schemaName.includes("motorista") || schemaName.includes("local") || schemaName.includes("rideshare")
+                ? SCHEMA_TYPE_IMAGES.mobility
+                : schemaName.includes("telecom") || schemaName.includes("telefonia") || schemaName.includes("plano")
+                ? SCHEMA_TYPE_IMAGES.standard
+                : SCHEMA_TYPE_IMAGES.consent;
+              return (
               <div className="flex flex-col" style={{ height: 390 }}>
                 {/* Cabeçalho com schema e contador */}
                 <div className="relative overflow-hidden shrink-0" style={{ minHeight: 58 }}>
@@ -2854,7 +2929,7 @@ export function HomologacaoPhoneMockup({
                       </p>
                     </div>
                     <span className="text-[9px] font-bold px-2 py-1 rounded-full" style={{ background: hasRequests ? "rgba(254,243,199,0.9)" : "rgba(241,245,249,0.9)", color: hasRequests ? "#92400e" : "#64748b" }}>
-                      {requests.length} {requests.length === 1 ? "item" : "itens"}
+                      {step7ListedIds.length} {step7ListedIds.length === 1 ? "item" : "itens"}
                     </span>
                   </div>
                 </div>
@@ -2870,7 +2945,7 @@ export function HomologacaoPhoneMockup({
                           {batchResult.action === "accept" ? "Aceite" : "Recusa"} {batchResult.ok ? "concluído" : "com erros"}
                         </p>
                         <button
-                          onClick={() => { setBatchResult(null); setSelectedRequestIds([]); }}
+                          onClick={() => { setStep7BatchResult(null); setStep7SelectedIds([]); setStep7Phase("selecting"); }}
                           className="ml-auto text-[9px] font-semibold px-2 py-0.5 rounded-full"
                           style={{ background: "rgba(0,0,0,0.08)", color: batchResult.ok ? "#065f46" : "#991b1b" }}
                         >
@@ -2889,20 +2964,15 @@ export function HomologacaoPhoneMockup({
 
                   {hasRequests ? (
                     <div className="px-3 py-2 space-y-2">
-                      {requests.map((req, idx) => {
-                        const reqId = String(req.id ?? req.requestId ?? req.dataRequestId ?? req.request_id ?? `req-${idx}`);
-                        const personId = String(req.personId ?? req.person_id ?? req.pdwalletId ?? req.requester ?? "");
-                        const cpf = String(req.cpf ?? req.document ?? req.taxId ?? "");
-                        const name = String(req.name ?? req.personName ?? req.requesterName ?? "");
-                        const schemaLabel = String(req.schemaName ?? req.schema ?? req.dataType ?? req.type ?? "");
-                        const status = String(req.status ?? "pending");
-                        const isSelected = selectedRequestIds.includes(reqId);
-                        const batchItemResult = batchResult?.results.find(r => r.dataRequestId === reqId);
+                      {step7ListedIds.map((reqId, idx) => {
+                        const isSelected = step7SelectedIds.includes(reqId);
+                        const batchItemResult = step7BatchResult?.results.find(r => r.dataRequestId === reqId);
+                        const isDoneState = step7Phase === "done";
                         return (
                           <button
                             key={reqId}
-                            onClick={() => !batchResult && handleToggleRequest(reqId)}
-                            disabled={!!batchResult}
+                            onClick={() => !isDoneState && handleToggleRequest(reqId)}
+                            disabled={isDoneState}
                             className="w-full text-left rounded-xl border-2 p-3 transition-all active:scale-[0.98] disabled:cursor-default"
                             style={{
                               borderColor: batchItemResult
@@ -2941,21 +3011,17 @@ export function HomologacaoPhoneMockup({
                               </div>
                               {/* Dados da solicitação */}
                               <div className="min-w-0 flex-1">
-                                {/* Linha 1: schema ou tipo de dado */}
                                 <p className="text-[10px] font-bold text-slate-800 leading-tight truncate">
-                                  {schemaLabel || runState.selectedSchemaName || "Solicitação de dados"}
+                                  {runState.selectedSchemaName ? String(runState.selectedSchemaName) : "Solicitação de dados"}
                                 </p>
-                                {/* Linha 2: ID da pessoa */}
                                 <p className="text-[8px] font-mono text-slate-500 truncate mt-0.5">
-                                  {personId ? `PdW: ${personId.slice(0, 14)}…` : `ID: ${reqId.slice(0, 14)}…`}
+                                  ID: {reqId.slice(0, 20)}…
                                 </p>
-                                {/* Linha 3: nome/cpf se disponível */}
-                                {(name || cpf) && (
-                                  <p className="text-[8px] text-slate-400 truncate">{[name, cpf].filter(Boolean).join(" · ")}</p>
-                                )}
-                                {/* Linha 4: status badge */}
                                 <div className="flex items-center gap-1 mt-1">
-                                  <span className="text-[7px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide" style={{ background: "#fef3c7", color: "#92400e" }}>{status}</span>
+                                  <span className="text-[7px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide" style={{ background: batchItemResult ? (batchItemResult.ok ? "#dcfce7" : "#fee2e2") : "#fef3c7", color: batchItemResult ? (batchItemResult.ok ? "#15803d" : "#991b1b") : "#92400e" }}>
+                                    {batchItemResult ? (batchItemResult.ok ? "processado" : "erro") : "pendente"}
+                                  </span>
+                                  <span className="text-[7px] text-slate-400">#{idx + 1}</span>
                                 </div>
                               </div>
                             </div>
@@ -2968,8 +3034,8 @@ export function HomologacaoPhoneMockup({
                       <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94a3b8" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                       </div>
-                      <p className="text-xs font-bold text-slate-500">Nenhuma solicitação pendente</p>
-                      <p className="text-[9px] text-slate-400 mt-1">Execute o passo 6 para criar uma solicitação de dados.</p>
+                      <p className="text-xs font-bold text-slate-500">Nenhuma solicitação gerada</p>
+                      <p className="text-[9px] text-slate-400 mt-1">Execute o Passo 6 para criar solicitações de dados.</p>
                     </div>
                   )}
                 </div>
@@ -2984,7 +3050,7 @@ export function HomologacaoPhoneMockup({
                   {!batchResult && (
                     <div className="grid grid-cols-2 gap-2">
                       <button
-                        onClick={() => handleRequestAction("accept")}
+                        onClick={() => handleStep7Action("accept")}
                         disabled={selectedRequestIds.length === 0 || isBatchExecuting || !hasRequests}
                         className="rounded-xl py-2.5 text-[11px] font-bold text-white shadow-sm transition-all active:scale-95"
                         style={{
@@ -3006,7 +3072,7 @@ export function HomologacaoPhoneMockup({
                         )}
                       </button>
                       <button
-                        onClick={() => handleRequestAction("reject")}
+                        onClick={() => handleStep7Action("reject")}
                         disabled={selectedRequestIds.length === 0 || isBatchExecuting || !hasRequests}
                         className="rounded-xl py-2.5 text-[11px] font-bold text-white shadow-sm transition-all active:scale-95"
                         style={{
@@ -3034,7 +3100,9 @@ export function HomologacaoPhoneMockup({
                   )}
                 </div>
               </div>
-            );
+              );
+            }
+            return null;
           })()}
 
           {/* CONFIRMAÇÃO: step7_accept_data_request — card nano banana */}
@@ -3150,95 +3218,7 @@ export function HomologacaoPhoneMockup({
             </div>
           )}
 
-          {/* PASSO 7 INPUT: step7_list_business_requests — botão Listar Requests + IDs acumulados */}
-          {!isGap && phase === "input" && actionId === "step7_list_business_requests" && (() => {
-            // IDs acumulados do passo 6 durante a sessão
-            const accumulatedIds: string[] = (() => {
-              try { return JSON.parse(String(runState.dataRequestIds ?? "[]")) as string[]; } catch { return []; }
-            })();
-            // Também incluir o dataRequestId atual se não estiver na lista
-            const currentId = runState.dataRequestId ? String(runState.dataRequestId) : "";
-            const allIds = currentId && !accumulatedIds.includes(currentId)
-              ? [...accumulatedIds, currentId]
-              : accumulatedIds;
-            return (
-              <div className="p-4 space-y-3">
-                {/* Resultado anterior */}
-                {activeResult && (
-                  <button
-                    onClick={() => setPhase("result")}
-                    className={`w-full text-xs font-semibold py-2 rounded-2xl border transition-colors ${
-                      activeResult.ok
-                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
-                        : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
-                    }`}
-                  >
-                    {activeResult.ok ? "✅ Ver solicitações listadas →" : "❌ Ver último erro →"}
-                  </button>
-                )}
-
-                {/* IDs de solicitações geradas no passo 6 */}
-                <div className="rounded-2xl border overflow-hidden" style={{ borderColor: allIds.length > 0 ? "#bbf7d0" : "#fde68a", background: allIds.length > 0 ? "#f0fdf4" : "#fffbeb" }}>
-                  <div className="px-4 py-2.5 border-b flex items-center justify-between" style={{ borderColor: allIds.length > 0 ? "#bbf7d0" : "#fde68a" }}>
-                    <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: allIds.length > 0 ? "#15803d" : "#92400e" }}>
-                      {allIds.length > 0 ? `✅ ${allIds.length} solicitação(s) gerada(s) no passo 6` : "⚠️ Nenhuma solicitação gerada ainda"}
-                    </p>
-                    {allIds.length > 0 && (
-                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#dcfce7", color: "#15803d" }}>{allIds.length}</span>
-                    )}
-                  </div>
-                  {allIds.length > 0 ? (
-                    <div className="divide-y" style={{ borderColor: "#bbf7d0" }}>
-                      {allIds.map((id, idx) => (
-                        <div key={id} className="px-4 py-2 flex items-center gap-2">
-                          <span className="text-[9px] font-bold text-emerald-600 shrink-0">#{idx + 1}</span>
-                          <p className="text-[9px] font-mono text-slate-700 truncate flex-1">{id}</p>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="px-4 py-3">
-                      <p className="text-[9px] text-amber-700">Execute o Passo 6 para gerar solicitações de dados. Cada execução do Passo 6 acumula um novo ID nesta lista.</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Business dWallet ID */}
-                {runState.businessDwalletId && (
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
-                    <span className="text-base">🏢</span>
-                    <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Empresa consultada</p>
-                      <p className="text-[9px] font-mono text-slate-700 truncate">{String(runState.businessDwalletId)}</p>
-                    </div>
-                  </div>
-                )}
-
-                {/* Botão Listar Requests */}
-                <button
-                  onClick={handleCta}
-                  disabled={isExecuting}
-                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
-                  style={{ background: colors.accent }}
-                >
-                  {isExecuting ? (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                        <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
-                        <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
-                      </svg>
-                      Consultando…
-                    </span>
-                  ) : (
-                    <span className="flex items-center justify-center gap-2">
-                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M9 3a6 6 0 100 12A6 6 0 009 3zM2 9a7 7 0 1112.452 4.391l3.328 3.329a1 1 0 11-1.414 1.414l-3.329-3.328A7 7 0 012 9z" fill="white"/></svg>
-                      Listar Requests
-                    </span>
-                  )}
-                </button>
-              </div>
-            );
-          })()}
+          {/* PASSO 7 INPUT: removido — substituído pelo bloco autocontido screen.stepId === 7 acima */}
 
           {/* INPUT state */}
           {!isGap && phase === "input" && stepId !== 0 && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_list_business_requests" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && !(screen.stepId === 6 && actionId === "step6_create_data_request") && (

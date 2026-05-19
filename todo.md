@@ -296,3 +296,7 @@
 - [x] Passo 7: tela de input com botão "Listar Requests" (GET) e exibição dos IDs acumulados do passo 6
 - [x] Passo 7: tela de resultado com cards por solicitação (da resposta GET) + botões Aceitar/Recusar fixos abaixo
 - [x] Passo 7: acumular dataRequestIds gerados no passo 6 na sessão (até reset do teste)
+- [x] Passo 7 (refactor total): tela única com botão "Listar Solicitações" que lê IDs do runState sem chamar API
+- [x] Passo 7 (refactor total): lista selecionável de IDs gerados no Passo 6 com checkbox por item
+- [x] Passo 7 (refactor total): botões Aceitar/Rejeitar fixos abaixo da lista executam PATCH com accept/reject para IDs selecionados
+- [x] Passo 7 (refactor total): tela autocontida com estados idle/selecting/executing/done independente do phase global
