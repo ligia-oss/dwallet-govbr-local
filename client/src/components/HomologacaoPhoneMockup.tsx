@@ -1,5 +1,22 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 
+// ─── DSP Plan Images (generated via Gemini) ─────────────────────────────────
+const DSP_IMAGES: Record<string, string> = {
+  standard: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/dsp-standard-plan-RW2VxZTKegdBoj89TcWY8p.webp",
+  premium: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/dsp-premium-plan-6q2StDZxQmp3jXmG7uDr7m.webp",
+  smart: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/dsp-smart-plan-T2T4QBWb3M96oyFri53nuP.webp",
+  basic: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/dsp-basic-plan-Yuo6LbHJRvLTs9ppX2gnQr.webp",
+};
+
+/** Retorna a imagem correspondente ao nome do plano DSP */
+function getDspImage(name: string): string {
+  const lower = name.toLowerCase();
+  if (lower.includes("premium")) return DSP_IMAGES.premium;
+  if (lower.includes("smart")) return DSP_IMAGES.smart;
+  if (lower.includes("basic") || lower.includes("b\u00e1sico")) return DSP_IMAGES.basic;
+  return DSP_IMAGES.standard; // default
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 type RunState = Record<string, string | number | boolean | null>;
@@ -1493,84 +1510,151 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
   const isStep12 = screen.stepId === 12;
   const is403Error = !result.ok && result.httpStatus === 403;
 
+  // Erro AUTHZ_E005 para o passo 13 (token de usuário inválido/faltando)
+  const isStep13 = screen.stepId === 13;
+  const responseBodyObj = body as Record<string, unknown> | null | undefined;
+  const isAuthzE005 = isStep13 && !result.ok && (
+    (responseBodyObj?.errorCode === "AUTHZ_E005") ||
+    (typeof responseBodyObj?.message === "string" && (responseBodyObj.message as string).includes("Invalid JWT"))
+  );
+  const isStep13Success = isStep13 && result.ok;
+
   return (
     <div className="space-y-3">
 
-      {/* Card de erro 403 amigável — passo 12 */}
-      {isStep12 && is403Error ? (
-        <div className="rounded-2xl overflow-hidden border border-amber-200 shadow-sm">
-          {/* Cabeçalho colorido */}
-          <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #f59e0b22, #ef444422)" }}>
-            <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#f59e0b20", border: "1.5px solid #f59e0b50" }}>
-              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f59e0b" strokeWidth="2">
-                <path d="M12 9v4M12 17h.01" strokeLinecap="round"/>
-                <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-              </svg>
-            </div>
-            <div>
-              <p className="text-xs font-bold text-amber-800">Acesso restrito — Feature Flag</p>
-              <p className="text-[10px] text-amber-700 font-mono font-semibold">HTTP 403 Forbidden</p>
-            </div>
-          </div>
-          {/* Corpo explicativo */}
-          <div className="bg-white px-4 py-3 space-y-3">
-            <p className="text-xs text-slate-700 leading-5">
-              O endpoint <span className="font-mono font-semibold text-slate-900">GET /v1/marketplace/offers</span> está <strong>restrito neste ambiente sandbox</strong>. A feature flag de marketplace não está habilitada para este tenant.
-            </p>
-            {/* Diagnóstico */}
-            <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-2">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Diagnóstico</p>
-              <div className="space-y-1.5">
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] mt-0.5">✅</span>
-                  <p className="text-[10px] text-slate-600 leading-4">O código está correto — a chamada foi executada com sucesso</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] mt-0.5">✅</span>
-                  <p className="text-[10px] text-slate-600 leading-4">Token M2M e token de usuário foram enviados corretamente</p>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[10px] mt-0.5">⚠️</span>
-                  <p className="text-[10px] text-slate-600 leading-4">O servidor DrumWave retornou 403 por restrição de ambiente — não é um bug</p>
-                </div>
+      {/* Cards de resultado especiais por contexto */}
+      {(() => {
+        if (isStep13Success) return (
+          <div className="rounded-2xl overflow-hidden border border-emerald-200 shadow-sm">
+            <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #10b98122, #06b6d422)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#10b98120", border: "1.5px solid #10b98150" }}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" strokeWidth="2">
+                  <path d="M9 12l2 2 4-4"/>
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-emerald-800">Oferta aceita com sucesso!</p>
+                <p className="text-[10px] text-emerald-700">HTTP {result.httpStatus} · Decisão registrada</p>
               </div>
             </div>
-            {/* Ação recomendada */}
-            <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-              <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-1">📧 Ação recomendada</p>
-              <p className="text-[10px] text-slate-600 leading-4">
-                Solicite à equipe DrumWave a habilitação da feature flag de <strong>marketplace offers</strong> para o tenant sandbox. Após habilitar, o passo 12 e o passo 13 (aceitar oferta) funcionarão automaticamente.
+            <div className="bg-white px-4 py-3 space-y-2">
+              <p className="text-xs text-slate-700 leading-5">
+                O aceite da oferta foi registrado no marketplace DrumWave. A oferta agora está vinculada à sua conta pessoal.
               </p>
-            </div>
-            {/* Badge de status */}
-            <div className="flex items-center gap-2 pt-1">
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
-                Restrição de ambiente
-              </span>
-              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">
-                API executada com sucesso
-              </span>
+              {runState.offerId && (
+                <div className="rounded-xl px-3 py-2" style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                  <p className="text-[8px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">ID da Oferta aceita</p>
+                  <p className="text-[9px] font-mono text-slate-600 break-all">{String(runState.offerId)}</p>
+                </div>
+              )}
+              <div className="flex items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-100 text-emerald-700 border border-emerald-200">
+                  <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+                  Aceite confirmado
+                </span>
+              </div>
             </div>
           </div>
-        </div>
-      ) : (
-      <div className={`rounded-2xl p-3 ${result.ok ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"}`}>
-        <div className="flex items-center gap-2 mb-1">
-          <span className="text-base">{result.ok ? "✅" : "❌"}</span>
-          <span className="text-sm font-bold text-slate-900">{screen.resultTitle(result)}</span>
-        </div>
-        <p className="text-xs leading-5 text-slate-600">{screen.resultBody(result, runState)}</p>
-        {screen.resultDetails && screen.resultDetails(result) && (
-          <p className="text-xs leading-5 text-slate-500 mt-1">{screen.resultDetails(result)}</p>
-        )}
-        {result.httpStatus && (
-          <span className={`inline-block mt-2 text-xs font-mono font-bold px-2 py-0.5 rounded ${result.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
-            HTTP {result.httpStatus}
-          </span>
-        )}
-      </div>
-      )}
+        );
+        if (isAuthzE005) return (
+          <div className="rounded-2xl overflow-hidden border border-amber-200 shadow-sm">
+            <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #f59e0b22, #ef444422)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#f59e0b20", border: "1.5px solid #f59e0b50" }}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f59e0b" strokeWidth="2">
+                  <path d="M12 9v4M12 17h.01" strokeLinecap="round"/>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-amber-800">Token de usuário inválido</p>
+                <p className="text-[10px] text-amber-700 font-mono font-semibold">HTTP 400 · AUTHZ_E005</p>
+              </div>
+            </div>
+            <div className="bg-white px-4 py-3 space-y-3">
+              <p className="text-xs text-slate-700 leading-5">
+                O endpoint <span className="font-mono font-semibold text-slate-900">POST /v1/marketplace/offers/.../accept</span> requer um <strong>token JWT válido de pessoa física</strong> no header <span className="font-mono">X-User-Access-Token</span>.
+              </p>
+              <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Diagnóstico</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">✅</span><p className="text-[10px] text-slate-600 leading-4">O código está correto — a chamada chegou ao servidor DrumWave</p></div>
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">✅</span><p className="text-[10px] text-slate-600 leading-4">Token M2M enviado corretamente</p></div>
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">⚠️</span><p className="text-[10px] text-slate-600 leading-4">Token de pessoa física (X-User-Access-Token) não é JWT válido — execute o login da pessoa física primeiro</p></div>
+                </div>
+              </div>
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-1">🔑 Ação recomendada</p>
+                <p className="text-[10px] text-slate-600 leading-4">Execute o <strong>Passo 2</strong> (login da pessoa física) para obter um token válido. O token será salvo automaticamente e usado no Passo 13.</p>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                  <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+                  Token inválido
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">API alcançada</span>
+              </div>
+            </div>
+          </div>
+        );
+        if (isStep12 && is403Error) return (
+          <div className="rounded-2xl overflow-hidden border border-amber-200 shadow-sm">
+            <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #f59e0b22, #ef444422)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#f59e0b20", border: "1.5px solid #f59e0b50" }}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#f59e0b" strokeWidth="2">
+                  <path d="M12 9v4M12 17h.01" strokeLinecap="round"/>
+                  <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-amber-800">Acesso restrito — Feature Flag</p>
+                <p className="text-[10px] text-amber-700 font-mono font-semibold">HTTP 403 Forbidden</p>
+              </div>
+            </div>
+            <div className="bg-white px-4 py-3 space-y-3">
+              <p className="text-xs text-slate-700 leading-5">
+                O endpoint <span className="font-mono font-semibold text-slate-900">GET /v1/marketplace/offers</span> está <strong>restrito neste ambiente sandbox</strong>. A feature flag de marketplace não está habilitada para este tenant.
+              </p>
+              <div className="rounded-xl bg-amber-50 border border-amber-100 p-3 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-amber-700">Diagnóstico</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">✅</span><p className="text-[10px] text-slate-600 leading-4">O código está correto — a chamada foi executada com sucesso</p></div>
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">✅</span><p className="text-[10px] text-slate-600 leading-4">Token M2M e token de usuário foram enviados corretamente</p></div>
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">⚠️</span><p className="text-[10px] text-slate-600 leading-4">O servidor DrumWave retornou 403 por restrição de ambiente — não é um bug</p></div>
+                </div>
+              </div>
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-1">📧 Ação recomendada</p>
+                <p className="text-[10px] text-slate-600 leading-4">Solicite à equipe DrumWave a habilitação da feature flag de <strong>marketplace offers</strong> para o tenant sandbox.</p>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                  <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+                  Restrição de ambiente
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">API executada</span>
+              </div>
+            </div>
+          </div>
+        );
+        return (
+          <div className={`rounded-2xl p-3 ${result.ok ? "bg-emerald-50 border border-emerald-200" : "bg-red-50 border border-red-200"}`}>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-base">{result.ok ? "✅" : "❌"}</span>
+              <span className="text-sm font-bold text-slate-900">{screen.resultTitle(result)}</span>
+            </div>
+            <p className="text-xs leading-5 text-slate-600">{screen.resultBody(result, runState)}</p>
+            {screen.resultDetails && screen.resultDetails(result) && (
+              <p className="text-xs leading-5 text-slate-500 mt-1">{screen.resultDetails(result)}</p>
+            )}
+            {result.httpStatus && (
+              <span className={`inline-block mt-2 text-xs font-mono font-bold px-2 py-0.5 rounded ${result.ok ? "bg-emerald-100 text-emerald-700" : "bg-red-100 text-red-700"}`}>
+                HTTP {result.httpStatus}
+              </span>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Captured variables */}
       {capturedKeys.length > 0 && (
@@ -3491,25 +3575,55 @@ export function HomologacaoPhoneMockup({
                       const isSelected = step10SelectedDspId === dsp.id;
                       const dspName = String(dsp.name ?? dsp.id ?? "DSP");
                       const dspDesc = String(dsp.description ?? "");
+                      const dspImg = getDspImage(dspName);
                       return (
-                        <div key={dsp.id} className="rounded-xl border overflow-hidden transition-all" style={{ borderColor: isSelected ? "#7c3aed" : "#e2e8f0", background: isSelected ? "#faf5ff" : "white" }}>
-                          {/* Card principal — clique expande drill-down */}
+                        <div key={dsp.id} className="rounded-2xl border overflow-hidden transition-all shadow-sm" style={{ borderColor: isSelected ? "#7c3aed" : "#e2e8f0", background: isSelected ? "#faf5ff" : "white" }}>
+                          {/* Card principal com imagem — clique expande drill-down */}
                           <button
-                            className="w-full px-3 py-2.5 flex items-center gap-2 text-left"
+                            className="w-full text-left"
                             onClick={() => handleStep10DspClick(dsp.id)}
                           >
-                            <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center text-white text-[9px] font-bold" style={{ background: "#7c3aed" }}>DSP</div>
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[10px] font-bold text-slate-800 truncate">{dspName}</p>
-                              {dspDesc && <p className="text-[8px] text-slate-400 truncate">{dspDesc}</p>}
-                              <p className="text-[8px] font-mono text-slate-300 truncate">{dsp.id}</p>
+                            {/* Banner de imagem */}
+                            <div className="relative w-full h-20 overflow-hidden">
+                              <img
+                                src={dspImg}
+                                alt={dspName}
+                                className="w-full h-full object-cover object-center"
+                                style={{ objectPosition: "center 30%" }}
+                              />
+                              {/* Overlay gradiente */}
+                              <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 30%, rgba(0,0,0,0.55) 100%)" }} />
+                              {/* Badge de tipo */}
+                              <div className="absolute top-1.5 right-1.5">
+                                <span className="text-[8px] font-bold px-1.5 py-0.5 rounded-full text-white" style={{ background: isSelected ? "#059669" : "#7c3aed99", backdropFilter: "blur(4px)" }}>
+                                  {isSelected ? "✓ Selecionado" : "DSP"}
+                                </span>
+                              </div>
+                              {/* Nome sobre a imagem */}
+                              <div className="absolute bottom-1.5 left-2 right-8">
+                                <p className="text-[10px] font-bold text-white truncate drop-shadow">{dspName}</p>
+                              </div>
+                              {/* Seta expand */}
+                              <div className="absolute bottom-1.5 right-2">
+                                <svg viewBox="0 0 16 16" width="12" height="12" fill="none" className={`transition-transform ${isExpanded ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                              </div>
                             </div>
-                            <svg viewBox="0 0 16 16" width="12" height="12" fill="none" className={`shrink-0 transition-transform ${isExpanded ? "rotate-180" : ""}`}><path d="M4 6l4 4 4-4" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                            {/* Descrição abaixo da imagem */}
+                            {dspDesc && (
+                              <div className="px-2.5 py-1.5">
+                                <p className="text-[9px] text-slate-500 leading-4 line-clamp-2">{dspDesc}</p>
+                              </div>
+                            )}
                           </button>
 
                           {/* Drill-down: detalhe do DSP */}
                           {isExpanded && (
-                            <div className="border-t px-3 py-2 bg-slate-50" style={{ borderColor: "#e2e8f0" }}>
+                            <div className="border-t px-3 py-2.5 space-y-2" style={{ borderColor: "#e2e8f0", background: "#f8fafc" }}>
+                              {/* Imagem de detalhe maior */}
+                              <div className="rounded-xl overflow-hidden w-full h-28 mb-2">
+                                <img src={dspImg} alt={dspName} className="w-full h-full object-cover" style={{ objectPosition: "center 20%" }} />
+                              </div>
+
                               {isExec && !step10DspDetails ? (
                                 <div className="flex items-center gap-2 py-1">
                                   <svg className="animate-spin" viewBox="0 0 20 20" width="12" height="12" fill="none"><circle cx="10" cy="10" r="7" stroke="#7c3aed" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
@@ -3533,15 +3647,15 @@ export function HomologacaoPhoneMockup({
                               <button
                                 onClick={() => handleStep10DspSelect(dsp.id)}
                                 disabled={isExec}
-                                className="mt-2 w-full rounded-lg py-1.5 text-[10px] font-bold text-white disabled:opacity-60 transition-all active:scale-95"
-                                style={{ background: isSelected ? "#059669" : "#7c3aed" }}
+                                className="mt-1 w-full rounded-xl py-2 text-[10px] font-bold text-white disabled:opacity-60 transition-all active:scale-95 shadow-sm"
+                                style={{ background: isSelected ? "linear-gradient(135deg, #059669, #047857)" : "linear-gradient(135deg, #7c3aed, #5b21b6)" }}
                               >
                                 {isExec && isSelected ? (
                                   <span className="flex items-center justify-center gap-1">
                                     <svg className="animate-spin" viewBox="0 0 20 20" width="11" height="11" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
                                     Aderindo...
                                   </span>
-                                ) : isSelected ? "✓ Selecionado — Aderir a este DSP" : "Selecionar e Aderir"}
+                                ) : isSelected ? "✓ Selecionado — Aderir a este DSP" : "💰 Selecionar e Aderir"}
                               </button>
                             </div>
                           )}
@@ -3555,8 +3669,22 @@ export function HomologacaoPhoneMockup({
 
             // ── ENROLLING: resultado do enroll + botão listar commercial ────────
             if (step10Phase === "enrolling") {
+              const enrolledDspName = step10Dsps.find(d => d.id === step10SelectedDspId)?.name ?? step10SelectedDspId ?? "DSP";
+              const enrolledDspImg = getDspImage(String(enrolledDspName));
               return (
                 <div className="p-4 space-y-3">
+                  {/* Banner do plano contratado */}
+                  <div className="rounded-2xl overflow-hidden shadow-sm">
+                    <div className="relative w-full h-24">
+                      <img src={enrolledDspImg} alt={String(enrolledDspName)} className="w-full h-full object-cover" style={{ objectPosition: "center 25%" }} />
+                      <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.6) 100%)" }} />
+                      <div className="absolute bottom-2 left-3">
+                        <p className="text-[9px] font-semibold text-white/80">Plano selecionado</p>
+                        <p className="text-[12px] font-bold text-white truncate">{String(enrolledDspName)}</p>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="rounded-2xl p-4" style={{ background: step10EnrollResult?.ok ? "#f0fdf4" : "#fef2f2", border: `1px solid ${step10EnrollResult?.ok ? "#bbf7d0" : "#fecaca"}` }}>
                     <p className="text-[10px] font-bold uppercase tracking-wide mb-1" style={{ color: step10EnrollResult?.ok ? "#15803d" : "#dc2626" }}>
                       {step10EnrollResult?.ok ? "✅ Enroll realizado" : "❌ Falha no enroll"}

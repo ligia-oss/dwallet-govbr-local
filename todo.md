@@ -340,11 +340,11 @@
 
 ## Sprint — Passo 12 novo offerId e tela de planos de poupança com dados reais
 
-- [ ] Testar offerId dc47fbb5-cb9a-4c96-940b-aae5d17b98ab no Passo 12
-- [ ] Se funcionar, atualizar o default do offerId para dc47fbb5-cb9a-4c96-940b-aae5d17b98ab
-- [ ] Investigar estrutura de dados retornada pela API de planos de poupança contratados
-- [ ] Implementar tela de planos de poupança com cards com nome, saldo, data de início e status
-- [ ] Testar fluxo completo no browser e salvar checkpoint
+- [x] Testar offerId dc47fbb5-cb9a-4c96-940b-aae5d17b98ab no Passo 12
+- [x] Se funcionar, atualizar o default do offerId para dc47fbb5-cb9a-4c96-940b-aae5d17b98ab
+- [x] Investigar estrutura de dados retornada pela API de planos de poupança contratados
+- [x] Implementar tela de planos de poupança com cards com nome, saldo, data de início e status
+- [x] Testar fluxo completo no browser e salvar checkpoint
 
 - [x] Passo 12: Atualizar offerId default para dc47fbb5-cb9a-4c96-940b-aae5d17b98ab (oferta válida no sandbox)
 - [x] Passo 12: Implementar tela de detalhes da oferta individual com card rico (imagem, título, descrição, campanha, datas de início/expiração, badge de status ativa/inativa, botão "Aceitar Oferta → Passo 13")
@@ -353,3 +353,12 @@
 - [x] Testes: Atualizar dataprev.router.test.ts para incluir step10_my_savings_plans (10.e) na lista esperada
 - [x] Testes: Corrigir dataprev.execute.test.ts para passar personTokenHandle com __test_skip__ no teste de regeneração M2M
 - [x] Testes: Adicionar suporte ao handle __test_skip__ no getStoredToken para facilitar testes de bypass
+
+## Sprint — Passo 13 correção e DSP cards com imagens Gemini
+
+- [x] Investigar e corrigir o erro do Passo 13 (aceite de oferta)
+- [x] Gerar imagens ilustrativas para planos DSP via Gemini (commercial, standard, dSavings)
+- [x] Integrar imagens nos cards de listagem de DSP (step10_standard_dsps e step10_commercial_dsps)
+- [x] Integrar imagem no card de detalhe do DSP (step10_dsp_details)
+- [x] Integrar imagem no card de contratação DSP (step10_create_dsp_account / enrolling)
+- [x] Validar TypeScript, testes e salvar checkpoint
