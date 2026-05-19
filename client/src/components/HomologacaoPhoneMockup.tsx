@@ -1822,7 +1822,8 @@ export function HomologacaoPhoneMockup({
   // PASSO 10 — Fluxo sequencial: listar DSPs → detalhe → enroll → commercial
   // ─────────────────────────────────────────────────────────────────────────────
   type Step10DspItem = { id: string; name?: string; description?: string; type?: string; [key: string]: unknown };
-  type Step10Phase = "idle" | "listing" | "detail" | "enrolling" | "commercial";
+  type Step10Phase = "idle" | "listing" | "detail" | "enrolling" | "commercial" | "savings";
+  type Step10SavingsAccount = { id?: string; name?: string; status?: string; balance?: number | string; currency?: string; savingsGoal?: number | string; categories?: string[]; cdspId?: string; [key: string]: unknown };
   const [step10Phase, setStep10Phase] = useState<Step10Phase>("idle");
   const [step10Dsps, setStep10Dsps] = useState<Step10DspItem[]>([]); // lista de DSPs retornados
   const [step10SelectedDspId, setStep10SelectedDspId] = useState<string>(""); // DSP selecionado (radio)
@@ -1830,6 +1831,7 @@ export function HomologacaoPhoneMockup({
   const [step10DspDetails, setStep10DspDetails] = useState<Record<string, unknown> | null>(null); // detalhe do DSP expandido
   const [step10CommercialDsps, setStep10CommercialDsps] = useState<Step10DspItem[]>([]); // commercial DSPs
   const [step10EnrollResult, setStep10EnrollResult] = useState<{ ok: boolean; message?: string; dspAccountId?: string } | null>(null);
+  const [step10SavingsAccounts, setStep10SavingsAccounts] = useState<Step10SavingsAccount[]>([]); // planos de poupança contratados
 
   // Reset do passo 10 quando muda de passo
   const prevStep10Ref = useRef<number>(stepId);
@@ -1844,6 +1846,7 @@ export function HomologacaoPhoneMockup({
         setStep10DspDetails(null);
         setStep10CommercialDsps([]);
         setStep10EnrollResult(null);
+        setStep10SavingsAccounts([]);
       }
     }
   }, [stepId]);
@@ -1895,6 +1898,22 @@ export function HomologacaoPhoneMockup({
       setStep10EnrollResult({ ok: true, message: "Conta DSP criada com sucesso.", dspAccountId: String(dspAccountId) });
       setStep10Phase("enrolling");
     }
+
+    // Capturar planos de poupança contratados
+    if (activeResult.actionId === "step10_my_savings_plans") {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const extractAccounts = (b: any): Step10SavingsAccount[] => {
+        if (!b) return [];
+        if (Array.isArray(b)) return b;
+        if (b.data && Array.isArray(b.data)) return b.data;
+        if (b.data?.page && Array.isArray(b.data.page)) return b.data.page;
+        if (b.page && Array.isArray(b.page)) return b.page;
+        if (b.items && Array.isArray(b.items)) return b.items;
+        return [];
+      };
+      setStep10SavingsAccounts(extractAccounts(body));
+      setStep10Phase("savings");
+    }
   }, [activeResult]);
 
   // Quando o usuário clica em um card de DSP: expande/colapsa o drill-down e executa a API de detalhe
@@ -1919,6 +1938,11 @@ export function HomologacaoPhoneMockup({
   // Quando o usuário clica em Listar Commercial DSPs
   const handleStep10ListCommercial = () => {
     onExecute("step10_commercial_dsps");
+  };
+
+  // Quando o usuário clica em Meus Planos de Poupança
+  const handleStep10ListSavings = () => {
+    onExecute("step10_my_savings_plans");
   };
 
   // Quando o usuário clica em Listar DSPs (standard)
@@ -3494,6 +3518,26 @@ export function HomologacaoPhoneMockup({
                     )}
                   </div>
 
+                  {/* Botão Meus Planos de Poupança */}
+                  <button
+                    onClick={handleStep10ListSavings}
+                    disabled={isExec}
+                    className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                    style={{ background: "linear-gradient(135deg, #1351b4 0%, #0e4091 100%)" }}
+                  >
+                    {isExec ? (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg className="animate-spin" viewBox="0 0 20 20" width="15" height="15" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
+                        Carregando...
+                      </span>
+                    ) : (
+                      <span className="flex items-center justify-center gap-2">
+                        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="white" strokeWidth="2"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/></svg>
+                        Meus Planos de Poupança
+                      </span>
+                    )}
+                  </button>
+
                   {/* Botão listar commercial DSPs */}
                   <button
                     onClick={handleStep10ListCommercial}
@@ -3521,6 +3565,133 @@ export function HomologacaoPhoneMockup({
                   >
                     ← Voltar para lista de DSPs
                   </button>
+                </div>
+              );
+            }
+
+            // ── SAVINGS: meus planos de poupança contratados ─────────────────────
+            if (step10Phase === "savings") {
+              return (
+                <div className="flex flex-col" style={{ height: 390 }}>
+                  {/* Header */}
+                  <div className="shrink-0 px-4 py-3" style={{ background: "linear-gradient(135deg, #1351b4 0%, #0e4091 100%)" }}>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200">Passo 10 — Planos Contratados</p>
+                    <p className="text-[12px] font-bold text-white">Meus Planos de Poupança</p>
+                    <p className="text-[9px] text-blue-200 mt-0.5">{step10SavingsAccounts.length} plano(s) encontrado(s)</p>
+                  </div>
+
+                  {/* Lista de planos */}
+                  <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
+                    {step10SavingsAccounts.length === 0 ? (
+                      <div className="flex flex-col items-center justify-center py-8 gap-3">
+                        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#e8f0fe" }}>
+                          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1351b4" strokeWidth="1.5">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                          </svg>
+                        </div>
+                        <div className="text-center">
+                          <p className="text-[11px] font-semibold text-slate-600">Nenhum plano contratado</p>
+                          <p className="text-[9px] text-slate-400 mt-0.5">Contrate um plano DSP para começar a poupar dados</p>
+                        </div>
+                      </div>
+                    ) : step10SavingsAccounts.map((acc, idx) => {
+                      const statusColor = acc.status === "active" ? "#15803d" : acc.status === "pending" ? "#b45309" : "#64748b";
+                      const statusBg = acc.status === "active" ? "#f0fdf4" : acc.status === "pending" ? "#fffbeb" : "#f8fafc";
+                      const statusLabel = acc.status === "active" ? "Ativo" : acc.status === "pending" ? "Pendente" : (acc.status ?? "Desconhecido");
+                      const goalVal = acc.savingsGoal ? Number(acc.savingsGoal) : null;
+                      const balanceVal = acc.balance ? Number(acc.balance) : null;
+                      const progress = goalVal && balanceVal ? Math.min(100, Math.round((balanceVal / goalVal) * 100)) : 0;
+                      const cats = Array.isArray(acc.categories) ? acc.categories : [];
+                      return (
+                        <div key={acc.id ?? idx} className="rounded-2xl overflow-hidden border border-slate-100" style={{ boxShadow: "0 1px 6px rgba(0,0,0,0.06)" }}>
+                          {/* Card header com gradiente */}
+                          <div className="px-3 py-2.5" style={{ background: "linear-gradient(135deg, #1351b4 0%, #0e4091 100%)" }}>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-[9px] font-bold" style={{ background: "rgba(255,255,255,0.2)" }}>
+                                  {idx + 1}
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold text-white">{String(acc.name ?? acc.cdspId ?? "Plano DSP")}</p>
+                                  {acc.id && <p className="text-[7px] font-mono text-blue-200 truncate" style={{ maxWidth: 120 }}>{acc.id}</p>}
+                                </div>
+                              </div>
+                              <span className="text-[8px] font-bold px-2 py-0.5 rounded-full" style={{ background: statusBg, color: statusColor }}>
+                                {statusLabel}
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Card body */}
+                          <div className="bg-white px-3 py-2.5 space-y-2">
+                            {/* Saldo e meta */}
+                            {(balanceVal !== null || goalVal !== null) && (
+                              <div className="flex gap-3">
+                                {balanceVal !== null && (
+                                  <div className="flex-1">
+                                    <p className="text-[8px] text-slate-400 uppercase tracking-wide">Saldo</p>
+                                    <p className="text-[11px] font-bold text-slate-800">
+                                      {acc.currency ?? "BRL"} {balanceVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </p>
+                                  </div>
+                                )}
+                                {goalVal !== null && (
+                                  <div className="flex-1">
+                                    <p className="text-[8px] text-slate-400 uppercase tracking-wide">Meta</p>
+                                    <p className="text-[11px] font-bold text-slate-800">
+                                      {acc.currency ?? "BRL"} {goalVal.toLocaleString("pt-BR", { minimumFractionDigits: 2 })}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Barra de progresso */}
+                            {goalVal !== null && balanceVal !== null && (
+                              <div>
+                                <div className="flex justify-between mb-0.5">
+                                  <p className="text-[8px] text-slate-400">Progresso</p>
+                                  <p className="text-[8px] font-semibold" style={{ color: "#1351b4" }}>{progress}%</p>
+                                </div>
+                                <div className="w-full rounded-full" style={{ height: 4, background: "#e2e8f0" }}>
+                                  <div className="rounded-full" style={{ width: `${progress}%`, height: 4, background: "linear-gradient(90deg, #1351b4, #2670e8)" }} />
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Categorias */}
+                            {cats.length > 0 && (
+                              <div className="flex flex-wrap gap-1">
+                                {cats.map((cat, ci) => (
+                                  <span key={ci} className="text-[7px] font-semibold px-1.5 py-0.5 rounded-full" style={{ background: "#e8f0fe", color: "#1351b4" }}>
+                                    {String(cat)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {/* Rodapé */}
+                  <div className="shrink-0 p-3 border-t border-slate-100 space-y-2">
+                    <button
+                      onClick={handleStep10ListSavings}
+                      disabled={isExec}
+                      className="w-full rounded-xl px-4 py-2 text-[10px] font-semibold text-white disabled:opacity-60 transition-all active:scale-95"
+                      style={{ background: "#1351b4" }}
+                    >
+                      {isExec ? "Atualizando..." : "↻ Atualizar planos"}
+                    </button>
+                    <button
+                      onClick={() => { setStep10Phase("enrolling"); }}
+                      className="w-full rounded-xl px-4 py-2 text-[10px] font-semibold text-slate-500 border border-slate-200 transition-all active:scale-95"
+                    >
+                      ← Voltar
+                    </button>
+                  </div>
                 </div>
               );
             }

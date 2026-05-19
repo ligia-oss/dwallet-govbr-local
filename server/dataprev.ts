@@ -790,8 +790,9 @@ const actions: JourneyAction[] = [
     path: "/v1/dsavings/data-savings-plans/commercial",
     status: "external",
     requiresM2M: true,
+    requiresUser: "person",
     expectedStatus: [200, 500],
-    description: "Lista planos comerciais de poupança de dados; 401 indica permissão de sandbox, resultado é registrado como evidência.",
+    description: "Lista planos comerciais de poupança de dados; requer token de pessoa física (X-User-Access-Token).",
     onSuccess: body => ({ commercialDspId: firstListItem(body)?.id as string | undefined, selectedDspId: firstListItem(body)?.id as string | undefined }),
   },
   {
@@ -832,6 +833,26 @@ const actions: JourneyAction[] = [
     expectedStatus: [200, 500],
     buildBody: state => ({ cdspId: state.selectedDspId || state.commercialDspId || state.standardDspId, categories: ["travel-and-transportation"], currency: "BRL", savingsGoal: 1000, agreedToTermsAndConditions: true }),
     onSuccess: body => ({ dspAccountId: firstListItem(body)?.id as string | undefined || findFirst(body, ["id", "accountId", "dspAccountId"]) }),
+  },
+  {
+    id: "step10_my_savings_plans",
+    title: "Meus planos de poupança contratados",
+    app: "Personal",
+    group: "Data Savings",
+    method: "GET",
+    path: "/v1/dsavings/data-savings-accounts",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "person",
+    description: "Lista as contas de poupança de dados contratadas pela pessoa; exibe planos ativos, saldo e metas de economia.",
+    expectedStatus: [200, 500],
+    onSuccess: body => ({
+      mySavingsAccountsJson: JSON.stringify(
+        Array.isArray((body as Record<string, unknown>)?.data)
+          ? (body as Record<string, unknown>).data
+          : Array.isArray(body) ? body : []
+      ),
+    }),
   },
   {
     id: "step11_business_offers_gap",
@@ -875,16 +896,12 @@ const actions: JourneyAction[] = [
   },
   {
     id: "step14_wallet_statement",
-    title: "Pessoa visualiza extrato/contas DSP",
+    title: "Ambos visualizam extrato",
     app: "Ambos",
-    group: "Data Savings",
-    method: "GET",
-    path: "/v1/dsavings/data-savings-accounts",
-    status: "external",
-    requiresM2M: true,
-    requiresUser: "person",
-    description: "Usa endpoint executável de contas DSP como evidência para visualização de extrato/contas da wallet.",
-    expectedStatus: [200, 500],
+    group: "Wallet Statement",
+    status: "gap",
+    description: "Visualização de extrato financeiro da wallet não possui API externa disponível no ambiente sandbox.",
+    missingReason: "Não há endpoint de extrato financeiro disponível na sandbox DrumWave. A visualização de extrato é uma funcionalidade interna do aplicativo que não foi externalizada para integração.",
   },
   {
     id: "step15_withdrawal_internal",
@@ -941,7 +958,7 @@ const steps: JourneyStep[] = [
   { id: 11, title: "Empresa cria ofertas", app: "Business", summary: "Endpoint não documentado no roteiro.", status: "gap", actions: actions.filter(a => a.id === "step11_business_offers_gap") },
   { id: 12, title: "Pessoa visualiza ofertas", app: "Personal", summary: "Listagem de ofertas sujeita a dados e permissões do ambiente.", status: "external", actions: actions.filter(a => a.id === "step12_person_offers") },
   { id: 13, title: "Pessoa aceita/rejeita oferta", app: "Personal", summary: "Ação depende de oferta utilizável retornada no passo 12.", status: "external", actions: actions.filter(a => a.id === "step13_offer_accept") },
-  { id: 14, title: "Ambos visualizam extrato", app: "Ambos", summary: "Visualização financeira por endpoint executável de contas DSP.", status: "external", actions: actions.filter(a => a.id === "step14_wallet_statement") },
+  { id: 14, title: "Ambos visualizam extrato", app: "Ambos", summary: "Sem API disponível — endpoint de extrato financeiro não externalizado no sandbox.", status: "gap", actions: actions.filter(a => a.id === "step14_wallet_statement") },
   { id: 15, title: "Solicitar resgate", app: "Ambos", summary: "APIs marcadas como internas.", status: "internal", actions: actions.filter(a => a.id === "step15_withdrawal_internal") },
   { id: 16, title: "Cadastrar PIX/conta", app: "Ambos", summary: "APIs inexistentes ou não externalizadas.", status: "gap", actions: actions.filter(a => a.id === "step16_accounts_gap") },
   { id: 17, title: "Histórico de resgates", app: "Ambos", summary: "APIs inexistentes ou não externalizadas.", status: "gap", actions: actions.filter(a => a.id === "step17_history_gap") },

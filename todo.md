@@ -328,3 +328,12 @@
 - [x] Diagnosticar erro 401/403 no Passo 12 (Visualizar Ofertas PdW) e corrigir
 - [x] Pré-popular offerId com a2db4177-867c-4ad8-8b99-c28f3ee2e323 na tela do Passo 12
 - [x] Testar Passo 12 no browser e salvar checkpoint
+
+## Sprint — Reorganização Passos 10/14, Correção Passo 12, Diagnóstico Commercial DSP
+
+- [x] Marcar Passo 14 como sem API disponível no dataprev.ts e no mockup
+- [x] Mover API do Passo 14 para subitem do Passo 10 chamado "Meus planos de poupança contratados"
+- [x] Criar tela no mockup para subitem "Meus planos de poupança contratados" com dados do plano retornado
+- [x] Investigar Passo 12 (offerId a2db4177-867c-4ad8-8b99-c28f3ee2e323) — 404 esperado, oferta não existe no sandbox; 401 resolvido
+- [x] Diagnosticar erro 401 no subitem "consultar commercial DSP" do Passo 10 — corrigido com requiresUser: person
+- [x] Testar no browser e salvar checkpoint
