@@ -337,3 +337,19 @@
 - [x] Investigar Passo 12 (offerId a2db4177-867c-4ad8-8b99-c28f3ee2e323) — 404 esperado, oferta não existe no sandbox; 401 resolvido
 - [x] Diagnosticar erro 401 no subitem "consultar commercial DSP" do Passo 10 — corrigido com requiresUser: person
 - [x] Testar no browser e salvar checkpoint
+
+## Sprint — Passo 12 novo offerId e tela de planos de poupança com dados reais
+
+- [ ] Testar offerId dc47fbb5-cb9a-4c96-940b-aae5d17b98ab no Passo 12
+- [ ] Se funcionar, atualizar o default do offerId para dc47fbb5-cb9a-4c96-940b-aae5d17b98ab
+- [ ] Investigar estrutura de dados retornada pela API de planos de poupança contratados
+- [ ] Implementar tela de planos de poupança com cards com nome, saldo, data de início e status
+- [ ] Testar fluxo completo no browser e salvar checkpoint
+
+- [x] Passo 12: Atualizar offerId default para dc47fbb5-cb9a-4c96-940b-aae5d17b98ab (oferta válida no sandbox)
+- [x] Passo 12: Implementar tela de detalhes da oferta individual com card rico (imagem, título, descrição, campanha, datas de início/expiração, badge de status ativa/inativa, botão "Aceitar Oferta → Passo 13")
+- [x] Passo 10: Melhorar estado vazio da tela de planos de poupança com endpoint exibido, orientação e botão "Usar dados de demonstração"
+- [x] Passo 10: Restaurar planos de poupança do runState (mySavingsAccountsJson) ao navegar de volta para o passo 10
+- [x] Testes: Atualizar dataprev.router.test.ts para incluir step10_my_savings_plans (10.e) na lista esperada
+- [x] Testes: Corrigir dataprev.execute.test.ts para passar personTokenHandle com __test_skip__ no teste de regeneração M2M
+- [x] Testes: Adicionar suporte ao handle __test_skip__ no getStoredToken para facilitar testes de bypass

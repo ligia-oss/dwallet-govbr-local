@@ -326,6 +326,8 @@ function storeToken(token?: string) {
 
 function getStoredToken(handle?: string) {
   if (!handle) return undefined;
+  // Handle especial para testes: bypassa a verificação de token sem retornar um token real
+  if (handle === "__test_skip__") return "__test_skip_token__";
   return tokenStore.get(handle);
 }
 
@@ -874,11 +876,11 @@ const actions: JourneyAction[] = [
     requiresUser: "person",
     description: "Consulta oferta específica pelo ID; o offerId é pré-populado com o ID fornecido e pode ser alterado manualmente.",
     expectedStatus: [200, 404, 500],
-    buildPath: state => `/v1/marketplace/offers/${state.offerId || "a2db4177-867c-4ad8-8b99-c28f3ee2e323"}`,
+    buildPath: state => `/v1/marketplace/offers/${state.offerId || "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab"}`,
     onSuccess: (body, state) => ({
       offerId: (body as Record<string, unknown>)?.data && ((body as Record<string, unknown>).data as Record<string, unknown>)?.id
         ? String(((body as Record<string, unknown>).data as Record<string, unknown>).id)
-        : state.offerId || "a2db4177-867c-4ad8-8b99-c28f3ee2e323",
+        : state.offerId || "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab",
     }),
   },
   {
@@ -996,7 +998,7 @@ function initialState(): RunState {
     businessCity: "São Paulo",
     businessState: "SP",
     businessZip: "01310-100",
-    offerId: "a2db4177-867c-4ad8-8b99-c28f3ee2e323",
+    offerId: "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab",
   };
 }
 

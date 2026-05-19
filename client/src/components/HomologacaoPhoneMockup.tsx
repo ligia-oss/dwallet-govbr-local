@@ -494,7 +494,7 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     appLead: "Veja as ofertas de dados disponíveis para você.",
     ctaLabel: "Ver oferta",
     fields: [
-      { key: "offerId", label: "ID da oferta", placeholder: "a2db4177-867c-4ad8-8b99-c28f3ee2e323", required: false },
+      { key: "offerId", label: "ID da oferta", placeholder: "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab", required: false },
     ],
     resultTitle: (r) => r.ok ? "Oferta carregada" : (r.httpStatus === 403 ? "Acesso restrito — feature flag" : r.httpStatus === 404 ? "Oferta não encontrada" : "Erro ao carregar oferta"),
     resultBody: (r) => r.ok
@@ -1847,9 +1847,19 @@ export function HomologacaoPhoneMockup({
         setStep10CommercialDsps([]);
         setStep10EnrollResult(null);
         setStep10SavingsAccounts([]);
+      } else {
+        // Restaurar planos de poupança do runState ao voltar para o passo 10
+        if (runState.mySavingsAccountsJson) {
+          try {
+            const saved = JSON.parse(String(runState.mySavingsAccountsJson)) as Step10SavingsAccount[];
+            if (Array.isArray(saved) && saved.length > 0) {
+              setStep10SavingsAccounts(saved);
+            }
+          } catch { /* ignora JSON inválido */ }
+        }
       }
     }
-  }, [stepId]);
+  }, [stepId, runState.mySavingsAccountsJson]);
 
   // Capturar respostas da API do passo 10 via activeResult
   const prevStep10ResultRef = useRef<string | undefined>(undefined);
@@ -2264,36 +2274,46 @@ export function HomologacaoPhoneMockup({
             </div>
           )}
 
-          {/* RESULT state — passo 12: lista de ofertas com botões nano banana */}
+          {/* RESULT state — passo 12: card rico de oferta individual */}
           {!isGap && phase === "result" && activeResult && screen.stepId === 12 && activeResult.ok && (() => {
-            // Extrair lista de ofertas da resposta
-            const body = activeResult.responseBody as Record<string, unknown> | unknown[] | null | undefined;
-            const offers: Array<Record<string, unknown>> = (() => {
-              if (Array.isArray(body)) return body as Array<Record<string, unknown>>;
-              if (body && typeof body === "object") {
+            // Extrair dados da oferta individual da resposta
+            const body = activeResult.responseBody as Record<string, unknown> | null | undefined;
+            // A API retorna o objeto diretamente ou dentro de .data
+            const offerObj: Record<string, unknown> = (() => {
+              if (body && typeof body === "object" && !Array.isArray(body)) {
                 const obj = body as Record<string, unknown>;
-                const candidates = [obj.offers, obj.items, obj.data, obj.results, obj.content];
-                for (const c of candidates) {
-                  if (Array.isArray(c) && c.length > 0) return c as Array<Record<string, unknown>>;
+                // Verifica se é um objeto de oferta direto (tem offerId ou title)
+                if (obj.offerId || obj.title) return obj;
+                // Ou está dentro de .data
+                if (obj.data && typeof obj.data === "object" && !Array.isArray(obj.data)) {
+                  return obj.data as Record<string, unknown>;
                 }
               }
-              return [];
+              return {};
             })();
 
-            // Imagens nano banana para ofertas (cicla entre as 3 disponíveis)
-            const offerImages = [
-              "/manus-storage/p12-offer-marketplace_a9338e71.png",
-              "/manus-storage/p12-offer-data_0f763a30.png",
-              "/manus-storage/p12-offer-license_ac9c2d37.png",
-            ];
+            const offerId = String(offerObj.offerId ?? offerObj.id ?? runState.offerId ?? "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab");
+            const offerTitle = String(offerObj.title ?? offerObj.name ?? "Oferta de Licenciamento");
+            const offerDescription = String(offerObj.description ?? "");
+            const campaignName = String(offerObj.campaignName ?? "");
+            const imageUrl = offerObj.imageUrl ? String(offerObj.imageUrl) : "/manus-storage/p12-offer-marketplace_a9338e71.png";
+            const startsAt = offerObj.startsAt ? new Date(String(offerObj.startsAt)) : null;
+            const expiresAt = offerObj.expiresAt ?? offerObj.expirationDate ? new Date(String(offerObj.expiresAt ?? offerObj.expirationDate)) : null;
+            const isActive = offerObj.activatedAt && !offerObj.expiredAt && !offerObj.archivedAt;
 
-            const handleOfferSelect = (offerId: string) => {
+            const formatDate = (d: Date | null) => {
+              if (!d || isNaN(d.getTime())) return "—";
+              return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
+            };
+
+            const handleAcceptOffer = () => {
               onFieldChange("offerId", offerId);
-              // Navegar para o passo 13 após selecionar a oferta
               if (onStepChange) {
-                setTimeout(() => onStepChange(13), 350);
+                setTimeout(() => onStepChange(13), 300);
               }
             };
+
+            const hasData = Object.keys(offerObj).length > 0;
 
             return (
               <div className="p-4 space-y-3">
@@ -2302,66 +2322,97 @@ export function HomologacaoPhoneMockup({
                   <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #10b98122, #06b6d422)" }}>
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#10b98120", border: "1.5px solid #10b98150" }}>
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" strokeWidth="2">
-                        <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
-                        <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+                        <path d="M9 12l2 2 4-4"/>
+                        <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
                       </svg>
                     </div>
                     <div>
-                      <p className="text-xs font-bold text-emerald-800">Ofertas disponíveis</p>
-                      <p className="text-[10px] text-emerald-700">{offers.length} {offers.length === 1 ? "oferta encontrada" : "ofertas encontradas"}</p>
+                      <p className="text-xs font-bold text-emerald-800">Oferta encontrada</p>
+                      <p className="text-[10px] text-emerald-700">HTTP 200 · Dados carregados com sucesso</p>
                     </div>
                   </div>
                 </div>
 
-                {/* Lista de ofertas */}
-                {offers.length > 0 ? (
-                  <div className="space-y-2">
-                    <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500 px-1">Selecione uma oferta para aceitar</p>
-                    {offers.map((offer, idx) => {
-                      const offerId = String(
-                        offer.offerId ?? offer.id ?? offer.sid ?? offer.offer_id ?? `offer-${idx + 1}`
-                      );
-                      const offerName = String(
-                        offer.name ?? offer.title ?? offer.displayName ?? offer.description ?? `Oferta ${idx + 1}`
-                      );
-                      const offerImg = offerImages[idx % offerImages.length];
-                      const isSelected = String(runState.offerId ?? "") === offerId;
-                      return (
-                        <button
-                          key={offerId}
-                          onClick={() => handleOfferSelect(offerId)}
-                          className="w-full rounded-2xl overflow-hidden border shadow-sm transition-all active:scale-[0.98] text-left"
-                          style={{
-                            borderColor: isSelected ? "#ea580c" : "#e2e8f0",
-                            outline: isSelected ? "2px solid #ea580c" : undefined,
-                          }}
-                        >
-                          <div className="relative" style={{ minHeight: 80 }}>
-                            <img
-                              src={offerImg}
-                              alt={offerName}
-                              className="absolute inset-0 w-full h-full object-cover"
-                              style={{ filter: "brightness(0.6)" }}
-                            />
-                            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(234,88,12,0.6) 0%, rgba(0,0,0,0.4) 100%)" }} />
-                            <div className="relative z-10 p-3 flex items-end justify-between h-full">
-                              <div className="min-w-0">
-                                <p className="text-[9px] font-bold uppercase tracking-wide text-orange-200 mb-0.5">Oferta disponível</p>
-                                <p className="text-sm font-bold text-white leading-tight truncate">{offerName}</p>
-                                <p className="text-[9px] font-mono text-white/70 mt-0.5 truncate">{offerId}</p>
-                              </div>
-                              {isSelected && (
-                                <span className="shrink-0 ml-2 text-[9px] font-bold px-2 py-1 rounded-full bg-orange-500 text-white">✓ Selecionada</span>
-                              )}
+                {hasData ? (
+                  <>
+                    {/* Card principal da oferta */}
+                    <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-md">
+                      {/* Imagem da oferta */}
+                      <div className="relative" style={{ height: 100 }}>
+                        <img
+                          src={imageUrl}
+                          alt={offerTitle}
+                          className="absolute inset-0 w-full h-full object-cover"
+                          style={{ filter: "brightness(0.55)" }}
+                          onError={e => { (e.target as HTMLImageElement).src = "/manus-storage/p12-offer-marketplace_a9338e71.png"; }}
+                        />
+                        <div className="absolute inset-0" style={{ background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.7) 100%)" }} />
+                        {/* Badge de status */}
+                        <div className="absolute top-2 right-2">
+                          <span className="text-[9px] font-bold px-2 py-1 rounded-full" style={{
+                            background: isActive ? "#10b981" : "#94a3b8",
+                            color: "white",
+                          }}>
+                            {isActive ? "● Ativa" : "Inativa"}
+                          </span>
+                        </div>
+                        {/* Título sobre a imagem */}
+                        <div className="absolute bottom-0 left-0 right-0 p-3">
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-orange-300 mb-0.5">Marketplace · Licenciamento</p>
+                          <p className="text-sm font-bold text-white leading-tight">{offerTitle}</p>
+                        </div>
+                      </div>
+
+                      {/* Detalhes da oferta */}
+                      <div className="p-3 space-y-2 bg-white">
+                        {offerDescription && (
+                          <p className="text-[10px] text-slate-600 leading-relaxed">{offerDescription}</p>
+                        )}
+
+                        {campaignName && (
+                          <div className="flex items-center gap-2 rounded-xl px-3 py-2" style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                            <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="#64748b" strokeWidth="2">
+                              <path d="M22 12h-4l-3 9L9 3l-3 9H2"/>
+                            </svg>
+                            <div>
+                              <p className="text-[8px] font-bold uppercase tracking-wide text-slate-400">Campanha</p>
+                              <p className="text-[10px] font-semibold text-slate-700 truncate">{campaignName}</p>
                             </div>
                           </div>
-                        </button>
-                      );
-                    })}
-                  </div>
+                        )}
+
+                        {/* Datas */}
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="rounded-xl px-2 py-2" style={{ background: "#f0fdf4", border: "1px solid #bbf7d0" }}>
+                            <p className="text-[8px] font-bold uppercase tracking-wide text-emerald-600">Início</p>
+                            <p className="text-[10px] font-semibold text-emerald-800">{formatDate(startsAt)}</p>
+                          </div>
+                          <div className="rounded-xl px-2 py-2" style={{ background: "#fff7ed", border: "1px solid #fed7aa" }}>
+                            <p className="text-[8px] font-bold uppercase tracking-wide text-orange-600">Expira</p>
+                            <p className="text-[10px] font-semibold text-orange-800">{formatDate(expiresAt)}</p>
+                          </div>
+                        </div>
+
+                        {/* ID da oferta */}
+                        <div className="rounded-xl px-3 py-2" style={{ background: "#f8fafc", border: "1px solid #e2e8f0" }}>
+                          <p className="text-[8px] font-bold uppercase tracking-wide text-slate-400 mb-0.5">ID da Oferta</p>
+                          <p className="text-[9px] font-mono text-slate-600 break-all">{offerId}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Botão aceitar oferta */}
+                    <button
+                      onClick={handleAcceptOffer}
+                      className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.98] shadow-md"
+                      style={{ background: "linear-gradient(135deg, #ea580c, #dc2626)" }}
+                    >
+                      Aceitar Oferta → Passo 13
+                    </button>
+                  </>
                 ) : (
                   <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-center">
-                    <p className="text-xs text-slate-500">Nenhuma oferta disponível no momento.</p>
+                    <p className="text-xs text-slate-500">Oferta não encontrada neste ambiente sandbox.</p>
                   </div>
                 )}
 
@@ -3583,16 +3634,32 @@ export function HomologacaoPhoneMockup({
                   {/* Lista de planos */}
                   <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
                     {step10SavingsAccounts.length === 0 ? (
-                      <div className="flex flex-col items-center justify-center py-8 gap-3">
-                        <div className="w-12 h-12 rounded-full flex items-center justify-center" style={{ background: "#e8f0fe" }}>
-                          <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#1351b4" strokeWidth="1.5">
-                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z"/>
+                      <div className="flex flex-col items-center justify-center py-6 gap-3">
+                        <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "#e8f0fe" }}>
+                          <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#1351b4" strokeWidth="1.5">
+                            <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/>
+                            <polyline points="9 22 9 12 15 12 15 22"/>
                           </svg>
                         </div>
                         <div className="text-center">
-                          <p className="text-[11px] font-semibold text-slate-600">Nenhum plano contratado</p>
-                          <p className="text-[9px] text-slate-400 mt-0.5">Contrate um plano DSP para começar a poupar dados</p>
+                          <p className="text-[11px] font-semibold text-slate-700">Nenhum plano contratado</p>
+                          <p className="text-[9px] text-slate-500 mt-1 leading-relaxed px-2">
+                            A API <span className="font-mono font-bold">GET /v1/dsavings/data-savings-accounts</span> retornou lista vazia.
+                          </p>
+                          <p className="text-[9px] text-slate-400 mt-1 px-2">
+                            Execute o passo de adesão DSP (Aderir ao DSP) para criar uma conta de poupança.
+                          </p>
                         </div>
+                        {/* Botão de dados de demonstração */}
+                        <button
+                          onClick={() => setStep10SavingsAccounts([
+                            { id: "sav-demo-001", name: "dSavings Smart", status: "active", balance: 1250.75, currency: "BRL", savingsGoal: 5000, categories: ["Mobilidade", "Telecom"] },
+                            { id: "sav-demo-002", name: "dSavings Plus", status: "pending", balance: 0, currency: "BRL", savingsGoal: 2000, categories: ["Saúde"] },
+                          ])}
+                          className="text-[9px] font-semibold px-3 py-1.5 rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+                        >
+                          Usar dados de demonstração
+                        </button>
                       </div>
                     ) : step10SavingsAccounts.map((acc, idx) => {
                       const statusColor = acc.status === "active" ? "#15803d" : acc.status === "pending" ? "#b45309" : "#64748b";

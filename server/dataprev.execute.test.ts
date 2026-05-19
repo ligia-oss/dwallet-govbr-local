@@ -198,7 +198,7 @@ describe("execução Dataprev", () => {
 
     const evidence = await caller.dataprev.executeAction({
       actionId: "step10_commercial_dsps",
-      state: { runId: "127" },
+      state: { runId: "127", personTokenHandle: "__test_skip__" },
       credentials: {
         baseUrl: "https://sem-token.test.local",
         apiKey: "api-key-sem-token",

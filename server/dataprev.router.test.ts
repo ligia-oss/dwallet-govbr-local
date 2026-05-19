@@ -22,6 +22,7 @@ describe("dataprevRouter", () => {
       { id: "step10_standard_dsps", apiClassification: "10.b" },
       { id: "step10_dsp_details", apiClassification: "10.c" },
       { id: "step10_create_dsp_account", apiClassification: "10.d" },
+      { id: "step10_my_savings_plans", apiClassification: "10.e" },
     ]);
     expect(metadata.credentialsConfigured).toBe(true);
     expect(metadata.steps.some(step => step.app === "Personal")).toBe(true);
