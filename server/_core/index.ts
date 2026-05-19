@@ -9,6 +9,7 @@ import { registerDrumwaveProxy } from "./drumwaveProxy";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 import { serveStatic, setupVite } from "./vite";
+import { preloadUserTokenCache } from "../dataprev";
 
 function isPortAvailable(port: number): Promise<boolean> {
   return new Promise(resolve => {
@@ -63,6 +64,9 @@ async function startServer() {
   server.listen(port, () => {
     console.log(`Server running on http://localhost:${port}/`);
   });
+
+  // Pré-carrega tokens de usuário do banco para o cache in-memory
+  preloadUserTokenCache().catch(err => console.warn("[Startup] Falha ao pré-carregar token cache:", err));
 }
 
 startServer().catch(console.error);

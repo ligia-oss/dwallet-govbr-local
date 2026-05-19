@@ -1,6 +1,6 @@
 import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
-import { InsertUser, m2mTokenCache, users } from "../drizzle/schema";
+import { InsertUser, m2mTokenCache, userTokenCache, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
 
 let _db: ReturnType<typeof drizzle> | null = null;
@@ -162,5 +162,44 @@ export async function deleteM2MToken(credentialScope: string): Promise<void> {
     await db.delete(m2mTokenCache).where(eq(m2mTokenCache.credentialScope, credentialScope));
   } catch (error) {
     console.error("[Database] Failed to delete M2M token:", error);
+  }
+}
+
+/**
+ * Persiste um token de usuário (employee/person) no banco de dados.
+ * Retorna o handle gerado para recuperação posterior.
+ */
+export async function storeUserToken(handle: string, token: string): Promise<void> {
+  const db = await getDb();
+  if (!db) {
+    console.warn("[Database] Cannot persist user token: database not available");
+    return;
+  }
+  try {
+    await db
+      .insert(userTokenCache)
+      .values({ handle, token })
+      .onDuplicateKeyUpdate({ set: { token } });
+  } catch (error) {
+    console.error("[Database] Failed to persist user token:", error);
+  }
+}
+
+/**
+ * Recupera um token de usuário do banco de dados pelo handle.
+ */
+export async function loadUserToken(handle: string): Promise<string | null> {
+  const db = await getDb();
+  if (!db) return null;
+  try {
+    const rows = await db
+      .select()
+      .from(userTokenCache)
+      .where(eq(userTokenCache.handle, handle))
+      .limit(1);
+    return rows.length > 0 ? rows[0].token : null;
+  } catch (error) {
+    console.error("[Database] Failed to load user token:", error);
+    return null;
   }
 }

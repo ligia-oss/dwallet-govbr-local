@@ -44,3 +44,18 @@ export const m2mTokenCache = mysqlTable("m2mTokenCache", {
 
 export type M2MTokenCache = typeof m2mTokenCache.$inferSelect;
 export type InsertM2MTokenCache = typeof m2mTokenCache.$inferInsert;
+
+/**
+ * Cache persistente de tokens de usuário (employee/person) da Dataprev.
+ * Sobrevive a reinicializações do servidor Express/Node.
+ * Cada handle é único e mapeia para um JWT de acesso do usuário.
+ */
+export const userTokenCache = mysqlTable("userTokenCache", {
+  id: int("id").autoincrement().primaryKey(),
+  handle: varchar("handle", { length: 64 }).notNull().unique(),
+  token: text("token").notNull(),
+  createdAt: timestamp("createdAt").defaultNow().notNull(),
+});
+
+export type UserTokenCache = typeof userTokenCache.$inferSelect;
+export type InsertUserTokenCache = typeof userTokenCache.$inferInsert;

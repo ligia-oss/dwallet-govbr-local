@@ -1,0 +1,13 @@
+{
+  "query": "SELECT COUNT(*) as total FROM userTokenCache; SELECT handle, LEFT(token, 20) as token_preview FROM userTokenCache LIMIT 5;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ZhEPCd366cxmbpq.root --database MmipedoGRvuovi69F8w3ET --execute SELECT COUNT(*) as total FROM userTokenCache; SELECT handle, LEFT(token, 20) as token_preview FROM userTokenCache LIMIT 5;",
+  "rows": [
+    {
+      "total": "0"
+    }
+  ],
+  "messages": [],
+  "stdout": "total\n0\n",
+  "stderr": "",
+  "execution_time_ms": 332
+}

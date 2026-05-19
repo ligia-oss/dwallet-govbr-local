@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { z } from "zod";
-import { deleteM2MToken, loadM2MToken, upsertM2MToken } from "./db";
+import { deleteM2MToken, loadM2MToken, upsertM2MToken, storeUserToken, loadUserToken } from "./db";
 import { publicProcedure, router } from "./_core/trpc";
 import { fetchViaProxy } from "./_core/drumwaveProxy";
 
@@ -80,6 +80,23 @@ type M2MAuthResult = {
 
 const DEFAULT_PASSWORD = "SecurePass123!";
 const tokenStore = new Map<string, string>();
+
+/** Pré-carrega todos os tokens de usuário do banco para o Map in-memory na inicialização. */
+export async function preloadUserTokenCache(): Promise<void> {
+  try {
+    const { getDb } = await import("./db");
+    const { userTokenCache } = await import("../drizzle/schema");
+    const db = await getDb();
+    if (!db) return;
+    const rows = await db.select().from(userTokenCache);
+    for (const row of rows) {
+      tokenStore.set(row.handle, row.token);
+    }
+    if (rows.length > 0) console.log(`[TokenCache] Pré-carregados ${rows.length} token(s) de usuário do banco.`);
+  } catch (err) {
+    console.warn("[TokenCache] Falha ao pré-carregar tokens do banco:", err);
+  }
+}
 let m2mCache: { token: string; expiresAt: number; handle: string; credentialScope: string } | null = null;
 
 type DataprevCredentialsInput = {
@@ -280,6 +297,8 @@ function storeToken(token?: string) {
   if (!token) return undefined;
   const handle = randomUUID();
   tokenStore.set(handle, token);
+  // Persiste no banco de forma assíncrona (fire-and-forget) para sobreviver a reinicializações
+  storeUserToken(handle, token).catch(err => console.warn("[TokenCache] Falha ao persistir token:", err));
   return handle;
 }
 

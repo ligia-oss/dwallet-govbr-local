@@ -1,0 +1,14 @@
+{
+  "query": "SELECT handle, LEFT(token, 30) as token_preview FROM userTokenCache;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ZhEPCd366cxmbpq.root --database MmipedoGRvuovi69F8w3ET --execute SELECT handle, LEFT(token, 30) as token_preview FROM userTokenCache;",
+  "rows": [
+    {
+      "handle": "a8242ea8-176f-4721-a54f-e4b821c6ae40",
+      "token_preview": "eyJraWQiOiJXcW5RR2tPbkVVT0ZcL1"
+    }
+  ],
+  "messages": [],
+  "stdout": "handle\ttoken_preview\na8242ea8-176f-4721-a54f-e4b821c6ae40\teyJraWQiOiJXcW5RR2tPbkVVT0ZcL1\n",
+  "stderr": "",
+  "execution_time_ms": 262
+}

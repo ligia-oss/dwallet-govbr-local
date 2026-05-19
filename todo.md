@@ -308,3 +308,5 @@
 - [x] Passo 10: botão para listar commercial DSPs após enroll bem-sucedido
 - [x] Passo 7: cards da listagem exibem nome fantasia do dado solicitado (baseado no schemaId retornado pela API) com ID abreviado abaixo
 - [x] Passo 7: corrigido body do PATCH para enviar actionId: accepted/rejected
+- [x] Testar fluxo de rejeição do Passo 7 (status: declined)
+- [x] Persistir cache de tokens de usuário no banco de dados (evitar perda após reinicialização do servidor)
