@@ -492,19 +492,23 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     screenSubtitle: "Pessoa visualiza ofertas disponíveis no marketplace",
     appHeader: "Ofertas disponíveis",
     appLead: "Veja as ofertas de dados disponíveis para você.",
-    ctaLabel: "Ver ofertas",
+    ctaLabel: "Ver oferta",
     fields: [
-      { key: "offerId", label: "ID da oferta", placeholder: "Preenchido ao selecionar uma oferta", required: false },
+      { key: "offerId", label: "ID da oferta", placeholder: "a2db4177-867c-4ad8-8b99-c28f3ee2e323", required: false },
     ],
-    resultTitle: (r) => r.ok ? "Ofertas carregadas" : (r.httpStatus === 403 ? "Acesso restrito — feature flag" : "Erro ao carregar ofertas"),
+    resultTitle: (r) => r.ok ? "Oferta carregada" : (r.httpStatus === 403 ? "Acesso restrito — feature flag" : r.httpStatus === 404 ? "Oferta não encontrada" : "Erro ao carregar oferta"),
     resultBody: (r) => r.ok
-      ? "Ofertas disponíveis no marketplace."
+      ? "Oferta encontrada no marketplace."
       : r.httpStatus === 403
         ? "O endpoint de ofertas está restrito no ambiente sandbox. A feature flag de marketplace não está habilitada para este tenant. Contate a equipe DrumWave para habilitar o acesso."
-        : r.message ?? "Não foi possível carregar as ofertas.",
+        : r.httpStatus === 404
+          ? "A oferta com o ID informado não foi encontrada no ambiente sandbox. O ID pode ser válido em produção mas ainda não existe neste tenant sandbox."
+          : r.message ?? "Não foi possível carregar a oferta.",
     resultDetails: (r) => r.httpStatus === 403
-      ? "Causa: O servidor retornou HTTP 403 Forbidden. Isso indica que o tenant sandbox não tem permissão para acessar a listagem de ofertas. O código está correto — é uma restrição de ambiente, não um bug."
-      : undefined,
+      ? "Causa: O servidor retornou HTTP 403 Forbidden. Isso indica que o tenant sandbox não tem permissão para acessar a oferta. O código está correto — é uma restrição de ambiente, não um bug."
+      : r.httpStatus === 404
+        ? "Causa: HTTP 404 Not Found. O UUID é válido mas a oferta não existe neste ambiente sandbox. Solicite à equipe DrumWave que crie a oferta no tenant sandbox ou fornecer um offerId válido para este ambiente."
+        : undefined,
   },
   13: {
     stepId: 13,

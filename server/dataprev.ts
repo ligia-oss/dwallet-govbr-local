@@ -23,7 +23,7 @@ type JourneyAction = {
   requiresUser?: "employee" | "person";
   includeRegion?: boolean;
   acceptLanguage?: string;
-  expectedStatus?: [number, number];
+  expectedStatus?: number[];
   buildBody?: (state: RunState, credentials?: DataprevCredentialsInput) => JsonValue;
   buildPath?: (state: RunState) => string;
   onSuccess?: (body: unknown, state: RunState) => RunState;
@@ -844,17 +844,21 @@ const actions: JourneyAction[] = [
   },
   {
     id: "step12_person_offers",
-    title: "Pessoa visualiza ofertas disponíveis",
+    title: "Pessoa visualiza oferta disponível",
     app: "Personal",
     group: "Marketplace Offers",
     method: "GET",
-    path: "/v1/marketplace/offers",
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "Consulta ofertas disponíveis; retornos de permissão ou feature flag são preservados como evidência de execução da API.",
-    expectedStatus: [200, 500],
-    onSuccess: body => ({ offerId: firstListItem(body)?.id as string | undefined || firstListItem(body)?.offerId as string | undefined }),
+    description: "Consulta oferta específica pelo ID; o offerId é pré-populado com o ID fornecido e pode ser alterado manualmente.",
+    expectedStatus: [200, 404, 500],
+    buildPath: state => `/v1/marketplace/offers/${state.offerId || "a2db4177-867c-4ad8-8b99-c28f3ee2e323"}`,
+    onSuccess: (body, state) => ({
+      offerId: (body as Record<string, unknown>)?.data && ((body as Record<string, unknown>).data as Record<string, unknown>)?.id
+        ? String(((body as Record<string, unknown>).data as Record<string, unknown>).id)
+        : state.offerId || "a2db4177-867c-4ad8-8b99-c28f3ee2e323",
+    }),
   },
   {
     id: "step13_offer_accept",
@@ -975,6 +979,7 @@ function initialState(): RunState {
     businessCity: "São Paulo",
     businessState: "SP",
     businessZip: "01310-100",
+    offerId: "a2db4177-867c-4ad8-8b99-c28f3ee2e323",
   };
 }
 

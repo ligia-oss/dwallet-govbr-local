@@ -322,3 +322,9 @@
 - [x] Passo 7 mockup: botões "Aceitar" e "Rejeitar" abaixo do card executam PATCH com status accepted/declined
 - [x] Executar pnpm db:push após alteração do schema
 - [x] Executar testes, verificar TypeScript e salvar checkpoint
+
+## Sprint — Diagnóstico Passo 12 e offerId fixo
+
+- [x] Diagnosticar erro 401/403 no Passo 12 (Visualizar Ofertas PdW) e corrigir
+- [x] Pré-popular offerId com a2db4177-867c-4ad8-8b99-c28f3ee2e323 na tela do Passo 12
+- [x] Testar Passo 12 no browser e salvar checkpoint

@@ -341,6 +341,17 @@ export default function Homologacao() {
     }
   }, [metadata.data?.initialState]);
 
+  // Pre-populate offerId when empty or when it has the old invalid UUID (missing leading char)
+  useEffect(() => {
+    const initial = metadata.data?.initialState as Record<string, unknown> | undefined;
+    const canonicalOfferId = initial?.offerId as string | undefined;
+    if (!canonicalOfferId) return;
+    // Overwrite if empty OR if the stored value doesn't match the canonical one
+    if (!runState.offerId || runState.offerId !== canonicalOfferId) {
+      setRunState(prev => ({ ...prev, offerId: canonicalOfferId }));
+    }
+  }, [metadata.data?.initialState]);
+
   // Auto-fill credentials from server defaults when fields are empty
   useEffect(() => {
     const defaults = metadata.data?.credentialDefaults;
