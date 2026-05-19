@@ -278,12 +278,12 @@
 
 ## Sprint — Passo 7: URLs Corretas e Tela Temática por Request
 
-- [ ] Verificar e corrigir URL da API GET do passo 7 para https://api.sandbox.drumwave.com.br/v1/dwallet/business/
-- [ ] Verificar e corrigir URL da API PATCH do passo 7 para https://api.sandbox.drumwave.com.br/v1/dwallet/data-request/ com comando accept ou reject
-- [ ] Tela de resposta do passo 7: para cada requestId retornado, criar botão temático baseado no dado solicitado (schema selecionado no passo 3)
-- [ ] Multi-seleção de requests com botões "Aceitar" e "Recusar" ao final
-- [ ] Ao clicar "Aceitar" executar PATCH com accept nos requestIds selecionados; ao clicar "Recusar" executar PATCH com reject
-- [ ] Exibir resposta da API PATCH após aceitar/recusar
+- [x] Verificar e corrigir URL da API GET do passo 7 para https://api.sandbox.drumwave.com.br/v1/dwallet/business/
+- [x] Verificar e corrigir URL da API PATCH do passo 7 para https://api.sandbox.drumwave.com.br/v1/dwallet/data-request/ com comando accept ou reject
+- [x] Tela de resposta do passo 7: para cada requestId retornado, criar botão temático baseado no dado solicitado (schema selecionado no passo 3)
+- [x] Multi-seleção de requests com botões "Aceitar" e "Recusar" ao final
+- [x] Ao clicar "Aceitar" executar PATCH com accept nos requestIds selecionados; ao clicar "Recusar" executar PATCH com reject
+- [x] Exibir resposta da API PATCH após aceitar/recusar
 
 - [x] Passo 7: adicionar prop onBatchExecute ao HomologacaoPhoneMockup para delegar ao pai
 - [x] Passo 7: atualizar handleRequestAction para chamar onBatchExecute com todos os IDs selecionados

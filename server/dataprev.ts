@@ -683,7 +683,7 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     includeRegion: true,
     description: "Lista solicitações recebidas pela empresa, filtrando pendentes.",
-    buildPath: state => `/v1/dwallet/business/${state.businessId}/data-requests?status=pending`,
+    buildPath: state => `/v1/dwallet/business/${state.businessDwalletId || state.businessId}/data-requests?status=pending`,
     onSuccess: body => ({ dataRequestId: extractDataRequestId(body) }),
   },
   {
@@ -698,7 +698,7 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Atualiza a solicitação como aceita usando o ID funcional retornado pela criação ou listagem.",
     buildPath: state => `/v1/dwallet/data-request/${state.dataRequestId}`,
-    buildBody: () => ({ status: "accepted" }),
+    buildBody: () => ({ command: "accept" }),
   },
   {
     id: "step7_reject_data_request",
@@ -712,7 +712,7 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Atualiza a solicitação como rejeitada usando o ID funcional retornado pela criação ou listagem.",
     buildPath: state => `/v1/dwallet/data-request/${state.dataRequestId}`,
-    buildBody: () => ({ status: "rejected" }),
+    buildBody: () => ({ command: "reject" }),
   },
   {
     id: "step8_person_certificates",
@@ -953,7 +953,7 @@ function missingPrerequisite(action: JourneyAction, state: RunState) {
   }
   if (action.id === "step1_business_create" && !state.employeeTokenHandle) return "Token do colaborador Business indisponível.";
   if (action.id === "step6_create_data_request" && !state.businessId) return "Crie a entidade empresarial antes de solicitar dados.";
-  if (action.id === "step7_list_business_requests" && !state.businessId) return "Crie a entidade empresarial antes de listar solicitações.";
+  if (action.id === "step7_list_business_requests" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial antes de listar solicitações.";
   if ((action.id === "step7_accept_data_request" || action.id === "step7_reject_data_request") && !state.dataRequestId) return "Crie ou liste uma solicitação de dados antes de aceitar ou rejeitar.";
   if (action.id === "step10_dsp_details" && !(state.selectedDspId || state.standardDspId || state.commercialDspId)) return "Liste DSPs ou CSPs antes de consultar o detalhe do plano.";
   if (action.id === "step10_create_dsp_account" && !(state.selectedDspId || state.commercialDspId || state.standardDspId)) return "Liste e escolha um DSP ou CSP antes de criar a conta DSP.";
