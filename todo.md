@@ -266,3 +266,12 @@
 - [x] Corrigir PRODUCT_FRIENDLY_NAMES: adicionados DSKUs reais como chave + função lookupProductFriendly com 5 estratégias de lookup (DSKU exato, uppercase, nome, substring, parcial)
 - [x] Gerar 5 imagens nano banana temáticas corretas: banco (p5-banco-bank), telecom (p5-telecel), cia aérea (p5-voa-leve), saúde (p5-mais-saude), redes sociais (p5-tictac)
 - [x] ProductCardList, handleProductSelect, handleProductSelectStep5 e tela de confirmação do passo 6 atualizados para usar lookupProductFriendly
+
+## Sprint — Passo 12: URL Correta e Tela de Ofertas
+
+- [x] URL da API do passo 12 já estava correta (/v1/marketplace/offers + baseUrl); confirmado no servidor
+- [x] Implementar tela de resposta do passo 12 com botões para cada oferta retornada (imagem nano banana + identificador)
+- [x] Gerar 3 imagens nano banana para botões de oferta: marketplace, dados digitais, licença
+- [x] Ao clicar na oferta, salva offerId no runState e navega para passo 13 (onStepChange(13) com delay 350ms)
+- [x] URLs das imagens atualizadas para /manus-storage/ com hash correto
+- [x] 105 testes passando

@@ -806,44 +806,44 @@ const PRODUCT_FRIENDLY_NAMES: Record<string, { brand: string; image: string }> =
   // Lookup por nome do produto (campo `name` retornado pela API)
   "Test_Product_7Or1uUrK8": {
     brand: "Banco Bank",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-banco-bank-LMKCsyMEmfBdrTYEpWQXyU.webp",
+    image: "/manus-storage/p5-banco-bank_638e26bf.png",
   },
   "Test_Product_2kTqoH7lc": {
     brand: "Telecel",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-telecel-UZ2aBLVKUbuvFkGAZJe33R.webp",
+    image: "/manus-storage/p5-telecel_19309eac.png",
   },
   "Test_Product_1ZAPwXOmu": {
     brand: "Voa Leve",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-voa-leve-btiFJfMp6kALPmZQnaVMRo.webp",
+    image: "/manus-storage/p5-voa-leve_697faef8.png",
   },
   "Test_Product_MEOxuE71": {
     brand: "Mais Saúde",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-mais-saude-mXFDVjYVmj2jrdUPxy9Nfq.webp",
+    image: "/manus-storage/p5-mais-saude_e27283bd.png",
   },
   "Test_Product_8uP2LoThy": {
     brand: "TicTac",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-tictac-F5bq9ypssMeVZvRHVKCfVo.webp",
+    image: "/manus-storage/p5-tictac_c0d04b84.png",
   },
   // Lookup por DSKU completo (campo `dsku` retornado pela API — formato: DSKU-XXXX-TEST-PRODUCT-XXX)
   "DSKU-34750F-TEST-PRODUCT-7OR1UURK8": {
     brand: "Banco Bank",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-banco-bank-LMKCsyMEmfBdrTYEpWQXyU.webp",
+    image: "/manus-storage/p5-banco-bank_638e26bf.png",
   },
   "DSKU-A92ABE-TEST-PRODUCT-2KTQOH7LC": {
     brand: "Telecel",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-telecel-UZ2aBLVKUbuvFkGAZJe33R.webp",
+    image: "/manus-storage/p5-telecel_19309eac.png",
   },
   "DSKU-A92ABE-TEST-PRODUCT-1ZAPWXOMU": {
     brand: "Voa Leve",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-voa-leve-btiFJfMp6kALPmZQnaVMRo.webp",
+    image: "/manus-storage/p5-voa-leve_697faef8.png",
   },
   "DSKU-A92ABE-TEST-PRODUCT-MEOXUE71": {
     brand: "Mais Saúde",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-mais-saude-mXFDVjYVmj2jrdUPxy9Nfq.webp",
+    image: "/manus-storage/p5-mais-saude_e27283bd.png",
   },
   "DSKU-A92ABE-TEST-PRODUCT-8UP2LOTHY": {
     brand: "TicTac",
-    image: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/p5-tictac-F5bq9ypssMeVZvRHVKCfVo.webp",
+    image: "/manus-storage/p5-tictac_c0d04b84.png",
   },
 };
 
@@ -2041,8 +2041,119 @@ export function HomologacaoPhoneMockup({
             </div>
           )}
 
+          {/* RESULT state — passo 12: lista de ofertas com botões nano banana */}
+          {!isGap && phase === "result" && activeResult && screen.stepId === 12 && activeResult.ok && (() => {
+            // Extrair lista de ofertas da resposta
+            const body = activeResult.responseBody as Record<string, unknown> | unknown[] | null | undefined;
+            const offers: Array<Record<string, unknown>> = (() => {
+              if (Array.isArray(body)) return body as Array<Record<string, unknown>>;
+              if (body && typeof body === "object") {
+                const obj = body as Record<string, unknown>;
+                const candidates = [obj.offers, obj.items, obj.data, obj.results, obj.content];
+                for (const c of candidates) {
+                  if (Array.isArray(c) && c.length > 0) return c as Array<Record<string, unknown>>;
+                }
+              }
+              return [];
+            })();
+
+            // Imagens nano banana para ofertas (cicla entre as 3 disponíveis)
+            const offerImages = [
+              "/manus-storage/p12-offer-marketplace_a9338e71.png",
+              "/manus-storage/p12-offer-data_0f763a30.png",
+              "/manus-storage/p12-offer-license_ac9c2d37.png",
+            ];
+
+            const handleOfferSelect = (offerId: string) => {
+              onFieldChange("offerId", offerId);
+              // Navegar para o passo 13 após selecionar a oferta
+              if (onStepChange) {
+                setTimeout(() => onStepChange(13), 350);
+              }
+            };
+
+            return (
+              <div className="p-4 space-y-3">
+                {/* Header de sucesso */}
+                <div className="rounded-2xl overflow-hidden border border-emerald-200 shadow-sm">
+                  <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #10b98122, #06b6d422)" }}>
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#10b98120", border: "1.5px solid #10b98150" }}>
+                      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" strokeWidth="2">
+                        <path d="M20 7H4a2 2 0 00-2 2v6a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/>
+                        <path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-emerald-800">Ofertas disponíveis</p>
+                      <p className="text-[10px] text-emerald-700">{offers.length} {offers.length === 1 ? "oferta encontrada" : "ofertas encontradas"}</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lista de ofertas */}
+                {offers.length > 0 ? (
+                  <div className="space-y-2">
+                    <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500 px-1">Selecione uma oferta para aceitar</p>
+                    {offers.map((offer, idx) => {
+                      const offerId = String(
+                        offer.offerId ?? offer.id ?? offer.sid ?? offer.offer_id ?? `offer-${idx + 1}`
+                      );
+                      const offerName = String(
+                        offer.name ?? offer.title ?? offer.displayName ?? offer.description ?? `Oferta ${idx + 1}`
+                      );
+                      const offerImg = offerImages[idx % offerImages.length];
+                      const isSelected = String(runState.offerId ?? "") === offerId;
+                      return (
+                        <button
+                          key={offerId}
+                          onClick={() => handleOfferSelect(offerId)}
+                          className="w-full rounded-2xl overflow-hidden border shadow-sm transition-all active:scale-[0.98] text-left"
+                          style={{
+                            borderColor: isSelected ? "#ea580c" : "#e2e8f0",
+                            outline: isSelected ? "2px solid #ea580c" : undefined,
+                          }}
+                        >
+                          <div className="relative" style={{ minHeight: 80 }}>
+                            <img
+                              src={offerImg}
+                              alt={offerName}
+                              className="absolute inset-0 w-full h-full object-cover"
+                              style={{ filter: "brightness(0.6)" }}
+                            />
+                            <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(234,88,12,0.6) 0%, rgba(0,0,0,0.4) 100%)" }} />
+                            <div className="relative z-10 p-3 flex items-end justify-between h-full">
+                              <div className="min-w-0">
+                                <p className="text-[9px] font-bold uppercase tracking-wide text-orange-200 mb-0.5">Oferta disponível</p>
+                                <p className="text-sm font-bold text-white leading-tight truncate">{offerName}</p>
+                                <p className="text-[9px] font-mono text-white/70 mt-0.5 truncate">{offerId}</p>
+                              </div>
+                              {isSelected && (
+                                <span className="shrink-0 ml-2 text-[9px] font-bold px-2 py-1 rounded-full bg-orange-500 text-white">✓ Selecionada</span>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-center">
+                    <p className="text-xs text-slate-500">Nenhuma oferta disponível no momento.</p>
+                  </div>
+                )}
+
+                <button
+                  onClick={() => { setShowInputOverride(true); setPhase("input"); }}
+                  className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                >
+                  ← Voltar ao formulário
+                </button>
+              </div>
+            );
+          })()}
+
           {/* RESULT state */}
-          {!isGap && phase === "result" && activeResult && stepId !== 0 && actionId !== "step7_list_business_requests" && (
+          {!isGap && phase === "result" && activeResult && stepId !== 0 && actionId !== "step7_list_business_requests" && !(screen.stepId === 12 && activeResult.ok) && (
             <div className="p-4 space-y-3">
               <ResponseRenderer
                 result={activeResult}
