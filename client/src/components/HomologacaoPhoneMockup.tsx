@@ -3098,6 +3098,11 @@ export function HomologacaoPhoneMockup({
                         const isDoneState = step7Phase === "done";
                         const senderName = req.sender?.name ?? req.sender?._id ?? "";
                         const senderCpf = req.sender?.cpf ?? "";
+                        // Nome fantasia: tenta mapear pelo schemaId retornado pela API ou pelo schema do runState
+                        const schemaKey = String(req.schemaId ?? runState.valueSchemaSid ?? runState.selectedSchemaName ?? "");
+                        const schemaFriendly = schemaKey ? getSchemaFriendlyName(schemaKey, schemaKey) : "";
+                        // ID abreviado: primeiros 8 chars + "…"
+                        const shortId = reqId.length > 8 ? reqId.slice(0, 8) + "…" : reqId;
                         return (
                           <button
                             key={reqId}
@@ -3139,7 +3144,7 @@ export function HomologacaoPhoneMockup({
                                   </svg>
                                 ) : null}
                               </div>
-                              {/* Dados da solicitação — ricos com dados da API */}
+                              {/* Dados da solicitação — nome fantasia + ID abreviado */}
                               <div className="min-w-0 flex-1">
                                 <div className="flex items-center gap-1.5 mb-0.5">
                                   <span className="text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide" style={{ background: "#dbeafe", color: "#1d4ed8" }}>
@@ -3147,14 +3152,20 @@ export function HomologacaoPhoneMockup({
                                   </span>
                                   <span className="text-[7px] text-slate-400">#{idx + 1}</span>
                                 </div>
-                                {senderName && (
+                                {/* Nome fantasia do dado solicitado */}
+                                {schemaFriendly && schemaFriendly !== schemaKey ? (
+                                  <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">{schemaFriendly}</p>
+                                ) : senderName ? (
                                   <p className="text-[10px] font-bold text-slate-800 leading-tight truncate">{senderName}</p>
+                                ) : (
+                                  <p className="text-[10px] font-bold text-slate-600 leading-tight truncate">Solicitação de Dados</p>
                                 )}
                                 {senderCpf && (
                                   <p className="text-[8px] text-slate-500 truncate">CPF: {senderCpf}</p>
                                 )}
+                                {/* ID abreviado */}
                                 <p className="text-[8px] font-mono text-slate-400 truncate mt-0.5">
-                                  {reqId.slice(0, 24)}…
+                                  {shortId}
                                 </p>
                                 <div className="flex items-center gap-1 mt-1">
                                   <span className="text-[7px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide" style={{ background: batchItemResult ? (batchItemResult.ok ? "#dcfce7" : "#fee2e2") : "#fef3c7", color: batchItemResult ? (batchItemResult.ok ? "#15803d" : "#991b1b") : "#92400e" }}>

@@ -306,3 +306,5 @@
 - [x] Passo 10: ao clicar em card de DSP, executar API de detalhe e exibir drill-down inline abaixo do card
 - [x] Passo 10: seleção de apenas um DSP por vez (radio), ao selecionar executar API enroll DSP gerando commercial DSP
 - [x] Passo 10: botão para listar commercial DSPs após enroll bem-sucedido
+- [x] Passo 7: cards da listagem exibem nome fantasia do dado solicitado (baseado no schemaId retornado pela API) com ID abreviado abaixo
+- [x] Passo 7: corrigido body do PATCH para enviar actionId: accepted/rejected
