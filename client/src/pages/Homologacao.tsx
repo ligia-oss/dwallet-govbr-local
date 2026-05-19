@@ -469,6 +469,16 @@ export default function Homologacao() {
       // Merge state updates
       if (result.stateUpdates && Object.keys(result.stateUpdates).length > 0) {
         const newState: RunState = { ...runState, ...(result.stateUpdates as RunState) };
+        // Acumular dataRequestIds do passo 6 na sessão (array serializado como JSON string)
+        if (actionId === "step6_create_data_request" && result.stateUpdates.dataRequestId) {
+          const newId = String(result.stateUpdates.dataRequestId);
+          const existing: string[] = (() => {
+            try { return JSON.parse(String(runState.dataRequestIds ?? "[]")) as string[]; } catch { return []; }
+          })();
+          if (!existing.includes(newId)) {
+            newState.dataRequestIds = JSON.stringify([...existing, newId]);
+          }
+        }
         setRunState(newState);
       }
       // Store result

@@ -293,3 +293,6 @@
 - [x] Passo 7: armazenar dataRequestId no runState após batch bem-sucedido para uso nos passos seguintes
 - [x] Passo 7: registrar resultado do batch no stepResults para evidência na aba Evidências
 - [x] Passo 7: reescrever tela com layout flex fixo (cabeçalho temático + lista scrollável + botões Aceitar/Recusar fixos na parte inferior)
+- [x] Passo 7: tela de input com botão "Listar Requests" (GET) e exibição dos IDs acumulados do passo 6
+- [x] Passo 7: tela de resultado com cards por solicitação (da resposta GET) + botões Aceitar/Recusar fixos abaixo
+- [x] Passo 7: acumular dataRequestIds gerados no passo 6 na sessão (até reset do teste)

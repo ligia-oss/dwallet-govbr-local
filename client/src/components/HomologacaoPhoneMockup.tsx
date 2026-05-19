@@ -3150,8 +3150,98 @@ export function HomologacaoPhoneMockup({
             </div>
           )}
 
+          {/* PASSO 7 INPUT: step7_list_business_requests — botão Listar Requests + IDs acumulados */}
+          {!isGap && phase === "input" && actionId === "step7_list_business_requests" && (() => {
+            // IDs acumulados do passo 6 durante a sessão
+            const accumulatedIds: string[] = (() => {
+              try { return JSON.parse(String(runState.dataRequestIds ?? "[]")) as string[]; } catch { return []; }
+            })();
+            // Também incluir o dataRequestId atual se não estiver na lista
+            const currentId = runState.dataRequestId ? String(runState.dataRequestId) : "";
+            const allIds = currentId && !accumulatedIds.includes(currentId)
+              ? [...accumulatedIds, currentId]
+              : accumulatedIds;
+            return (
+              <div className="p-4 space-y-3">
+                {/* Resultado anterior */}
+                {activeResult && (
+                  <button
+                    onClick={() => setPhase("result")}
+                    className={`w-full text-xs font-semibold py-2 rounded-2xl border transition-colors ${
+                      activeResult.ok
+                        ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                        : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
+                    }`}
+                  >
+                    {activeResult.ok ? "✅ Ver solicitações listadas →" : "❌ Ver último erro →"}
+                  </button>
+                )}
+
+                {/* IDs de solicitações geradas no passo 6 */}
+                <div className="rounded-2xl border overflow-hidden" style={{ borderColor: allIds.length > 0 ? "#bbf7d0" : "#fde68a", background: allIds.length > 0 ? "#f0fdf4" : "#fffbeb" }}>
+                  <div className="px-4 py-2.5 border-b flex items-center justify-between" style={{ borderColor: allIds.length > 0 ? "#bbf7d0" : "#fde68a" }}>
+                    <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: allIds.length > 0 ? "#15803d" : "#92400e" }}>
+                      {allIds.length > 0 ? `✅ ${allIds.length} solicitação(s) gerada(s) no passo 6` : "⚠️ Nenhuma solicitação gerada ainda"}
+                    </p>
+                    {allIds.length > 0 && (
+                      <span className="text-[9px] font-bold px-2 py-0.5 rounded-full" style={{ background: "#dcfce7", color: "#15803d" }}>{allIds.length}</span>
+                    )}
+                  </div>
+                  {allIds.length > 0 ? (
+                    <div className="divide-y" style={{ borderColor: "#bbf7d0" }}>
+                      {allIds.map((id, idx) => (
+                        <div key={id} className="px-4 py-2 flex items-center gap-2">
+                          <span className="text-[9px] font-bold text-emerald-600 shrink-0">#{idx + 1}</span>
+                          <p className="text-[9px] font-mono text-slate-700 truncate flex-1">{id}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="px-4 py-3">
+                      <p className="text-[9px] text-amber-700">Execute o Passo 6 para gerar solicitações de dados. Cada execução do Passo 6 acumula um novo ID nesta lista.</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* Business dWallet ID */}
+                {runState.businessDwalletId && (
+                  <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
+                    <span className="text-base">🏢</span>
+                    <div className="min-w-0">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Empresa consultada</p>
+                      <p className="text-[9px] font-mono text-slate-700 truncate">{String(runState.businessDwalletId)}</p>
+                    </div>
+                  </div>
+                )}
+
+                {/* Botão Listar Requests */}
+                <button
+                  onClick={handleCta}
+                  disabled={isExecuting}
+                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                  style={{ background: colors.accent }}
+                >
+                  {isExecuting ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+                        <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+                        <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
+                      </svg>
+                      Consultando…
+                    </span>
+                  ) : (
+                    <span className="flex items-center justify-center gap-2">
+                      <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><path d="M9 3a6 6 0 100 12A6 6 0 009 3zM2 9a7 7 0 1112.452 4.391l3.328 3.329a1 1 0 11-1.414 1.414l-3.329-3.328A7 7 0 012 9z" fill="white"/></svg>
+                      Listar Requests
+                    </span>
+                  )}
+                </button>
+              </div>
+            );
+          })()}
+
           {/* INPUT state */}
-          {!isGap && phase === "input" && stepId !== 0 && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && !(screen.stepId === 6 && actionId === "step6_create_data_request") && (
+          {!isGap && phase === "input" && stepId !== 0 && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_list_business_requests" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && !(screen.stepId === 6 && actionId === "step6_create_data_request") && (
             <div className="p-4 space-y-3">
               {/* Previous result indicator */}
               {activeResult && (
