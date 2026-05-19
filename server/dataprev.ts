@@ -1,6 +1,6 @@
 import { createHash, createHmac, randomUUID } from "node:crypto";
 import { z } from "zod";
-import { deleteM2MToken, loadM2MToken, upsertM2MToken, storeUserToken, loadUserToken } from "./db";
+import { deleteM2MToken, loadM2MToken, upsertM2MToken, storeUserToken, loadUserToken, purgeExpiredUserTokens } from "./db";
 import { publicProcedure, router } from "./_core/trpc";
 import { fetchViaProxy } from "./_core/drumwaveProxy";
 
@@ -81,18 +81,25 @@ type M2MAuthResult = {
 const DEFAULT_PASSWORD = "SecurePass123!";
 const tokenStore = new Map<string, string>();
 
-/** Pré-carrega todos os tokens de usuário do banco para o Map in-memory na inicialização. */
+/** Pré-carrega todos os tokens de usuário válidos do banco para o Map in-memory na inicialização. */
 export async function preloadUserTokenCache(): Promise<void> {
   try {
+    // Primeiro limpa tokens expirados do banco
+    await purgeExpiredUserTokens();
     const { getDb } = await import("./db");
     const { userTokenCache } = await import("../drizzle/schema");
     const db = await getDb();
     if (!db) return;
     const rows = await db.select().from(userTokenCache);
+    const now = Date.now();
+    let loaded = 0;
     for (const row of rows) {
+      // Pular tokens expirados (que não foram removidos pelo purge por race condition)
+      if (row.expiresAt !== null && row.expiresAt !== undefined && now > row.expiresAt) continue;
       tokenStore.set(row.handle, row.token);
+      loaded++;
     }
-    if (rows.length > 0) console.log(`[TokenCache] Pré-carregados ${rows.length} token(s) de usuário do banco.`);
+    if (loaded > 0) console.log(`[TokenCache] Pré-carregados ${loaded} token(s) de usuário do banco.`);
   } catch (err) {
     console.warn("[TokenCache] Falha ao pré-carregar tokens do banco:", err);
   }
@@ -263,8 +270,8 @@ function firstListItem(obj: unknown): Record<string, unknown> | undefined {
 }
 
 function extractDataRequestId(obj: unknown): string | undefined {
-  const record = obj as { data?: { dataRequests?: Array<{ id?: string }>; page?: Array<{ id?: string }> } };
-  return record?.data?.dataRequests?.[0]?.id || record?.data?.page?.[0]?.id || findFirst(obj, ["dataRequestId", "requestId", "id"]);
+  const record = obj as { data?: { dataRequests?: Array<{ id?: string }>; page?: Array<{ id?: string }>; id?: string } };
+  return record?.data?.dataRequests?.[0]?.id || record?.data?.page?.[0]?.id || (record?.data?.id as string | undefined) || findFirst(obj, ["dataRequestId"]);
 }
 
 export function sanitizeDataprevEvidence(value: unknown, depth = 0, extraSecrets: string[] = []): unknown {
@@ -293,12 +300,27 @@ export function sanitizeDataprevEvidence(value: unknown, depth = 0, extraSecrets
   return out;
 }
 
+/** Extrai o timestamp de expiração de um JWT sem verificar assinatura. */
+function extractJwtExpiry(token: string): number | undefined {
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return undefined;
+    const payload = JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8'));
+    if (typeof payload.exp === 'number') return payload.exp * 1000; // converter de segundos para ms
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 function storeToken(token?: string) {
   if (!token) return undefined;
   const handle = randomUUID();
   tokenStore.set(handle, token);
+  // Extrai expiração do JWT para persistência com TTL
+  const expiresAt = extractJwtExpiry(token);
   // Persiste no banco de forma assíncrona (fire-and-forget) para sobreviver a reinicializações
-  storeUserToken(handle, token).catch(err => console.warn("[TokenCache] Falha ao persistir token:", err));
+  storeUserToken(handle, token, expiresAt).catch(err => console.warn("[TokenCache] Falha ao persistir token:", err));
   return handle;
 }
 
@@ -688,7 +710,7 @@ const actions: JourneyAction[] = [
     requiresUser: "person",
     includeRegion: true,
     description: "Cria solicitação de dados da pessoa para a empresa criada na jornada.",
-    buildBody: state => ({ loginEmail: state.personEmail, recipient: state.businessId }),
+    buildBody: state => ({ loginEmail: state.personEmail, recipient: state.businessDwalletId || state.businessId }),
     onSuccess: body => ({ dataRequestId: extractDataRequestId(body) }),
   },
   {
@@ -702,7 +724,7 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     includeRegion: true,
     description: "Lista solicitações recebidas pela empresa, filtrando pendentes.",
-    buildPath: state => `/v1/dwallet/business/${state.businessDwalletId || state.businessId}/data-requests?status=pending`,
+    buildPath: state => `/v1/dwallet/business/${state.businessId}/data-requests?status=pending`,
     onSuccess: body => ({ dataRequestId: extractDataRequestId(body) }),
   },
   {

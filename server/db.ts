@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNotNull, lt } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/mysql2";
 import { InsertUser, m2mTokenCache, userTokenCache, users } from "../drizzle/schema";
 import { ENV } from './_core/env';
@@ -167,9 +167,11 @@ export async function deleteM2MToken(credentialScope: string): Promise<void> {
 
 /**
  * Persiste um token de usuário (employee/person) no banco de dados.
- * Retorna o handle gerado para recuperação posterior.
+ * @param handle - UUID opaco que identifica o token
+ * @param token - JWT de acesso do usuário
+ * @param expiresAt - Timestamp Unix em ms da expiração (opcional)
  */
-export async function storeUserToken(handle: string, token: string): Promise<void> {
+export async function storeUserToken(handle: string, token: string, expiresAt?: number): Promise<void> {
   const db = await getDb();
   if (!db) {
     console.warn("[Database] Cannot persist user token: database not available");
@@ -178,8 +180,8 @@ export async function storeUserToken(handle: string, token: string): Promise<voi
   try {
     await db
       .insert(userTokenCache)
-      .values({ handle, token })
-      .onDuplicateKeyUpdate({ set: { token } });
+      .values({ handle, token, expiresAt: expiresAt ?? null })
+      .onDuplicateKeyUpdate({ set: { token, expiresAt: expiresAt ?? null } });
   } catch (error) {
     console.error("[Database] Failed to persist user token:", error);
   }
@@ -187,6 +189,7 @@ export async function storeUserToken(handle: string, token: string): Promise<voi
 
 /**
  * Recupera um token de usuário do banco de dados pelo handle.
+ * Retorna null se não encontrado ou se o token já expirou.
  */
 export async function loadUserToken(handle: string): Promise<string | null> {
   const db = await getDb();
@@ -197,9 +200,37 @@ export async function loadUserToken(handle: string): Promise<string | null> {
       .from(userTokenCache)
       .where(eq(userTokenCache.handle, handle))
       .limit(1);
-    return rows.length > 0 ? rows[0].token : null;
+    if (rows.length === 0) return null;
+    const row = rows[0];
+    // Verificar expiração
+    if (row.expiresAt !== null && row.expiresAt !== undefined && Date.now() > row.expiresAt) {
+      console.log(`[TokenCache] Token expirado para handle ${handle.substring(0, 8)}... — removendo do banco.`);
+      await db.delete(userTokenCache).where(eq(userTokenCache.handle, handle)).catch(() => {});
+      return null;
+    }
+    return row.token;
   } catch (error) {
     console.error("[Database] Failed to load user token:", error);
     return null;
+  }
+}
+
+/**
+ * Remove tokens de usuário expirados do banco de dados.
+ */
+export async function purgeExpiredUserTokens(): Promise<number> {
+  const db = await getDb();
+  if (!db) return 0;
+  try {
+    const now = Date.now();
+    const result = await db
+      .delete(userTokenCache)
+      .where(and(isNotNull(userTokenCache.expiresAt), lt(userTokenCache.expiresAt, now)));
+    const deleted = (result as any)?.[0]?.affectedRows ?? 0;
+    if (deleted > 0) console.log(`[TokenCache] ${deleted} token(s) expirado(s) removido(s) do banco.`);
+    return deleted;
+  } catch (error) {
+    console.error("[Database] Failed to purge expired user tokens:", error);
+    return 0;
   }
 }

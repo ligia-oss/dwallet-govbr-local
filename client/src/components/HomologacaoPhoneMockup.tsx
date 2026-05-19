@@ -3090,7 +3090,7 @@ export function HomologacaoPhoneMockup({
                   )}
 
                   {hasRequests ? (
-                    <div className="px-3 py-2 space-y-2">
+                    <div className="px-3 py-2 space-y-3">
                       {step7ListedRequests.map((req, idx) => {
                         const reqId = req.id;
                         const isSelected = step7SelectedIds.includes(reqId);
@@ -3101,91 +3101,130 @@ export function HomologacaoPhoneMockup({
                         // Nome fantasia: tenta mapear pelo schemaId retornado pela API ou pelo schema do runState
                         const schemaKey = String(req.schemaId ?? runState.valueSchemaSid ?? runState.selectedSchemaName ?? "");
                         const schemaFriendly = schemaKey ? getSchemaFriendlyName(schemaKey, schemaKey) : "";
-                        // ID abreviado: primeiros 8 chars + "…"
-                        const shortId = reqId.length > 8 ? reqId.slice(0, 8) + "…" : reqId;
+                        // Imagem temática baseada no schema
+                        const cardImg = schemaKey.toLowerCase().includes("rideshare") || schemaKey.toLowerCase().includes("corrida") || schemaKey.toLowerCase().includes("tarifa")
+                          ? SCHEMA_TYPE_IMAGES.mobility
+                          : schemaKey.toLowerCase().includes("telecom") || schemaKey.toLowerCase().includes("telefonia")
+                          ? SCHEMA_TYPE_IMAGES.standard
+                          : SCHEMA_TYPE_IMAGES.consent;
+                        // Status visual
+                        const statusColor = batchItemResult
+                          ? (batchItemResult.ok ? { bg: "#dcfce7", text: "#15803d", label: batchResult?.action === "accept" ? "✅ Aceito" : "✅ Recusado" } : { bg: "#fee2e2", text: "#991b1b", label: "❌ Erro" })
+                          : { bg: "#fef3c7", text: "#92400e", label: req.status ?? "pending" };
                         return (
                           <button
                             key={reqId}
                             onClick={() => !isDoneState && handleToggleRequest(reqId)}
                             disabled={isDoneState}
-                            className="w-full text-left rounded-xl border-2 p-3 transition-all active:scale-[0.98] disabled:cursor-default"
+                            className="w-full text-left rounded-2xl overflow-hidden shadow-sm transition-all active:scale-[0.98] disabled:cursor-default"
                             style={{
-                              borderColor: batchItemResult
-                                ? (batchItemResult.ok ? "#059669" : "#dc2626")
-                                : isSelected ? "#1351b4" : "#e2e8f0",
-                              background: batchItemResult
-                                ? (batchItemResult.ok ? "#f0fdf4" : "#fff5f5")
-                                : isSelected ? "#eff6ff" : "white",
+                              outline: isSelected ? "3px solid #1351b4" : batchItemResult ? (batchItemResult.ok ? "3px solid #059669" : "3px solid #dc2626") : "2px solid transparent",
+                              outlineOffset: "1px",
                             }}
                           >
-                            <div className="flex items-start gap-2.5">
-                              {/* Checkbox / status icon */}
+                            {/* Imagem de fundo temática */}
+                            <div className="relative overflow-hidden" style={{ height: 72 }}>
+                              <img
+                                src={cardImg}
+                                alt="Dados"
+                                className="absolute inset-0 w-full h-full object-cover"
+                                style={{ filter: "brightness(0.45) saturate(1.2)" }}
+                              />
                               <div
-                                className="mt-0.5 w-4 h-4 rounded border-2 flex items-center justify-center shrink-0"
-                                style={{
-                                  borderColor: batchItemResult
-                                    ? (batchItemResult.ok ? "#059669" : "#dc2626")
-                                    : isSelected ? "#1351b4" : "#cbd5e1",
-                                  background: batchItemResult
-                                    ? (batchItemResult.ok ? "#059669" : "#dc2626")
-                                    : isSelected ? "#1351b4" : "white",
+                                className="absolute inset-0"
+                                style={{ background: isSelected
+                                  ? "linear-gradient(135deg, rgba(19,81,180,0.75) 0%, rgba(0,0,0,0.4) 100%)"
+                                  : batchItemResult
+                                  ? (batchItemResult.ok ? "linear-gradient(135deg, rgba(5,150,105,0.75) 0%, rgba(0,0,0,0.4) 100%)" : "linear-gradient(135deg, rgba(220,38,38,0.75) 0%, rgba(0,0,0,0.4) 100%)")
+                                  : "linear-gradient(135deg, rgba(30,41,59,0.7) 0%, rgba(0,0,0,0.45) 100%)"
                                 }}
-                              >
-                                {batchItemResult ? (
-                                  <svg viewBox="0 0 12 12" width="8" height="8" fill="none">
-                                    {batchItemResult.ok
-                                      ? <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                      : <path d="M3 3l6 6M9 3l-6 6" stroke="white" strokeWidth="2" strokeLinecap="round"/>
-                                    }
-                                  </svg>
-                                ) : isSelected ? (
-                                  <svg viewBox="0 0 12 12" width="8" height="8" fill="none">
-                                    <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-                                  </svg>
-                                ) : null}
-                              </div>
-                              {/* Dados da solicitação — nome fantasia + ID abreviado */}
-                              <div className="min-w-0 flex-1">
-                                <div className="flex items-center gap-1.5 mb-0.5">
-                                  <span className="text-[8px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide" style={{ background: "#dbeafe", color: "#1d4ed8" }}>
-                                    {req.senderType ?? "Person"}
-                                  </span>
-                                  <span className="text-[7px] text-slate-400">#{idx + 1}</span>
+                              />
+                              <div className="relative z-10 px-3 py-2.5 flex items-start justify-between h-full">
+                                <div className="flex-1 min-w-0">
+                                  {/* Badge tipo + número */}
+                                  <div className="flex items-center gap-1.5 mb-1">
+                                    <span className="text-[7px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wide" style={{ background: "rgba(255,255,255,0.2)", color: "white" }}>
+                                      {req.senderType ?? "Person"}
+                                    </span>
+                                    <span className="text-[7px] text-white/60">#{idx + 1}</span>
+                                  </div>
+                                  {/* Nome fantasia ou título */}
+                                  <p className="text-[11px] font-bold text-white leading-tight truncate">
+                                    {schemaFriendly && schemaFriendly !== schemaKey
+                                      ? schemaFriendly
+                                      : senderName || "Solicitação de Dados"}
+                                  </p>
+                                  {senderCpf && (
+                                    <p className="text-[8px] text-white/60 truncate">CPF: {senderCpf}</p>
+                                  )}
                                 </div>
-                                {/* Nome fantasia do dado solicitado */}
-                                {schemaFriendly && schemaFriendly !== schemaKey ? (
-                                  <p className="text-[11px] font-bold text-slate-800 leading-tight truncate">{schemaFriendly}</p>
-                                ) : senderName ? (
-                                  <p className="text-[10px] font-bold text-slate-800 leading-tight truncate">{senderName}</p>
-                                ) : (
-                                  <p className="text-[10px] font-bold text-slate-600 leading-tight truncate">Solicitação de Dados</p>
-                                )}
-                                {senderCpf && (
-                                  <p className="text-[8px] text-slate-500 truncate">CPF: {senderCpf}</p>
-                                )}
-                                {/* ID abreviado */}
-                                <p className="text-[8px] font-mono text-slate-400 truncate mt-0.5">
-                                  {shortId}
-                                </p>
-                                <div className="flex items-center gap-1 mt-1">
-                                  <span className="text-[7px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide" style={{ background: batchItemResult ? (batchItemResult.ok ? "#dcfce7" : "#fee2e2") : "#fef3c7", color: batchItemResult ? (batchItemResult.ok ? "#15803d" : "#991b1b") : "#92400e" }}>
-                                    {batchItemResult ? (batchItemResult.ok ? "✅ processado" : "❌ erro") : req.status ?? "pending"}
-                                  </span>
+                                {/* Checkbox / ícone de status */}
+                                <div
+                                  className="w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 mt-0.5"
+                                  style={{
+                                    borderColor: batchItemResult ? (batchItemResult.ok ? "#34d399" : "#f87171") : isSelected ? "white" : "rgba(255,255,255,0.5)",
+                                    background: batchItemResult ? (batchItemResult.ok ? "#059669" : "#dc2626") : isSelected ? "white" : "rgba(255,255,255,0.15)",
+                                  }}
+                                >
+                                  {batchItemResult ? (
+                                    <svg viewBox="0 0 12 12" width="9" height="9" fill="none">
+                                      {batchItemResult.ok
+                                        ? <path d="M2 6l3 3 5-5" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                        : <path d="M3 3l6 6M9 3l-6 6" stroke="white" strokeWidth="2.5" strokeLinecap="round"/>
+                                      }
+                                    </svg>
+                                  ) : isSelected ? (
+                                    <svg viewBox="0 0 12 12" width="9" height="9" fill="none">
+                                      <path d="M2 6l3 3 5-5" stroke="#1351b4" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
+                                    </svg>
+                                  ) : null}
                                 </div>
                               </div>
+                            </div>
+                            {/* Rodapé do card: ID + status */}
+                            <div className="bg-white px-3 py-2 flex items-center justify-between">
+                              <div className="flex items-center gap-1.5">
+                                {/* Ícone de dados/tecnologia */}
+                                <svg viewBox="0 0 16 16" width="12" height="12" fill="none">
+                                  <rect x="2" y="2" width="5" height="5" rx="1" fill="#1351b4" opacity="0.7"/>
+                                  <rect x="9" y="2" width="5" height="5" rx="1" fill="#1351b4" opacity="0.4"/>
+                                  <rect x="2" y="9" width="5" height="5" rx="1" fill="#1351b4" opacity="0.4"/>
+                                  <rect x="9" y="9" width="5" height="5" rx="1" fill="#1351b4" opacity="0.7"/>
+                                </svg>
+                                <p className="text-[8px] font-mono text-slate-500 truncate" style={{ maxWidth: 110 }}>{reqId}</p>
+                              </div>
+                              <span className="text-[7px] px-1.5 py-0.5 rounded-full font-bold uppercase tracking-wide shrink-0" style={{ background: statusColor.bg, color: statusColor.text }}>
+                                {statusColor.label}
+                              </span>
                             </div>
                           </button>
                         );
                       })}
                     </div>
                   ) : (
-                    <div className="flex flex-col items-center justify-center py-10 px-4 text-center">
+                    <div className="flex flex-col items-center justify-center py-6 px-4 text-center">
                       <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94a3b8" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                       </div>
                       <p className="text-xs font-bold text-slate-500">Nenhuma solicitação pendente</p>
                       <p className="text-[9px] text-slate-400 mt-1">A API não retornou solicitações pendentes para esta empresa.</p>
-                      <button onClick={() => setStep7Phase("idle")} className="mt-3 text-[9px] font-bold text-blue-600 underline">Tentar novamente</button>
+                      <button onClick={() => setStep7Phase("idle")} className="mt-2 text-[9px] font-bold text-blue-600 underline">Tentar novamente</button>
+                      <button
+                        onClick={() => {
+                          const demoId = runState.dataRequestId as string || "demo-req-" + Math.random().toString(36).slice(2, 10);
+                          setStep7ListedRequests([{
+                            id: demoId,
+                            senderType: "Person",
+                            sender: { name: "João Santos", cpf: "***.***.***-**" },
+                            status: "pending",
+                            schemaId: String(runState.valueSchemaSid ?? runState.selectedSchemaName ?? ""),
+                          }]);
+                        }}
+                        className="mt-2 text-[9px] font-bold px-3 py-1.5 rounded-lg text-white"
+                        style={{ background: "#1351b4" }}
+                      >
+                        🧪 Usar dados de demonstração
+                      </button>
                     </div>
                   )}
                 </div>

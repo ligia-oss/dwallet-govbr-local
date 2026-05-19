@@ -1,0 +1,1 @@
+ALTER TABLE `userTokenCache` ADD `expiresAt` bigint;

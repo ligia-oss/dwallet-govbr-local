@@ -310,3 +310,15 @@
 - [x] Passo 7: corrigido body do PATCH para enviar actionId: accepted/rejected
 - [x] Testar fluxo de rejeição do Passo 7 (status: declined)
 - [x] Persistir cache de tokens de usuário no banco de dados (evitar perda após reinicialização do servidor)
+
+## Sprint — Expiração de Tokens, Persistência Employee e Redesign Passo 7
+
+- [x] Adicionar campo expiresAt (bigint) na tabela userTokenCache no schema Drizzle
+- [x] Atualizar storeUserToken para receber e salvar expiresAt
+- [x] Atualizar storeToken em dataprev.ts para passar expiresAt ao persistir tokens
+- [x] Implementar limpeza automática de tokens expirados na inicialização (preloadUserTokenCache)
+- [x] Validar persistência do employeeTokenHandle: executar Passo 1, reiniciar servidor, confirmar token carregado do banco
+- [x] Passo 7 mockup: card selecionável com imagem temática de dados/tecnologia para cada request retornado
+- [x] Passo 7 mockup: botões "Aceitar" e "Rejeitar" abaixo do card executam PATCH com status accepted/declined
+- [x] Executar pnpm db:push após alteração do schema
+- [x] Executar testes, verificar TypeScript e salvar checkpoint

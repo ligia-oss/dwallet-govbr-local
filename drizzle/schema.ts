@@ -1,4 +1,4 @@
-import { int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
+import { bigint, int, mysqlEnum, mysqlTable, text, timestamp, varchar } from "drizzle-orm/mysql-core";
 
 /**
  * Core user table backing auth flow.
@@ -54,6 +54,8 @@ export const userTokenCache = mysqlTable("userTokenCache", {
   id: int("id").autoincrement().primaryKey(),
   handle: varchar("handle", { length: 64 }).notNull().unique(),
   token: text("token").notNull(),
+  /** Timestamp Unix em milissegundos da expiração do token. Null = sem expiração definida. */
+  expiresAt: bigint("expiresAt", { mode: "number" }),
   createdAt: timestamp("createdAt").defaultNow().notNull(),
 });
 

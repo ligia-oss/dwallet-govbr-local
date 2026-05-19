@@ -1,0 +1,22 @@
+{
+  "query": "SELECT handle, LEFT(token, 30) as token_preview, expiresAt, createdAt FROM userTokenCache ORDER BY createdAt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ZhEPCd366cxmbpq.root --database MmipedoGRvuovi69F8w3ET --execute SELECT handle, LEFT(token, 30) as token_preview, expiresAt, createdAt FROM userTokenCache ORDER BY createdAt DESC;",
+  "rows": [
+    {
+      "handle": "edc1dafb-c64c-4f35-bb84-496939df8621",
+      "token_preview": "eyJraWQiOiJXcW5RR2tPbkVVT0ZcL1",
+      "expiresAt": "1779216780000",
+      "createdAt": "2026-05-19 17:53:01"
+    },
+    {
+      "handle": "a8242ea8-176f-4721-a54f-e4b821c6ae40",
+      "token_preview": "eyJraWQiOiJXcW5RR2tPbkVVT0ZcL1",
+      "expiresAt": "NULL",
+      "createdAt": "2026-05-19 17:43:29"
+    }
+  ],
+  "messages": [],
+  "stdout": "handle\ttoken_preview\texpiresAt\tcreatedAt\nedc1dafb-c64c-4f35-bb84-496939df8621\teyJraWQiOiJXcW5RR2tPbkVVT0ZcL1\t1779216780000\t2026-05-19 17:53:01\na8242ea8-176f-4721-a54f-e4b821c6ae40\teyJraWQiOiJXcW5RR2tPbkVVT0ZcL1\tNULL\t2026-05-19 17:43:29\n",
+  "stderr": "",
+  "execution_time_ms": 266
+}
