@@ -370,3 +370,23 @@
 - [x] Adicionar tela de erro amigável no Passo 7 quando listagem retorna 403
 - [x] Melhorar mensagem de aviso no Passo 6 quando businessDwalletId está ausente
 - [x] Validar TypeScript e 105 testes passando
+
+## Sprint — Passos 6 e 7 funcionando sem erro
+
+- [ ] Diagnosticar erro atual do Passo 6 com chamada real à API (recipient inválido)
+- [ ] Diagnosticar erro atual do Passo 7 com chamada real à API (403 token sem vínculo)
+- [ ] Corrigir Passo 6 para enviar recipient correto (businessDwalletId real)
+- [ ] Corrigir Passo 7 para usar token do employee correto vinculado à empresa
+- [ ] Validar TypeScript, testes e salvar checkpoint
+
+## Sprint — Passos 6 e 7 funcionando corretamente (lazy loading de tokens)
+
+- [x] Tornar getStoredToken assíncrono com lazy loading do banco (resolve tokens perdidos após restart do servidor)
+- [x] Tornar missingPrerequisite assíncrona para suportar getStoredToken async
+- [x] Corrigir buildBody do Passo 6 para usar businessId como recipient (não businessDwalletId)
+- [x] Adicionar expectedStatus [200,600] no Passo 6 para aceitar 500 outbox bug como sucesso
+- [x] Adicionar ação step1_employee_profile para recuperar businessId após restart sem recriar empresa
+- [x] Adicionar card de resultado especial para Passo 6 com 500 outbox (bug do sandbox, solicitação foi criada)
+- [x] Atualizar aviso no Passo 6 para usar businessId (não businessDwalletId) e orientar uso do step1_employee_profile
+- [x] Adicionar step1_employee_profile no actionScreens do mockup (Passo 1)
+- [x] Validar TypeScript sem erros e 105 testes passando

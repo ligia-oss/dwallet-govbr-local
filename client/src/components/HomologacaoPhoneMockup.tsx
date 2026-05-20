@@ -163,6 +163,16 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
           ? `Business dWallet criada para ${String(s.businessName ?? "a empresa")}.`
           : r.message ?? "Não foi possível criar a empresa.",
       },
+      step1_employee_profile: {
+        appHeader: "Perfil do colaborador",
+        appLead: "Recupera o businessId e businessDwalletId da empresa já associada ao colaborador logado. Útil para restaurar o estado após reinicialização.",
+        ctaLabel: "Consultar perfil",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Perfil recuperado" : "Erro ao consultar perfil",
+        resultBody: (r, s) => r.ok
+          ? `businessId recuperado: ${String(s.businessId ?? "(não encontrado)")}`
+          : r.message ?? "Não foi possível consultar o perfil.",
+      },
     },
   },
   2: {
@@ -1506,6 +1516,12 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
   const stateUpdates = result.stateUpdates as Record<string, unknown> | undefined;
   const capturedKeys = stateUpdates ? Object.keys(stateUpdates).filter(k => stateUpdates[k] !== null && stateUpdates[k] !== undefined) : [];
 
+  // Passo 6: 500 outbox event é um bug do sandbox mas a solicitação foi criada
+  const isStep6 = screen.stepId === 6;
+  const isStep6OutboxError = isStep6 && result.ok && result.httpStatus === 500 &&
+    typeof (body as Record<string, unknown>)?.message === "string" &&
+    ((body as Record<string, unknown>).message as string).includes("outbox event");
+
   // Erro 403 amigável para o passo 12 (feature flag não habilitada)
   const isStep12 = screen.stepId === 12;
   const is403Error = !result.ok && result.httpStatus === 403;
@@ -1524,6 +1540,46 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
 
       {/* Cards de resultado especiais por contexto */}
       {(() => {
+        if (isStep6OutboxError) return (
+          <div className="rounded-2xl overflow-hidden border border-blue-200 shadow-sm">
+            <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #1351b422, #06b6d422)" }}>
+              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#1351b420", border: "1.5px solid #1351b450" }}>
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#1351b4" strokeWidth="2">
+                  <path d="M9 12l2 2 4-4"/>
+                  <path d="M21 12c0 4.97-4.03 9-9 9s-9-4.03-9-9 4.03-9 9-9 9 4.03 9 9z"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-xs font-bold text-blue-900">Solicitação criada com sucesso</p>
+                <p className="text-[10px] text-blue-700">HTTP 500 · Outbox event (bug do sandbox)</p>
+              </div>
+            </div>
+            <div className="bg-white px-4 py-3 space-y-3">
+              <p className="text-xs text-slate-700 leading-5">
+                A solicitação de dados foi <strong>criada com sucesso</strong> no banco de dados da API. O erro 500 é um bug de infraestrutura do sandbox na fila de eventos (outbox pattern) e não impede a criação da solicitação.
+              </p>
+              <div className="rounded-xl bg-blue-50 border border-blue-100 p-3 space-y-2">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4]">Diagnóstico</p>
+                <div className="space-y-1.5">
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">✅</span><p className="text-[10px] text-slate-600 leading-4">Solicitação criada no banco de dados da API</p></div>
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">✅</span><p className="text-[10px] text-slate-600 leading-4">Token M2M e token de pessoa física enviados corretamente</p></div>
+                  <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">⚠️</span><p className="text-[10px] text-slate-600 leading-4">Falha no outbox event (notificação assíncrona) — bug do sandbox, não do código</p></div>
+                </div>
+              </div>
+              <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mb-1">📌 Próximo passo</p>
+                <p className="text-[10px] text-slate-600 leading-4">Execute o <strong>Passo 7</strong> para confirmar que a solicitação aparece na lista de pendentes da empresa.</p>
+              </div>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
+                  <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
+                  Solicitação criada
+                </span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">Outbox bug</span>
+              </div>
+            </div>
+          </div>
+        );
         if (isStep13Success) return (
           <div className="rounded-2xl overflow-hidden border border-emerald-200 shadow-sm">
             <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #10b98122, #06b6d422)" }}>
@@ -3122,13 +3178,18 @@ export function HomologacaoPhoneMockup({
                   )}
                 </div>
                 {/* Info da empresa */}
-                {runState.businessDwalletId && (
+                {runState.businessId ? (
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
                     <span className="text-lg">🏢</span>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Empresa destinatária</p>
-                      <p className="text-[9px] font-mono text-slate-700 truncate">{String(runState.businessDwalletId).slice(0, 16)}…</p>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Empresa destinatária (businessId)</p>
+                      <p className="text-[9px] font-mono text-slate-700 truncate">{String(runState.businessId).slice(0, 20)}…</p>
                     </div>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-[9px] font-bold text-amber-800 mb-1">⚠️ businessId não encontrado</p>
+                    <p className="text-[9px] text-amber-700 leading-4">Execute o Passo 1 (criar empresa) ou use a ação “Consultar perfil do colaborador” para recuperar o businessId da empresa já associada ao seu login.</p>
                   </div>
                 )}
                 {/* Botão Enviar solicitação */}

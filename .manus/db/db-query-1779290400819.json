@@ -1,0 +1,45 @@
+{
+  "query": "SELECT handle, createdAt, expiresAt FROM userTokenCache ORDER BY createdAt DESC;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ZhEPCd366cxmbpq.root --database MmipedoGRvuovi69F8w3ET --execute SELECT handle, createdAt, expiresAt FROM userTokenCache ORDER BY createdAt DESC;",
+  "rows": [
+    {
+      "handle": "6ee651be-dcf9-495e-97f3-c7b73df8c0df",
+      "createdAt": "2026-05-20 15:09:16",
+      "expiresAt": "1779293355000"
+    },
+    {
+      "handle": "4edd440f-8a6a-41fa-aa3d-609becbcdab9",
+      "createdAt": "2026-05-20 15:08:59",
+      "expiresAt": "1779293338000"
+    },
+    {
+      "handle": "cb1018ab-d575-44d0-8a03-4a333bacb475",
+      "createdAt": "2026-05-20 14:56:07",
+      "expiresAt": "1779292566000"
+    },
+    {
+      "handle": "a27d29c4-748a-4637-be9c-4bc0d53f97da",
+      "createdAt": "2026-05-20 14:55:47",
+      "expiresAt": "1779292546000"
+    },
+    {
+      "handle": "7e50225d-059f-4b0a-a368-9012fc74634b",
+      "createdAt": "2026-05-20 14:28:21",
+      "expiresAt": "1779290900000"
+    },
+    {
+      "handle": "863c70df-2b78-4687-af72-ad86a8dde371",
+      "createdAt": "2026-05-20 14:27:43",
+      "expiresAt": "1779290862000"
+    },
+    {
+      "handle": "a8242ea8-176f-4721-a54f-e4b821c6ae40",
+      "createdAt": "2026-05-19 17:43:29",
+      "expiresAt": "NULL"
+    }
+  ],
+  "messages": [],
+  "stdout": "handle\tcreatedAt\texpiresAt\n6ee651be-dcf9-495e-97f3-c7b73df8c0df\t2026-05-20 15:09:16\t1779293355000\n4edd440f-8a6a-41fa-aa3d-609becbcdab9\t2026-05-20 15:08:59\t1779293338000\ncb1018ab-d575-44d0-8a03-4a333bacb475\t2026-05-20 14:56:07\t1779292566000\na27d29c4-748a-4637-be9c-4bc0d53f97da\t2026-05-20 14:55:47\t1779292546000\n7e50225d-059f-4b0a-a368-9012fc74634b\t2026-05-20 14:28:21\t1779290900000\n863c70df-2b78-4687-af72-ad86a8dde371\t2026-05-20 14:27:43\t1779290862000\na8242ea8-176f-4721-a54f-e4b821c6ae40\t2026-05-19 17:43:29\tNULL\n",
+  "stderr": "",
+  "execution_time_ms": 421
+}
