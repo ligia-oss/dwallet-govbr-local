@@ -1804,7 +1804,8 @@ export function HomologacaoPhoneMockup({
   // "selecting" = lista de IDs com checkboxes + botões Aceitar/Rejeitar
   // "executing" = PATCH em andamento
   // "done" = resultado do PATCH
-  const [step7Phase, setStep7Phase] = useState<"idle" | "selecting" | "executing" | "done">("idle");
+  const [step7Phase, setStep7Phase] = useState<"idle" | "selecting" | "executing" | "done" | "error">("idle");
+  const [step7ListError, setStep7ListError] = useState<{ httpStatus?: number; message?: string } | null>(null);
   const [step7SelectedIds, setStep7SelectedIds] = useState<string[]>([]);
   // Objetos completos retornados pela API GET step7_list_business_requests
   type Step7Request = { id: string; senderType?: string; sender?: { name?: string; cpf?: string; _id?: string }; status?: string; schemaId?: string };
@@ -1843,7 +1844,17 @@ export function HomologacaoPhoneMockup({
   useEffect(() => {
     if (!activeResult) return;
     if (activeResult.actionId !== "step7_list_business_requests") return;
-    if (!activeResult.ok) return;
+    // Tratar erros de listagem (403, 401, etc.)
+    if (!activeResult.ok) {
+      const resultKey = activeResult.executedAt ?? JSON.stringify(activeResult.responseBody);
+      if (prevListResultRef.current === resultKey) return;
+      prevListResultRef.current = resultKey;
+      const body = activeResult.responseBody as Record<string, unknown> | undefined;
+      const errMsg = (body?.message as string) || (body?.error as Record<string, unknown>)?.message as string || "Erro ao listar solicitações";
+      setStep7ListError({ httpStatus: activeResult.httpStatus, message: String(errMsg) });
+      setStep7Phase("error");
+      return;
+    }
     // Evitar re-processar o mesmo resultado
     const resultKey = activeResult.executedAt ?? JSON.stringify(activeResult.responseBody);
     if (prevListResultRef.current === resultKey) return;
@@ -2972,7 +2983,10 @@ export function HomologacaoPhoneMockup({
                     style={{ borderColor: "#1351b440", "--tw-ring-color": "#1351b4" } as React.CSSProperties}
                   />
                   {!runState.businessDwalletId && !runState.businessId && (
-                    <p className="text-[9px] text-amber-600">⚠️ Execute o passo 1 para capturar automaticamente, ou informe o ID manualmente.</p>
+                    <p className="text-[9px] text-amber-600">⚠️ Execute o Passo 1 (criar empresa) para capturar o <strong>dWallet ID da empresa</strong> automaticamente. Sem esse ID, a solicitação não pode ser enviada.</p>
+                  )}
+                  {runState.businessId && !runState.businessDwalletId && (
+                    <p className="text-[9px] text-amber-600">⚠️ O campo está usando o <code>businessId</code> como fallback. Para garantir o envio correto, execute o Passo 1 novamente para capturar o <code>businessDwalletId</code>.</p>
                   )}
                 </div>
               {/* Tipo de registro */}
@@ -3151,6 +3165,59 @@ export function HomologacaoPhoneMockup({
             const isExecutingBatch = step7Phase === "executing";
             const isDone = step7Phase === "done";
             const isSelecting = step7Phase === "selecting" || isDone;
+
+            // ── TELA ERRO: quando a listagem falha (403, 401, etc.) ─────────────
+            if (step7Phase === "error" && step7ListError) {
+              const is403 = step7ListError.httpStatus === 403;
+              const is401 = step7ListError.httpStatus === 401;
+              return (
+                <div className="p-4 space-y-3">
+                  {/* Card de erro */}
+                  <div className="rounded-2xl overflow-hidden border border-red-200 bg-red-50">
+                    <div className="bg-red-600 px-4 py-3">
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-red-200 mb-0.5">Erro na listagem — Passo 7</p>
+                      <p className="text-sm font-bold text-white leading-tight">HTTP {step7ListError.httpStatus} — {is403 ? "Sem permissão" : is401 ? "Não autenticado" : "Falha na API"}</p>
+                    </div>
+                    <div className="p-4 space-y-2.5">
+                      {is403 && (
+                        <>
+                          <div className="flex items-start gap-2">
+                            <span className="text-base mt-0.5">🔐</span>
+                            <div>
+                              <p className="text-[10px] font-bold text-red-800 mb-0.5">Token sem vínculo com a empresa</p>
+                              <p className="text-[9px] text-red-700 leading-4">O token do funcionário autenticado não tem permissão para acessar este businessId. O token precisa pertencer ao mesmo employee que criou a empresa no Passo 1.</p>
+                            </div>
+                          </div>
+                          <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 space-y-1.5">
+                            <p className="text-[9px] font-bold text-amber-800">Como resolver:</p>
+                            <div className="flex items-start gap-1.5"><span className="text-[9px] text-amber-700 font-bold">1.</span><p className="text-[9px] text-amber-700">Execute o Passo 1 completo (login do funcionário + criar empresa) em uma única sessão</p></div>
+                            <div className="flex items-start gap-1.5"><span className="text-[9px] text-amber-700 font-bold">2.</span><p className="text-[9px] text-amber-700">O token gerado no login deve ser o mesmo usado no Passo 7</p></div>
+                            <div className="flex items-start gap-1.5"><span className="text-[9px] text-amber-700 font-bold">3.</span><p className="text-[9px] text-amber-700">Não reutilize tokens de sessões anteriores para empresas diferentes</p></div>
+                          </div>
+                        </>
+                      )}
+                      {!is403 && (
+                        <div className="flex items-start gap-2">
+                          <span className="text-base mt-0.5">⚠️</span>
+                          <p className="text-[10px] text-red-700 leading-4">{step7ListError.message}</p>
+                        </div>
+                      )}
+                      <p className="text-[9px] font-mono text-slate-500 bg-slate-100 rounded px-2 py-1">
+                        GET /v1/dwallet/business/&#123;businessId&#125;/data-requests?status=pending
+                      </p>
+                    </div>
+                  </div>
+                  {/* Botão tentar novamente */}
+                  <button
+                    onClick={() => { setStep7Phase("idle"); setStep7ListError(null); }}
+                    className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
+                    style={{ background: "#1351b4" }}
+                  >
+                    ← Tentar novamente
+                  </button>
+                </div>
+              );
+            }
 
             // ── TELA IDLE: botão Listar Solicitações ──────────────────────────
             if (step7Phase === "idle") {

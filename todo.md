@@ -362,3 +362,11 @@
 - [x] Integrar imagem no card de detalhe do DSP (step10_dsp_details)
 - [x] Integrar imagem no card de contratação DSP (step10_create_dsp_account / enrolling)
 - [x] Validar TypeScript, testes e salvar checkpoint
+
+## Sprint — Passos 6 e 7 correção
+
+- [x] Investigar causa raiz dos erros nos Passos 6 e 7
+- [x] Corrigir extração do businessDwalletId no step1_business_create (data.dWallet.id)
+- [x] Adicionar tela de erro amigável no Passo 7 quando listagem retorna 403
+- [x] Melhorar mensagem de aviso no Passo 6 quando businessDwalletId está ausente
+- [x] Validar TypeScript e 105 testes passando

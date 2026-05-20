@@ -575,7 +575,12 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Cria a carteira/entidade empresarial associada ao colaborador autenticado.",
     buildBody: state => ({ name: state.businessName || `Empresa Dataprev Local ${state.runId}`, cnpj: state.businessCnpj, address: { state: state.businessState || "SP" }, website: state.businessWebsite || undefined, phoneNumber: state.businessPhone || undefined }),
-    onSuccess: body => ({ businessId: findFirst(body, ["businessId", "id", "uuid"]), businessDwalletId: findFirst(body, ["dWalletId", "dwalletId", "walletId", "dwallet_id", "wallet_id", "dWallet"]) }),
+    onSuccess: body => ({
+      businessId: findFirst(body, ["businessId", "id", "uuid"]),
+      // O campo dWallet é um objeto {id, type, status} — extrair dWallet.id diretamente
+      businessDwalletId: (body as Record<string, unknown> & { data?: { dWallet?: { id?: string } } })?.data?.dWallet?.id
+        || findFirst(body, ["dWalletId", "dwalletId", "walletId", "dwallet_id", "wallet_id"]),
+    }),
   },
   {
     id: "step2_person_signup",
