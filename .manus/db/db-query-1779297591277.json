@@ -1,0 +1,40 @@
+{
+  "query": "SELECT handle, LEFT(token, 50) as token_preview, expiresAt, createdAt FROM userTokenCache ORDER BY createdAt DESC LIMIT 10;",
+  "command": "mysql --batch --raw --column-names --default-character-set=utf8mb4 --host gateway06.us-east-1.prod.aws.tidbcloud.com --port 4000 --user ZhEPCd366cxmbpq.root --database MmipedoGRvuovi69F8w3ET --execute SELECT handle, LEFT(token, 50) as token_preview, expiresAt, createdAt FROM userTokenCache ORDER BY createdAt DESC LIMIT 10;",
+  "rows": [
+    {
+      "handle": "ad752ae4-901a-4df0-b17c-7784695bcb8a",
+      "token_preview": "eyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH",
+      "expiresAt": "1779294944000",
+      "createdAt": "2026-05-20 15:35:45"
+    },
+    {
+      "handle": "09cc987f-7174-4d43-88d4-00e053972b18",
+      "token_preview": "eyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH",
+      "expiresAt": "1779294923000",
+      "createdAt": "2026-05-20 15:35:23"
+    },
+    {
+      "handle": "6ee651be-dcf9-495e-97f3-c7b73df8c0df",
+      "token_preview": "eyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH",
+      "expiresAt": "1779293355000",
+      "createdAt": "2026-05-20 15:09:16"
+    },
+    {
+      "handle": "4edd440f-8a6a-41fa-aa3d-609becbcdab9",
+      "token_preview": "eyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH",
+      "expiresAt": "1779293338000",
+      "createdAt": "2026-05-20 15:08:59"
+    },
+    {
+      "handle": "a8242ea8-176f-4721-a54f-e4b821c6ae40",
+      "token_preview": "eyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH",
+      "expiresAt": "NULL",
+      "createdAt": "2026-05-19 17:43:29"
+    }
+  ],
+  "messages": [],
+  "stdout": "handle\ttoken_preview\texpiresAt\tcreatedAt\nad752ae4-901a-4df0-b17c-7784695bcb8a\teyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH\t1779294944000\t2026-05-20 15:35:45\n09cc987f-7174-4d43-88d4-00e053972b18\teyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH\t1779294923000\t2026-05-20 15:35:23\n6ee651be-dcf9-495e-97f3-c7b73df8c0df\teyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH\t1779293355000\t2026-05-20 15:09:16\n4edd440f-8a6a-41fa-aa3d-609becbcdab9\teyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH\t1779293338000\t2026-05-20 15:08:59\na8242ea8-176f-4721-a54f-e4b821c6ae40\teyJraWQiOiJXcW5RR2tPbkVVT0ZcL1ZDcm1NNkdVVkNuZHhneH\tNULL\t2026-05-19 17:43:29\n",
+  "stderr": "",
+  "execution_time_ms": 266
+}

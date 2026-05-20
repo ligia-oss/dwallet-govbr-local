@@ -373,11 +373,11 @@
 
 ## Sprint — Passos 6 e 7 funcionando sem erro
 
-- [ ] Diagnosticar erro atual do Passo 6 com chamada real à API (recipient inválido)
-- [ ] Diagnosticar erro atual do Passo 7 com chamada real à API (403 token sem vínculo)
-- [ ] Corrigir Passo 6 para enviar recipient correto (businessDwalletId real)
-- [ ] Corrigir Passo 7 para usar token do employee correto vinculado à empresa
-- [ ] Validar TypeScript, testes e salvar checkpoint
+- [x] Diagnosticar erro atual do Passo 6 com chamada real à API (recipient inválido)
+- [x] Diagnosticar erro atual do Passo 7 com chamada real à API (403 token sem vínculo)
+- [x] Corrigir Passo 6 para enviar recipient correto (businessId real via lazy loading)
+- [x] Corrigir Passo 7 para usar token do employee correto vinculado à empresa
+- [x] Validar TypeScript, testes e salvar checkpoint
 
 ## Sprint — Passos 6 e 7 funcionando corretamente (lazy loading de tokens)
 
@@ -390,3 +390,22 @@
 - [x] Atualizar aviso no Passo 6 para usar businessId (não businessDwalletId) e orientar uso do step1_employee_profile
 - [x] Adicionar step1_employee_profile no actionScreens do mockup (Passo 1)
 - [x] Validar TypeScript sem erros e 105 testes passando
+
+## Sprint — Passos 6 e 7 funcionando end-to-end
+
+- [ ] Executar Passo 6 via API real e identificar todos os erros
+- [ ] Executar Passo 7 via API real e identificar todos os erros
+- [ ] Corrigir todos os problemas de contrato, autenticação e estado
+- [ ] Validar TypeScript, testes e salvar checkpoint
+
+## Sprint — Passos 6 e 7 funcionando end-to-end
+
+- [x] Identificar que tokens expiram após ~1h e tokenStore é limpo a cada restart
+- [x] Implementar lazy loading do banco no getStoredToken (fallback async ao DB)
+- [x] Corrigir buildBody do step6 para usar businessId como recipient (não businessDwalletId)
+- [x] Implementar onSuccessAsync no step6 para recuperar dataRequestId via listagem quando API retorna 500 outbox
+- [x] Adicionar step1_employee_profile para recuperar businessId sem recriar empresa
+- [x] Validar passo 6 end-to-end: ok=true, dataRequestId recuperado automaticamente
+- [x] Validar passo 7 end-to-end: ok=true, httpStatus=200, solicitação listada
+- [x] Atualizar card de resultado do passo 6 para mostrar dataRequestId recuperado
+- [x] TypeScript limpo, 105 testes passando, checkpoint salvo

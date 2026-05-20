@@ -1566,10 +1566,19 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
                   <div className="flex items-start gap-2"><span className="text-[10px] mt-0.5">⚠️</span><p className="text-[10px] text-slate-600 leading-4">Falha no outbox event (notificação assíncrona) — bug do sandbox, não do código</p></div>
                 </div>
               </div>
-              <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mb-1">📌 Próximo passo</p>
-                <p className="text-[10px] text-slate-600 leading-4">Execute o <strong>Passo 7</strong> para confirmar que a solicitação aparece na lista de pendentes da empresa.</p>
-              </div>
+              {Boolean(stateUpdates?.dataRequestId) && (
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mb-1">✅ ID da Solicitação Recuperado</p>
+                  <p className="text-[10px] text-slate-500 mb-1">Recuperado automaticamente via listagem de pendentes:</p>
+                  <code className="text-[10px] font-mono text-emerald-800 break-all">{String(stateUpdates?.dataRequestId ?? "")}</code>
+                </div>
+              )}
+              {!stateUpdates?.dataRequestId && (
+                <div className="rounded-xl bg-emerald-50 border border-emerald-100 p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-700 mb-1">📌 Próximo passo</p>
+                  <p className="text-[10px] text-slate-600 leading-4">Execute o <strong>Passo 7</strong> para confirmar que a solicitação aparece na lista de pendentes da empresa.</p>
+                </div>
+              )}
               <div className="flex items-center gap-2 pt-1">
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
                   <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>

@@ -27,6 +27,8 @@ type JourneyAction = {
   buildBody?: (state: RunState, credentials?: DataprevCredentialsInput) => JsonValue;
   buildPath?: (state: RunState) => string;
   onSuccess?: (body: unknown, state: RunState) => RunState;
+  /** Chamada assíncrona adicional para recuperar state quando onSuccess não é suficiente (ex: fallback após 500 de outbox). */
+  onSuccessAsync?: (body: unknown, state: RunState, credentials?: DataprevCredentialsInput) => Promise<RunState>;
   missingReason?: string;
   apiClassification?: string;
 };
@@ -758,6 +760,35 @@ const actions: JourneyAction[] = [
     description: "Cria solicitação de dados da pessoa para a empresa criada na jornada. Nota: o sandbox pode retornar 500 por falha no outbox event mesmo quando a solicitação é criada — o Passo 7 confirmará se a solicitação chegou.",
     buildBody: state => ({ loginEmail: state.personEmail, recipient: state.businessId }),
     onSuccess: body => ({ dataRequestId: extractDataRequestId(body) }),
+    // Fallback assíncrono: quando o sandbox retorna 500 de outbox (a solicitação foi criada mas o ID não está no body),
+    // busca o dataRequestId mais recente via listagem de solicitações pendentes da empresa.
+    onSuccessAsync: async (body, state, credentials) => {
+      const b = body as Record<string, unknown>;
+      // Só aciona o fallback se o onSuccess não conseguiu extrair o ID e o body é um erro de outbox
+      if (state.dataRequestId) return {}; // já temos o ID, não precisa do fallback
+      const isOutboxError = typeof b?.message === "string" && b.message.includes("outbox");
+      if (!isOutboxError) return {};
+      if (!state.businessId || !state.employeeTokenHandle) return {};
+      try {
+        const m2mResult = await acquireM2MTokenForAction(credentials);
+        const employeeToken = await getStoredToken(String(state.employeeTokenHandle));
+        if (!m2mResult || !employeeToken) return {};
+        const m2mToken = m2mResult.token;
+        const listUrl = `${env(credentials).baseUrl}/v1/dwallet/business/${state.businessId}/data-requests?status=pending`;
+        const listHeaders = headers({ m2m: m2mToken, userToken: employeeToken, region: true, content: false }, credentials);
+        const listResp = await fetchViaProxy(listUrl, { method: "GET", headers: listHeaders });
+        if (!listResp.ok) return {};
+        const listBody = await listResp.json().catch(() => ({}));
+        const dataRequestId = extractDataRequestId(listBody);
+        if (dataRequestId) {
+          console.log(`[step6] Fallback: dataRequestId recuperado via listagem: ${dataRequestId}`);
+          return { dataRequestId };
+        }
+      } catch (err) {
+        console.warn("[step6] Falha no fallback de listagem:", err);
+      }
+      return {};
+    },
   },
   {
     id: "step7_list_business_requests",
@@ -1178,7 +1209,16 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   const responseBody = await response.json().catch(() => ({}));
   const [min, max] = action.expectedStatus || [200, 300];
   const ok = response.status >= min && response.status < max;
-  const stateUpdates = ok && action.onSuccess ? compactStateUpdates(action.onSuccess(responseBody, state)) : {};
+  let stateUpdates = ok && action.onSuccess ? compactStateUpdates(action.onSuccess(responseBody, state)) : {};
+  // Se onSuccessAsync está definido, chama para complementar/substituir stateUpdates (ex: fallback após 500 de outbox)
+  if (ok && action.onSuccessAsync) {
+    try {
+      const asyncUpdates = await action.onSuccessAsync(responseBody, { ...state, ...stateUpdates }, credentials);
+      stateUpdates = compactStateUpdates({ ...stateUpdates, ...asyncUpdates });
+    } catch (err) {
+      console.warn(`[onSuccessAsync] Falha no fallback assíncrono para ${action.id}:`, err);
+    }
+  }
 
   return {
     actionId: action.id,
