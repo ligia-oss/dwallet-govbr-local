@@ -391,16 +391,10 @@ export default function Homologacao() {
     }
   }, [metadata.data?.initialState]);
 
-  // Pre-populate offerId when empty or when it has the old invalid UUID (missing leading char)
-  useEffect(() => {
-    const initial = metadata.data?.initialState as Record<string, unknown> | undefined;
-    const canonicalOfferId = initial?.offerId as string | undefined;
-    if (!canonicalOfferId) return;
-    // Overwrite if empty OR if the stored value doesn't match the canonical one
-    if (!runState.offerId || runState.offerId !== canonicalOfferId) {
-      setRunState(prev => ({ ...prev, offerId: canonicalOfferId }));
-    }
-  }, [metadata.data?.initialState]);
+  // NOTE: offerId is intentionally NOT pre-populated from initialState here.
+  // The canonical UUID in initialState is only a fallback for the API call itself (server-side).
+  // The real offerId must come from step12_person_offers API response via onFieldChange("offerId", ...).
+  // Pre-populating here would make step 13 appear executable even without completing step 12.
 
   // Auto-fill credentials from server defaults when fields are empty
   useEffect(() => {

@@ -418,3 +418,12 @@
 - [x] Internacionalizar textos hardcoded em PT no Homologacao.tsx não cobertos pelo T dict
 - [x] Garantir que troca de idioma não é resetada por navegação entre passos ou abas
 - [x] Executar testes, TypeScript e salvar checkpoint
+
+## Sprint — Correções Passos 7, 12 e 13
+
+- [x] Passo 13: Remover useEffect de bootstrap do offerId que sobrescrevia o offerId descoberto pelo passo 12
+- [x] Passo 12: Corrigir onSuccess para não retornar offerId canônico como fallback quando API retorna 404/403
+- [x] Passo 12: Desabilitar botão "Aceitar Oferta" quando API não retornou offerId real
+- [x] Passo 7: Propagar TODOS os IDs aceitos com sucesso no runState (não apenas o primeiro)
+- [x] Passo 13: Gating no mockup e no servidor verifica que offerId não é o UUID canônico do initialState
+- [x] Validar TypeScript (0 erros) e 105 testes passando

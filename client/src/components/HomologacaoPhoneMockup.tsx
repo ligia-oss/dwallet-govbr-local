@@ -2742,8 +2742,17 @@ export function HomologacaoPhoneMockup({
     try {
       const result = await onBatchExecute(targetActionId, step7SelectedIds);
       setStep7BatchResult({ ...result, action });
-      if (result.ok && step7SelectedIds[0]) {
-        onFieldChange("dataRequestId", step7SelectedIds[0]);
+      // Propagar TODOS os IDs aceitos com sucesso no runState (não apenas o primeiro)
+      if (result.ok) {
+        const successfulIds = result.results.filter(r => r.ok).map(r => r.dataRequestId);
+        if (successfulIds.length > 0) {
+          // Salvar o primeiro como dataRequestId (compat. com passos seguintes)
+          onFieldChange("dataRequestId", successfulIds[0]);
+          // Salvar todos como dataRequestIds (array serializado)
+          if (successfulIds.length > 1) {
+            onFieldChange("dataRequestIds", JSON.stringify(successfulIds));
+          }
+        }
       }
     } catch (err) {
       setStep7BatchResult({
@@ -3238,7 +3247,10 @@ export function HomologacaoPhoneMockup({
               return {};
             })();
 
-            const offerId = String(offerObj.offerId ?? offerObj.id ?? runState.offerId ?? "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab");
+            // Use only the real offerId from the API response — do NOT fall back to the canonical UUID.
+            // If the API returned a valid offer, offerObj will have offerId or id.
+            // If neither is present, offerId will be empty and the CTA will be disabled.
+            const offerId = String(offerObj.offerId ?? offerObj.id ?? "");
             const offerTitle = String(offerObj.title ?? offerObj.name ?? "Oferta de Licenciamento");
             const offerDescription = String(offerObj.description ?? "");
             const campaignName = String(offerObj.campaignName ?? "");
@@ -3347,13 +3359,16 @@ export function HomologacaoPhoneMockup({
                       </div>
                     </div>
 
-                    {/* Botão aceitar oferta */}
+                    {/* Botão aceitar oferta — só habilitado quando a API retornou um offerId real */}
                     <button
                       onClick={handleAcceptOffer}
-                      className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.98] shadow-md"
+                      disabled={!offerId}
+                      className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.98] shadow-md disabled:opacity-50 disabled:cursor-not-allowed"
                       style={{ background: "linear-gradient(135deg, #ea580c, #dc2626)" }}
                     >
-                      {MT[lang].acceptOfferTitle.replace("Confirmar aceite da oferta do marketplace", lang === "en" ? "Accept Offer → Step 13" : "Aceitar Oferta → Passo 13")}
+                      {!offerId
+                        ? (lang === "en" ? "No offer ID returned by API" : "API não retornou offerId")
+                        : (lang === "en" ? "Accept Offer → Step 13" : "Aceitar Oferta → Passo 13")}
                     </button>
                   </>
                 ) : (
@@ -4896,19 +4911,37 @@ export function HomologacaoPhoneMockup({
                   {!runState.offerId && <p className="text-[9px] text-orange-200 mt-1">{MT[lang].noOfferSelected}</p>}
                 </div>
               </div>
-              <button
-                onClick={handleCta}
-                disabled={isExecuting || !runState.offerId}
-                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
-                style={{ background: "#ea580c" }}
-              >
-                {isExecuting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                    {MT[lang].acceptingOffer}
-                  </span>
-                ) : MT[lang].acceptOffer}
-              </button>
+              {/* Gating: offerId must be a real ID from step 12, not the canonical fallback UUID */}
+              {(() => {
+                const CANONICAL_OFFER_ID = "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab";
+                const hasRealOfferId = !!runState.offerId && runState.offerId !== CANONICAL_OFFER_ID;
+                return (
+                  <>
+                    {!hasRealOfferId && (
+                      <div className="rounded-xl px-3 py-2 text-center" style={{ background: "#fff7ed", border: "1px solid #fed7aa" }}>
+                        <p className="text-[10px] font-semibold text-orange-700">
+                          {lang === "en"
+                            ? "Complete Step 12 first to get a real offer ID from the API."
+                            : "Execute o Passo 12 primeiro para obter o offerId real da API."}
+                        </p>
+                      </div>
+                    )}
+                    <button
+                      onClick={handleCta}
+                      disabled={isExecuting || !hasRealOfferId}
+                      className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
+                      style={{ background: "#ea580c" }}
+                    >
+                      {isExecuting ? (
+                        <span className="flex items-center justify-center gap-2">
+                          <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
+                          {MT[lang].acceptingOffer}
+                        </span>
+                      ) : MT[lang].acceptOffer}
+                    </button>
+                  </>
+                );
+              })()}
             </div>
           )}
 

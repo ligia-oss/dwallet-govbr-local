@@ -952,11 +952,14 @@ const actions: JourneyAction[] = [
     description: "Consulta oferta específica pelo ID; o offerId é pré-populado com o ID fornecido e pode ser alterado manualmente.",
     expectedStatus: [200, 404, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId || "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab"}`,
-    onSuccess: (body, state) => ({
-      offerId: (body as Record<string, unknown>)?.data && ((body as Record<string, unknown>).data as Record<string, unknown>)?.id
-        ? String(((body as Record<string, unknown>).data as Record<string, unknown>).id)
-        : state.offerId || "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab",
-    }),
+    onSuccess: (body) => {
+      // Only propagate offerId when the API actually returns a valid offer object.
+      // Do NOT fall back to the canonical UUID — that would make step 13 appear executable
+      // even when step 12 returned 404/403 or an empty body.
+      const data = (body as Record<string, unknown>)?.data as Record<string, unknown> | undefined;
+      const realId = data?.id ? String(data.id) : ((body as Record<string, unknown>)?.offerId ? String((body as Record<string, unknown>).offerId) : undefined);
+      return realId ? { offerId: realId } : {};
+    },
   },
   {
     id: "step13_offer_accept",
@@ -1104,7 +1107,12 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
   if ((action.id === "step7_accept_data_request" || action.id === "step7_reject_data_request") && !state.dataRequestId) return "Crie ou liste uma solicitação de dados antes de aceitar ou rejeitar.";
   if (action.id === "step10_dsp_details" && !(state.selectedDspId || state.standardDspId || state.commercialDspId)) return "Liste DSPs ou CSPs antes de consultar o detalhe do plano.";
   if (action.id === "step10_create_dsp_account" && !(state.selectedDspId || state.commercialDspId || state.standardDspId)) return "Liste e escolha um DSP ou CSP antes de criar a conta DSP.";
-  if (action.id === "step13_offer_accept" && !state.offerId) return "O passo 12 não retornou offerId utilizável para aceite.";
+  if (action.id === "step13_offer_accept") {
+    const CANONICAL_OFFER_ID = "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab";
+    if (!state.offerId || state.offerId === CANONICAL_OFFER_ID) {
+      return "Execute o Passo 12 (visualizar oferta) antes de aceitar. O offerId deve ser retornado pela API real, n\u00e3o o valor padr\u00e3o.";
+    }
+  }
   return undefined;
 }
 
