@@ -1,5 +1,290 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 
+// ─── Mockup Translations (MT) ─────────────────────────────────────────────────
+// Textos hardcoded no JSX do mockup, internacionalizados por idioma.
+// Uso: MT[lang].chave  (apenas no JSX, NUNCA dentro do PHONE_SCREENS)
+
+const MT = {
+  pt: {
+    filterPlans: "Filtrar planos",
+    clearFilters: "Limpar filtros",
+    typeLabel: "Tipo",
+    categoryLabel: "Categoria",
+    countOfPlans: (f: number, t: number) => `${f} de ${t} plano(s)`,
+    countOfProducts: (f: number, t: number) => `${f} de ${t} produto(s)`,
+    noPlansMatch: "Nenhum plano corresponde aos filtros selecionados.",
+    noProductsMatch: "Nenhum produto nesta categoria.",
+    tapToSelectSchema: "Toque em um schema para selecioná-lo",
+    tapToSelectProduct: "Toque em um produto para selecioná-lo",
+    schemaSelected: "Schema selecionado! Veja os produtos disponíveis no próximo passo.",
+    productSelected: "Produto selecionado! Confirme abaixo para criar o Commercial Value Schema.",
+    availableDataPlans: "Planos de dados disponíveis",
+    availableProducts: "Produtos disponíveis",
+    apiReturn: "Retorno da API",
+    capturedVars: "📥 Variáveis capturadas",
+    requestCreatedSuccess: "Solicitação criada com sucesso",
+    http500OutboxBug: "HTTP 500 · Outbox event (bug do sandbox)",
+    accessRestricted: "Acesso restrito — Feature Flag",
+    featureFlagAction: "📧 Ação recomendada",
+    envRestriction: "Restrição de ambiente",
+    apiExecuted: "API executada",
+    invalidToken: "Token inválido",
+    apiReached: "API alcançada",
+    seeLastResult: "✅ Ver último resultado →",
+    seeLastError: "❌ Ver último erro →",
+    capturedIds: "✅ IDs capturados",
+    requiredIds: "⚠️ IDs necessários",
+    operationData: "Dados da operação",
+    noFieldsInfo: "Esta etapa não requer campos de entrada. Toque no botão abaixo para executar a API.",
+    sending: "Enviando…",
+    selectedSchema: "Schema selecionado",
+    selectedProduct: "Produto selecionado",
+    noSchemaSelected: "Nenhum schema selecionado. Volte ao passo 3 e selecione um schema.",
+    noProductSelected: "Nenhum produto selecionado. Volte ao passo anterior e selecione um produto.",
+    noProductSelectedStep5: "Nenhum produto selecionado. Volte e selecione um produto.",
+    creating: "Criando…",
+    createCVS: "Criar Commercial Value Schema",
+    backChooseProduct: "← Voltar e escolher outro produto",
+    recipientCompany: "Empresa destinatária (businessId)",
+    businessIdNotFound: "⚠️ businessId não encontrado",
+    sendingRequest: "Enviando…",
+    sendRequest: "📤 Enviar solicitação",
+    noProductWarning: "⚠️ Nenhum produto selecionado. Volte ao passo 5.",
+    step7Header: "Passo 7 — Business dWallet",
+    step7Title: "Solicitações de dados recebidas",
+    step7Lead: "Consulte e gerencie as solicitações enviadas pelas pessoas.",
+    consultingApi: "Consultando API...",
+    listRequests: "Listar Solicitações",
+    receivedRequests: "Solicitações recebidas",
+    personalData: "Dados pessoais",
+    redo: "Refazer",
+    dataRequest: "Solicitação de Dados",
+    step7ErrorHeader: "Erro na listagem — Passo 7",
+    noPermission: "Sem permissão",
+    notAuthenticated: "Não autenticado",
+    apiFailure: "Falha na API",
+    tokenNoLink: "Token sem vínculo com a empresa",
+    howToFix: "Como resolver:",
+    tryAgain: "← Tentar novamente",
+    tryAgainShort: "Tentar novamente",
+    selectAll: "Selecionar todos",
+    deselectAll: "Desmarcar todos",
+    accepting: "Aceitando…",
+    rejecting: "Rejeitando…",
+    acceptRequest: "✅ Aceitar solicitação",
+    rejectRequest: "❌ Rejeitar solicitação",
+    acceptRequestHeader: "Aceitar solicitação",
+    acceptRequestTitle: "Confirmar aceite da solicitação de dados",
+    rejectRequestHeader: "Rejeitar solicitação",
+    rejectRequestTitle: "Confirmar rejeição da solicitação de dados",
+    step10Header: "Passo 10 — Personal dWallet",
+    step10Title: "Data Savings Plans (DSP)",
+    step10Lead: "Consulte, visualize detalhes e adira a um plano DSP.",
+    listDsps: "Listar DSPs",
+    consulting: "Consultando...",
+    step10ListHeader: "Passo 10 — DSPs disponíveis",
+    clickForDetails: "Clique para ver detalhes · Selecione para aderir",
+    noDspFound: "Nenhum DSP encontrado na API.",
+    retryLabel: "Tentar novamente",
+    selected: "Plano selecionado",
+    loadingDetails: "Carregando detalhes...",
+    planDetails: "Detalhes do plano",
+    clickToReload: "Clique novamente para recarregar os detalhes.",
+    selectPlan: "Selecionar este plano",
+    planSelectedBadge: "✓ Plano selecionado",
+    step10EnrollHeader: "Aderir ao plano DSP",
+    step10EnrollTitle: "Aderir ao plano selecionado",
+    enrollDsp: "💾 Aderir ao plano DSP",
+    enrolling: "Aderindo...",
+    enrollSuccess: "✅ Adesão realizada com sucesso",
+    enrollSuccessBody: "Conta de poupança de dados criada.",
+    enrollError: "❌ Erro na adesão",
+    mySavingsPlans: "Meus Planos de Poupança",
+    listCommercialDsps: "Listar Commercial DSPs",
+    backToDspList: "← Voltar para lista de DSPs",
+    step10SavingsHeader: "Passo 10 — Planos Contratados",
+    step10SavingsTitle: "Meus Planos de Poupança",
+    noContractedPlan: "Nenhum plano contratado",
+    useDemoData: "🧪 Usar dados de demonstração",
+    updatingPlans: "Atualizando...",
+    refreshPlans: "↻ Atualizar planos",
+    step10CommercialHeader: "Passo 10 — Commercial DSPs",
+    noCommercialDsp: "Nenhum commercial DSP encontrado.",
+    acceptOfferHeader: "Aceitar oferta",
+    acceptOfferTitle: "Confirmar aceite da oferta do marketplace",
+    noOfferSelected: "⚠️ Nenhuma oferta selecionada — execute o passo 12 primeiro",
+    acceptingOffer: "Aceitando…",
+    acceptOffer: "🤝 Aceitar oferta",
+    enrollDspLabel: "Aderir ao plano DSP",
+    dspEnrollHeader: "Aderir ao plano DSP",
+    confirmCreation: "Confirmar criação",
+    afterListSelectRequests: "Após listar, selecione uma ou mais solicitações e clique em",
+    acceptBtn: "Aceitar",
+    rejectBtn: "Recusar",
+    afterListSelectDsp: "Após listar, clique em um DSP para ver detalhes e selecione um para aderir.",
+    noRequestsPending: "Nenhuma solicitação pendente",
+    noRequestsToProcess: "Nenhuma solicitação para processar",
+    requestsSelected: (n: number) => n === 1 ? "solicitação selecionada" : "solicitações selecionadas",
+    plansFound: (n: number) => `${n} plano(s) encontrado(s)`,
+    selectAndJoin: "💰 Selecionar e Aderir",
+    selectedJoinDsp: "✓ Selecionado — Aderir a este DSP",
+    pendingStatus: "Pendente",
+    acceptedStatus: "Aceito",
+    rejectedStatus: "Recusado",
+    clickListRequests: "Clique em",
+    clickListRequestsBtn: "Listar Solicitações",
+    clickListRequestsDesc: "para consultar as solicitações de dados pendentes recebidas pela empresa na API.",
+    clickListDsps: "Clique em",
+    clickListDspsBtn: "Listar DSPs",
+    clickListDspsDesc: "para consultar os planos de poupança de dados disponíveis.",
+    apiNoRequests: "A API não retornou solicitações pendentes para esta empresa.",
+    offerNotFound: "Oferta não encontrada neste ambiente sandbox.",
+    acceptedLabel: "✅ Aceito",
+    rejectedLabel: "✅ Recusado",
+    step10LeadText: "Consulte, visualize detalhes e adira a um plano DSP.",
+  },
+  en: {
+    filterPlans: "Filter plans",
+    clearFilters: "Clear filters",
+    typeLabel: "Type",
+    categoryLabel: "Category",
+    countOfPlans: (f: number, t: number) => `${f} of ${t} plan(s)`,
+    countOfProducts: (f: number, t: number) => `${f} of ${t} product(s)`,
+    noPlansMatch: "No plans match the selected filters.",
+    noProductsMatch: "No products in this category.",
+    tapToSelectSchema: "Tap a schema to select it",
+    tapToSelectProduct: "Tap a product to select it",
+    schemaSelected: "Schema selected! See available products in the next step.",
+    productSelected: "Product selected! Confirm below to create the Commercial Value Schema.",
+    availableDataPlans: "Available data plans",
+    availableProducts: "Available products",
+    apiReturn: "API response",
+    capturedVars: "📥 Captured variables",
+    requestCreatedSuccess: "Request created successfully",
+    http500OutboxBug: "HTTP 500 · Outbox event (sandbox bug)",
+    accessRestricted: "Access restricted — Feature Flag",
+    featureFlagAction: "📧 Recommended action",
+    envRestriction: "Environment restriction",
+    apiExecuted: "API executed",
+    invalidToken: "Invalid token",
+    apiReached: "API reached",
+    seeLastResult: "✅ See last result →",
+    seeLastError: "❌ See last error →",
+    capturedIds: "✅ Captured IDs",
+    requiredIds: "⚠️ Required IDs",
+    operationData: "Operation data",
+    noFieldsInfo: "This step requires no input fields. Tap the button below to execute the API.",
+    sending: "Sending…",
+    selectedSchema: "Selected schema",
+    selectedProduct: "Selected product",
+    noSchemaSelected: "No schema selected. Go back to step 3 and select a schema.",
+    noProductSelected: "No product selected. Go back to the previous step and select a product.",
+    noProductSelectedStep5: "No product selected. Go back and select a product.",
+    creating: "Creating…",
+    createCVS: "Create Commercial Value Schema",
+    backChooseProduct: "← Back and choose another product",
+    recipientCompany: "Recipient company (businessId)",
+    businessIdNotFound: "⚠️ businessId not found",
+    sendingRequest: "Sending…",
+    sendRequest: "📤 Send request",
+    noProductWarning: "⚠️ No product selected. Go back to step 5.",
+    step7Header: "Step 7 — Business dWallet",
+    step7Title: "Received data requests",
+    step7Lead: "Consult and manage requests sent by individuals.",
+    consultingApi: "Querying API...",
+    listRequests: "List Requests",
+    receivedRequests: "Received requests",
+    personalData: "Personal data",
+    redo: "Redo",
+    dataRequest: "Data Request",
+    step7ErrorHeader: "Listing error — Step 7",
+    noPermission: "No permission",
+    notAuthenticated: "Not authenticated",
+    apiFailure: "API failure",
+    tokenNoLink: "Token not linked to company",
+    howToFix: "How to fix:",
+    tryAgain: "← Try again",
+    tryAgainShort: "Try again",
+    selectAll: "Select all",
+    deselectAll: "Deselect all",
+    accepting: "Accepting…",
+    rejecting: "Rejecting…",
+    acceptRequest: "✅ Accept request",
+    rejectRequest: "❌ Reject request",
+    acceptRequestHeader: "Accept request",
+    acceptRequestTitle: "Confirm acceptance of the data request",
+    rejectRequestHeader: "Reject request",
+    rejectRequestTitle: "Confirm rejection of the data request",
+    step10Header: "Step 10 — Personal dWallet",
+    step10Title: "Data Savings Plans (DSP)",
+    step10Lead: "Consult, view details, and join a DSP plan.",
+    listDsps: "List DSPs",
+    consulting: "Querying...",
+    step10ListHeader: "Step 10 — Available DSPs",
+    clickForDetails: "Click to see details · Select to join",
+    noDspFound: "No DSP found in the API.",
+    retryLabel: "Try again",
+    selected: "Plan selected",
+    loadingDetails: "Loading details...",
+    planDetails: "Plan details",
+    clickToReload: "Click again to reload details.",
+    selectPlan: "Select this plan",
+    planSelectedBadge: "✓ Plan selected",
+    step10EnrollHeader: "Join DSP plan",
+    step10EnrollTitle: "Join the selected plan",
+    enrollDsp: "💾 Join DSP plan",
+    enrolling: "Joining...",
+    enrollSuccess: "✅ Successfully joined",
+    enrollSuccessBody: "Data savings account created.",
+    enrollError: "❌ Enrollment error",
+    mySavingsPlans: "My Savings Plans",
+    listCommercialDsps: "List Commercial DSPs",
+    backToDspList: "← Back to DSP list",
+    step10SavingsHeader: "Step 10 — Contracted Plans",
+    step10SavingsTitle: "My Savings Plans",
+    noContractedPlan: "No contracted plan",
+    useDemoData: "🧪 Use demo data",
+    updatingPlans: "Updating...",
+    refreshPlans: "↻ Refresh plans",
+    step10CommercialHeader: "Step 10 — Commercial DSPs",
+    noCommercialDsp: "No commercial DSP found.",
+    acceptOfferHeader: "Accept offer",
+    acceptOfferTitle: "Confirm acceptance of marketplace offer",
+    noOfferSelected: "⚠️ No offer selected — run step 12 first",
+    acceptingOffer: "Accepting…",
+    acceptOffer: "🤝 Accept offer",
+    enrollDspLabel: "Join DSP plan",
+    dspEnrollHeader: "Join DSP plan",
+    confirmCreation: "Confirm creation",
+    afterListSelectRequests: "After listing, select one or more requests and click",
+    acceptBtn: "Accept",
+    rejectBtn: "Reject",
+    afterListSelectDsp: "After listing, click a DSP to see details and select one to join.",
+    noRequestsPending: "No pending requests",
+    noRequestsToProcess: "No requests to process",
+    requestsSelected: (n: number) => n === 1 ? "request selected" : "requests selected",
+    plansFound: (n: number) => `${n} plan(s) found`,
+    selectAndJoin: "💰 Select and Join",
+    selectedJoinDsp: "✓ Selected — Join this DSP",
+    pendingStatus: "Pending",
+    acceptedStatus: "Accepted",
+    rejectedStatus: "Rejected",
+    clickListRequests: "Click",
+    clickListRequestsBtn: "List Requests",
+    clickListRequestsDesc: "to query pending data requests received by the company in the API.",
+    clickListDsps: "Click",
+    clickListDspsBtn: "List DSPs",
+    clickListDspsDesc: "to query available data savings plans.",
+    apiNoRequests: "The API returned no pending requests for this company.",
+    offerNotFound: "Offer not found in this sandbox environment.",
+    acceptedLabel: "✅ Accepted",
+    rejectedLabel: "✅ Rejected",
+    step10LeadText: "Consult, view details, and join a DSP plan.",
+  },
+} as const;
+
+
+
 // ─── DSP Plan Images (generated via Gemini) ─────────────────────────────────
 const DSP_IMAGES: Record<string, string> = {
   standard: "https://d2xsxph8kpxj0f.cloudfront.net/310519663386203866/MmipedoGRvuovi69F8w3ET/dsp-standard-plan-RW2VxZTKegdBoj89TcWY8p.webp",
@@ -615,6 +900,502 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
   },
 };
 
+// ─── English screen configurations ───────────────────────────────────────────
+
+const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
+  0: {
+    stepId: 0, appKind: "BdW/PdW",
+    screenTitle: "Technical authentication",
+    screenSubtitle: "Sandbox prerequisite — not visible to end user",
+    appHeader: "Authentication",
+    appLead: "Generating sandbox access credential.",
+    ctaLabel: "Generate M2M Token",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Token generated successfully" : "Authentication failed",
+    resultBody: (r) => r.ok
+      ? "M2M Token active. All protected calls will use this token as Bearer."
+      : r.message ?? "Check credentials and try again.",
+  },
+  1: {
+    stepId: 1, appKind: "BdW",
+    screenTitle: "Company creates account",
+    screenSubtitle: "Register the responsible and create the Business dWallet",
+    appHeader: "Create your account",
+    appLead: "Enter the responsible's data to start the Business dWallet.",
+    ctaLabel: "Create employee account",
+    fields: [
+      { key: "employeeFirstName", label: "First name", placeholder: "Maria", required: true },
+      { key: "employeeLastName", label: "Last name", placeholder: "Silva", required: true },
+      { key: "employeeEmail", label: "Corporate email", placeholder: "employee@company.com", type: "email", required: true },
+      { key: "employeePassword", label: "Password", placeholder: "Test password", type: "password", required: true, sensitive: true },
+    ],
+    resultTitle: (r) => r.ok ? "Account created successfully" : "Error creating account",
+    resultBody: (r, s) => r.ok
+      ? `Account created for ${String(s.employeeEmail ?? "the responsible")}. Next: verify email.`
+      : r.message ?? "Check the data and try again.",
+    resultDetails: (r) => r.ok ? "The verification code was sent to the registered email." : undefined,
+    actionScreens: {
+      step1_employee_signup: {
+        appHeader: "Create your account",
+        appLead: "Enter the responsible's data to start the Business dWallet.",
+        ctaLabel: "Create employee account",
+        fields: [
+          { key: "employeeFirstName", label: "First name", placeholder: "Maria", required: true },
+          { key: "employeeLastName", label: "Last name", placeholder: "Silva", required: true },
+          { key: "employeeEmail", label: "Corporate email", placeholder: "employee@company.com", type: "email", required: true },
+          { key: "employeePassword", label: "Password", placeholder: "Test password", type: "password", required: true, sensitive: true },
+        ],
+        resultTitle: (r) => r.ok ? "Account created" : "Error creating account",
+        resultBody: (r, s) => r.ok
+          ? `Account created for ${String(s.employeeEmail ?? "the responsible")}. Check email.`
+          : r.message ?? "Check the data and try again.",
+      },
+      step1_employee_send_code: {
+        appHeader: "Email verification",
+        appLead: "A code was sent to your corporate email. Wait and enter it in the next step.",
+        ctaLabel: "Send verification code",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Code sent" : "Error sending code",
+        resultBody: (r, s) => r.ok
+          ? `Code sent to ${String(s.employeeEmail ?? "the email")}. Enter it in the next step.`
+          : r.message ?? "Could not send the code.",
+      },
+      step1_employee_verify_code: {
+        appHeader: "Confirm code",
+        appLead: "Enter the verification code received in your corporate email.",
+        ctaLabel: "Confirm code",
+        fields: [
+          { key: "employeeVerificationCode", label: "Verification code (email)", placeholder: "Enter the received code", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Email verified" : "Invalid code",
+        resultBody: (r) => r.ok
+          ? "Corporate email verified successfully. Next: log in."
+          : r.message ?? "Invalid or expired code. Request a new code.",
+      },
+      step1_employee_signin: {
+        appHeader: "Sign in",
+        appLead: "Log in with your Business employee credentials.",
+        ctaLabel: "Sign in",
+        fields: [
+          { key: "employeeEmail", label: "Corporate email", placeholder: "employee@company.com", type: "email", required: true },
+          { key: "employeePassword", label: "Password", placeholder: "Test password", type: "password", required: true, sensitive: true },
+        ],
+        resultTitle: (r) => r.ok ? "Login successful" : "Login error",
+        resultBody: (r) => r.ok ? "Login successful. Employee token saved." : r.message ?? "Invalid credentials.",
+      },
+      step1_business_create: {
+        appHeader: "Create company",
+        appLead: "Enter company data to create the Business dWallet.",
+        ctaLabel: "Create Business dWallet",
+        fields: [
+          { key: "businessName", label: "Company name", placeholder: "Test Company LLC", required: false },
+          { key: "businessCnpj", label: "CNPJ", placeholder: "00.000.000/0001-00", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Company created" : "Error creating company",
+        resultBody: (r, s) => r.ok
+          ? `Business dWallet created for ${String(s.businessName ?? "the company")}.`
+          : r.message ?? "Could not create the company.",
+      },
+      step1_employee_profile: {
+        appHeader: "Employee profile",
+        appLead: "Retrieves the businessId and businessDwalletId of the company already associated with the logged-in employee.",
+        ctaLabel: "Consult profile",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Profile retrieved" : "Error consulting profile",
+        resultBody: (r, s) => r.ok
+          ? `businessId retrieved: ${String(s.businessId ?? "(not found)")}`
+          : r.message ?? "Could not consult the profile.",
+      },
+    },
+  },
+  2: {
+    stepId: 2, appKind: "PdW",
+    screenTitle: "Person creates wallet",
+    screenSubtitle: "Individual registration and Personal dWallet creation",
+    appHeader: "Create your account",
+    appLead: "Enter your data to create your personal data wallet.",
+    ctaLabel: "Create personal account",
+    fields: [
+      { key: "personFirstName", label: "First name", placeholder: "John", required: true },
+      { key: "personLastName", label: "Last name", placeholder: "Santos", required: true },
+      { key: "personEmail", label: "Email", placeholder: "john@email.com", type: "email", required: true },
+      { key: "personPassword", label: "Password", placeholder: "Test password", type: "password", required: true, sensitive: true },
+      { key: "personCpf", label: "CPF", placeholder: "000.000.000-00", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Account created successfully" : "Error creating account",
+    resultBody: (r, s) => r.ok
+      ? `Account created for ${String(s.personEmail ?? "the person")}. Check email to continue.`
+      : r.message ?? "Check the data and try again.",
+    actionScreens: {
+      step2_person_signup: {
+        appHeader: "Create your account",
+        appLead: "Enter your data to create your personal data wallet.",
+        ctaLabel: "Create personal account",
+        fields: [
+          { key: "personFirstName", label: "First name", placeholder: "John", required: true },
+          { key: "personLastName", label: "Last name", placeholder: "Santos", required: true },
+          { key: "personEmail", label: "Email", placeholder: "john@email.com", type: "email", required: true },
+          { key: "personPassword", label: "Password", placeholder: "Test password", type: "password", required: true, sensitive: true },
+          { key: "personCpf", label: "CPF", placeholder: "000.000.000-00", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Account created" : "Error creating account",
+        resultBody: (r, s) => r.ok
+          ? `Account created for ${String(s.personEmail ?? "the person")}. Check email.`
+          : r.message ?? "Check the data and try again.",
+      },
+      step2_person_send_code: {
+        appHeader: "Email verification",
+        appLead: "A code will be sent to your personal email. Wait and enter it in the next step.",
+        ctaLabel: "Send verification code",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Code sent" : "Error sending code",
+        resultBody: (r, s) => r.ok
+          ? `Code sent to ${String(s.personEmail ?? "the email")}. Enter it in the next step.`
+          : r.message ?? "Could not send the code.",
+      },
+      step2_person_verify_code: {
+        appHeader: "Confirm code",
+        appLead: "Enter the verification code received in your personal email.",
+        ctaLabel: "Confirm code",
+        fields: [
+          { key: "personVerificationCode", label: "Verification code (email)", placeholder: "Enter the received code", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Email verified" : "Invalid code",
+        resultBody: (r) => r.ok
+          ? "Personal email verified successfully. Next: log in."
+          : r.message ?? "Invalid or expired code. Request a new code.",
+      },
+      step2_person_signin: {
+        appHeader: "Sign in to wallet",
+        appLead: "Log in with your Personal dWallet credentials.",
+        ctaLabel: "Sign in",
+        fields: [
+          { key: "personEmail", label: "Email", placeholder: "john@email.com", type: "email", required: true },
+          { key: "personPassword", label: "Password", placeholder: "Test password", type: "password", required: true, sensitive: true },
+        ],
+        resultTitle: (r) => r.ok ? "Login successful" : "Login error",
+        resultBody: (r) => r.ok ? "Login successful. Personal token saved." : r.message ?? "Invalid credentials.",
+      },
+    },
+  },
+  3: {
+    stepId: 3, appKind: "BdW",
+    screenTitle: "Query schemas",
+    screenSubtitle: "Company queries available Standard Value Schemas",
+    appHeader: "Schema catalog",
+    appLead: "See the data schemas available to create products.",
+    ctaLabel: "Query schemas",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Schemas loaded" : "Error querying schemas",
+    resultBody: (r) => r.ok ? "List of Standard Value Schemas returned by the sandbox." : r.message ?? "Could not load schemas.",
+    resultDetails: (r: ActionResult): string | undefined => {
+      if (!r.ok) return undefined;
+      const body = r.responseBody as Record<string, unknown> | undefined;
+      if (!body) return undefined;
+      const items = (body.items ?? body.data ?? body.valueSchemas ?? body.schemas) as unknown[];
+      if (Array.isArray(items) && items.length > 0) return `${items.length} schema(s) available.`;
+      return "Response received from sandbox.";
+    },
+  },
+  4: {
+    stepId: 4, appKind: "BdW",
+    screenTitle: "Company products",
+    screenSubtitle: "Company queries and registers data products",
+    appHeader: "My products",
+    appLead: "Manage your company's data products.",
+    ctaLabel: "Query products",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Products loaded" : "Error querying products",
+    resultBody: (r) => r.ok ? "Product catalog returned by the sandbox." : r.message ?? "Could not load products.",
+    actionScreens: {
+      step4_list_products: {
+        appHeader: "Product catalog",
+        appLead: "Select a product to create the Commercial Value Schema.",
+        ctaLabel: "Query products",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Products loaded" : "Error querying products",
+        resultBody: (r) => r.ok ? "Select a product below to continue." : r.message ?? "Could not load products.",
+      },
+      step4_add_dsku_to_cart: {
+        appHeader: "Add to cart",
+        appLead: "Adding the selected product to the Business dWallet cart.",
+        ctaLabel: "Add to cart",
+        fields: [
+          { key: "selectedProductDsku", label: "Product (dSKU)", placeholder: "Selected product", required: true },
+          { key: "businessDwalletId", label: "Business dWallet ID", placeholder: "Captured in step 1", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Product added to cart!" : "Error adding to cart",
+        resultBody: (r) => r.ok ? "Product added successfully. Now create the Commercial Value Schema." : r.message ?? "Could not add the product to the cart.",
+      },
+      step4_create_commercial_value_schema: {
+        appHeader: "Create data product",
+        appLead: "Confirm the selected schema and product to create the Commercial Value Schema.",
+        ctaLabel: "Create Commercial Value Schema",
+        fields: [
+          { key: "valueSchemaSid", label: "Selected schema", placeholder: "Select a schema in the previous step", required: true },
+          { key: "selectedProductDsku", label: "Selected product (dSKU)", placeholder: "Select a product above", required: true },
+          { key: "selectedProductName", label: "Product name", placeholder: "Name of the selected product", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Commercial Value Schema created!" : "Error creating schema",
+        resultBody: (r) => r.ok ? "Commercial Value Schema created successfully. The data product is ready for use." : r.message ?? "Could not create the Commercial Value Schema.",
+      },
+    },
+  },
+  5: {
+    stepId: 5, appKind: "PdW",
+    screenTitle: "Explore products",
+    screenSubtitle: "Person queries available products and companies",
+    appHeader: "Marketplace",
+    appLead: "Discover products and companies offering data services.",
+    ctaLabel: "See available products",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Catalog loaded" : "Error loading catalog",
+    resultBody: (r) => r.ok ? "Products and companies available in the sandbox." : r.message ?? "Could not load the catalog.",
+  },
+  6: {
+    stepId: 6, appKind: "PdW",
+    screenTitle: "Request data",
+    screenSubtitle: "Person requests data from a company",
+    appHeader: "Request data",
+    appLead: "Send a data request to the selected company.",
+    ctaLabel: "Send request",
+    fields: [
+      { key: "businessDwalletId", label: "Business dWallet ID", placeholder: "Auto-filled", required: true },
+      { key: "valueSchemaSid", label: "Selected schema", placeholder: "Auto-filled", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Request sent" : "Error sending request",
+    resultBody: (r, s) => r.ok
+      ? `Request sent to company ${String(s.businessDwalletId ?? "selected")}.`
+      : r.message ?? "Could not send the request.",
+    resultDetails: (r: ActionResult): string | undefined => {
+      if (!r.ok) return undefined;
+      const upd = r.stateUpdates as Record<string, unknown> | undefined;
+      if (upd?.requestId) return `Request ID: ${String(upd.requestId)}`;
+      return "Waiting for company response.";
+    },
+  },
+  7: {
+    stepId: 7, appKind: "BdW",
+    screenTitle: "Respond to request",
+    screenSubtitle: "Company queries and accepts or rejects data requests",
+    appHeader: "Received requests",
+    appLead: "Manage data requests sent by individuals.",
+    ctaLabel: "Query requests",
+    fields: [
+      { key: "requestId", label: "Request ID", placeholder: "Auto-filled", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Action executed" : "Error processing request",
+    resultBody: (r) => r.ok ? "Request processed successfully." : r.message ?? "Could not process the request.",
+    actionScreens: {
+      step7_list_business_requests: {
+        appHeader: "Received requests",
+        appLead: "Query data requests sent by individuals.",
+        ctaLabel: "Query requests",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Requests loaded" : "Error querying",
+        resultBody: (r) => r.ok ? "List of data requests returned." : r.message ?? "Could not load requests.",
+      },
+      step7_accept_data_request: {
+        appHeader: "Accept request",
+        appLead: "Confirm acceptance of the selected data request.",
+        ctaLabel: "Accept request",
+        fields: [
+          { key: "dataRequestId", label: "Request ID", placeholder: "Auto-filled", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Request accepted" : "Error accepting",
+        resultBody: (r) => r.ok ? "Data request accepted successfully." : r.message ?? "Could not accept the request.",
+      },
+      step7_reject_data_request: {
+        appHeader: "Reject request",
+        appLead: "Confirm rejection of the selected data request.",
+        ctaLabel: "Reject request",
+        fields: [
+          { key: "dataRequestId", label: "Request ID", placeholder: "Auto-filled", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Request rejected" : "Error rejecting",
+        resultBody: (r) => r.ok ? "Data request rejected successfully." : r.message ?? "Could not reject the request.",
+      },
+    },
+  },
+  8: {
+    stepId: 8, appKind: "PdW",
+    screenTitle: "Personal certificates",
+    screenSubtitle: "Person queries personal wallet certificates",
+    appHeader: "My certificates",
+    appLead: "See the data certificates associated with your wallet.",
+    ctaLabel: "See certificates",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Certificates loaded" : "Error loading certificates",
+    resultBody: (r) => r.ok ? "Personal dWallet certificates returned." : r.message ?? "Could not load certificates.",
+  },
+  9: {
+    stepId: 9, appKind: "BdW",
+    screenTitle: "Business certificates",
+    screenSubtitle: "Business certificate screen — endpoint not available in this sandbox",
+    appHeader: "Company certificates",
+    appLead: "Certificates associated with the business wallet (Business dWallet).",
+    ctaLabel: "See certificates",
+    fields: [],
+    gapMessage: "Business certificate endpoint not available in this sandbox. The screen remains visible in the journey to document the step.",
+    resultTitle: (r) => r.ok ? "Certificates loaded" : "API not available",
+    resultBody: (r) => r.ok ? "Business dWallet certificates returned." : r.message ?? "Endpoint not available in this sandbox.",
+  },
+  10: {
+    stepId: 10, appKind: "PdW",
+    screenTitle: "Savings plans",
+    screenSubtitle: "Person queries and joins a Data Savings Plan",
+    appHeader: "DSP Plans",
+    appLead: "Choose a data savings plan for your wallet.",
+    ctaLabel: "See available plans",
+    fields: [
+      { key: "selectedDspId", label: "Selected DSP", placeholder: "Auto-filled when choosing a plan", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Plan loaded" : "Error loading plans",
+    resultBody: (r) => r.ok ? "DSP plans available in the sandbox." : r.message ?? "Could not load plans.",
+    actionScreens: {
+      step10_commercial_dsps: {
+        appHeader: "Commercial plans",
+        appLead: "See available commercial DSP plans.",
+        ctaLabel: "Query commercial plans",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Commercial plans" : "Error loading",
+        resultBody: (r) => r.ok ? "Commercial DSP plans returned." : r.message ?? "Could not load.",
+      },
+      step10_standard_dsps: {
+        appHeader: "Standard plans",
+        appLead: "See available standard DSP plans.",
+        ctaLabel: "Query standard plans",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Standard plans" : "Error loading",
+        resultBody: (r) => r.ok ? "Standard DSP plans returned." : r.message ?? "Could not load.",
+      },
+      step10_dsp_details: {
+        appHeader: "Plan details",
+        appLead: "See the details of the selected DSP plan.",
+        ctaLabel: "See plan details",
+        fields: [
+          { key: "selectedDspId", label: "Plan ID", placeholder: "Auto-filled", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Details loaded" : "Error loading",
+        resultBody: (r) => r.ok ? "DSP plan details returned." : r.message ?? "Could not load.",
+      },
+      step10_create_dsp_account: {
+        appHeader: "Join plan",
+        appLead: "Confirm joining the selected DSP plan.",
+        ctaLabel: "Join plan",
+        fields: [
+          { key: "selectedDspId", label: "Selected DSP", placeholder: "Auto-filled when choosing a plan", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Joined successfully" : "Error joining",
+        resultBody: (r) => r.ok ? "DSP account created successfully." : r.message ?? "Could not join the plan.",
+      },
+    },
+  },
+  11: {
+    stepId: 11, appKind: "BdW",
+    screenTitle: "Create offers",
+    screenSubtitle: "Company creates offers in the data marketplace",
+    appHeader: "My offers",
+    appLead: "Create and manage data offers for the marketplace.",
+    ctaLabel: "Create offer",
+    fields: [],
+    gapMessage: "Offer creation endpoint not available in the current sandbox. The screen remains visible in the journey to document the step.",
+    resultTitle: (r) => r.ok ? "Offer created" : "API not available",
+    resultBody: (r) => r.ok ? "Offer published in the marketplace." : r.message ?? "Endpoint not available in this sandbox.",
+  },
+  12: {
+    stepId: 12, appKind: "PdW",
+    screenTitle: "View offers",
+    screenSubtitle: "Person views available offers in the marketplace",
+    appHeader: "Available offers",
+    appLead: "See the data offers available to you.",
+    ctaLabel: "See offer",
+    fields: [
+      { key: "offerId", label: "Offer ID", placeholder: "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab", required: false },
+    ],
+    resultTitle: (r) => r.ok ? "Offer loaded" : (r.httpStatus === 403 ? "Access restricted — feature flag" : r.httpStatus === 404 ? "Offer not found" : "Error loading offer"),
+    resultBody: (r) => r.ok
+      ? "Offer found in the marketplace."
+      : r.httpStatus === 403
+        ? "The offers endpoint is restricted in the sandbox environment. The marketplace feature flag is not enabled for this tenant."
+        : r.httpStatus === 404
+          ? "The offer with the provided ID was not found in the sandbox environment."
+          : r.message ?? "Could not load the offer.",
+    resultDetails: (r) => r.httpStatus === 403
+      ? "Cause: HTTP 403 Forbidden. The sandbox tenant does not have permission to access the offer."
+      : r.httpStatus === 404
+        ? "Cause: HTTP 404 Not Found. The UUID is valid but the offer does not exist in this sandbox environment."
+        : undefined,
+  },
+  13: {
+    stepId: 13, appKind: "PdW",
+    screenTitle: "Accept offer",
+    screenSubtitle: "Person accepts or rejects a marketplace offer",
+    appHeader: "Confirm offer",
+    appLead: "Review the terms and confirm your decision about the offer.",
+    ctaLabel: "Accept offer",
+    fields: [
+      { key: "offerId", label: "Offer ID", placeholder: "Auto-filled", required: true },
+    ],
+    resultTitle: (r) => r.ok ? "Decision registered" : "Error processing offer",
+    resultBody: (r) => r.ok ? "Your decision about the offer has been registered." : r.message ?? "Could not process the offer.",
+  },
+  14: {
+    stepId: 14, appKind: "Ambos",
+    screenTitle: "Wallet statement",
+    screenSubtitle: "Financial transaction history",
+    appHeader: "Statement",
+    appLead: "Track your wallet transactions.",
+    ctaLabel: "See statement",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Statement loaded" : "Error loading statement",
+    resultBody: (r) => r.ok ? "Wallet transactions returned." : r.message ?? "Could not load the statement.",
+  },
+  15: {
+    stepId: 15, appKind: "Ambos",
+    screenTitle: "Request withdrawal",
+    screenSubtitle: "Wallet balance withdrawal request",
+    appHeader: "Withdraw balance",
+    appLead: "Request withdrawal of the available wallet balance.",
+    ctaLabel: "Request withdrawal",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Withdrawal requested" : "Error requesting withdrawal",
+    resultBody: (r) => r.ok ? "Withdrawal request registered." : r.message ?? "Could not request withdrawal.",
+  },
+  16: {
+    stepId: 16, appKind: "Ambos",
+    screenTitle: "Register Pix / Account",
+    screenSubtitle: "Register Pix key or account for receiving payments",
+    appHeader: "Pix Key",
+    appLead: "Link a Pix key or bank account to your wallet.",
+    ctaLabel: "Register key",
+    fields: [
+      { key: "btgPixKey", label: "Pix Key", placeholder: "cpf, email or phone", required: false },
+    ],
+    gapMessage: "Pix key registration not available in the current sandbox. The screen remains visible in the journey.",
+    resultTitle: (r) => r.ok ? "Key registered" : "API not available",
+    resultBody: (r) => r.ok ? "Pix key linked to wallet." : r.message ?? "Endpoint not available in this sandbox.",
+  },
+  17: {
+    stepId: 17, appKind: "Ambos",
+    screenTitle: "Withdrawal history",
+    screenSubtitle: "Query history of completed withdrawals",
+    appHeader: "History",
+    appLead: "See all withdrawals made by the wallet.",
+    ctaLabel: "See history",
+    fields: [],
+    gapMessage: "Withdrawal history not available in the current sandbox. The screen remains visible in the journey.",
+    resultTitle: (r) => r.ok ? "History loaded" : "API not available",
+    resultBody: (r) => r.ok ? "Withdrawal history returned." : r.message ?? "Endpoint not available in this sandbox.",
+  },
+};
+
+// ─── getPhoneScreens: retorna o mapa de telas para o idioma selecionado ───────
+export function getPhoneScreens(lang: "pt" | "en"): Record<number, PhoneScreenConfig> {
+  return lang === "en" ? PHONE_SCREENS_EN : PHONE_SCREENS;
+}
+
+
 // ─── App color by kind ────────────────────────────────────────────────────────
 
 function getAppColors(appKind: PhoneScreenConfig["appKind"]) {
@@ -1040,11 +1821,12 @@ function getProductTypeImage(label: string): string {
 
 // ─── SchemaCardList: lista visual de schemas com filtro ───────────────────────
 
-function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
+function SchemaCardList({ items, pickText, onSelect, selectedSid, lang = "pt" as "pt" | "en" }: {
   items: Record<string, unknown>[];
   pickText: (r: Record<string, unknown>, keys: string[], fallback: string) => string;
   onSelect?: (sid: string, name: string) => void;
   selectedSid?: string;
+  lang?: "pt" | "en";
 }) {
   const [selectedTypes, setSelectedTypes] = useState<Set<string>>(new Set());
   const [selectedCategories, setSelectedCategories] = useState<Set<string>>(new Set());
@@ -1090,13 +1872,13 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
       {/* Filtros */}
       <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-2">
         <div className="flex items-center justify-between">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Filtrar planos</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">{MT[lang].filterPlans}</p>
           {hasFilters && (
             <button
               onClick={() => { setSelectedTypes(new Set()); setSelectedCategories(new Set()); }}
               className="text-[9px] text-[#1351b4] font-semibold underline"
             >
-              Limpar filtros
+              {MT[lang].clearFilters}
             </button>
           )}
         </div>
@@ -1173,7 +1955,7 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
 
       {/* Contagem */}
       <p className="text-[9px] text-slate-400 text-right">
-        {filtered.length} de {enriched.length} plano(s)
+        {MT[lang].countOfPlans(filtered.length, enriched.length)}
       </p>
 
       {/* Cards de schemas */}
@@ -1290,11 +2072,12 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid }: {
 
 // ─── ProductCardList: lista de produtos com filtros visuais nano banana ──────────────────
 
-function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku }: {
+function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku, lang = "pt" as "pt" | "en" }: {
   items: Record<string, unknown>[];
   pickText: (r: Record<string, unknown>, keys: string[], fallback: string) => string;
   onProductSelect?: (dsku: string, name: string) => void;
   selectedProductDsku?: string;
+  lang?: "pt" | "en";
 }) {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
 
@@ -1327,7 +2110,7 @@ function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku
       {allCategories.length > 1 && (
         <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 space-y-1.5">
           <div className="flex items-center justify-between">
-            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">Filtrar por categoria</p>
+            <p className="text-[9px] font-bold uppercase tracking-wide text-slate-500">{MT[lang].filterPlans}</p>
             {selectedCategory && (
               <button
                 onClick={() => setSelectedCategory(null)}
@@ -1382,7 +2165,7 @@ function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku
       {/* Contagem */}
       {allCategories.length > 1 && (
         <p className="text-[9px] text-slate-400 text-right">
-          {filtered.length} de {enriched.length} produto(s)
+          {MT[lang].countOfProducts(filtered.length, enriched.length)}
         </p>
       )}
 
@@ -1472,7 +2255,7 @@ function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku
   );
 }
 
-function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSchemaSid, onProductSelect, selectedProductDsku }: {
+function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSchemaSid, onProductSelect, selectedProductDsku, lang = "pt" as "pt" | "en" }: {
   result: ActionResult;
   screen: PhoneScreenConfig;
   runState: RunState;
@@ -1480,6 +2263,7 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
   selectedSchemaSid?: string;
   onProductSelect?: (dsku: string, name: string) => void;
   selectedProductDsku?: string;
+  lang?: "pt" | "en";
 }) {
   const body = result.responseBody as Record<string, unknown> | null | undefined;
 
@@ -1550,8 +2334,8 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
                 </svg>
               </div>
               <div>
-                <p className="text-xs font-bold text-blue-900">Solicitação criada com sucesso</p>
-                <p className="text-[10px] text-blue-700">HTTP 500 · Outbox event (bug do sandbox)</p>
+                <p className="text-xs font-bold text-blue-900">{MT[lang].requestCreatedSuccess}</p>
+                <p className="text-[10px] text-blue-700">{MT[lang].http500OutboxBug}</p>
               </div>
             </div>
             <div className="bg-white px-4 py-3 space-y-3">
@@ -1655,9 +2439,9 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
               <div className="flex items-center gap-2 pt-1">
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
                   <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
-                  Token inválido
+                  {MT[lang].invalidToken}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">API alcançada</span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{MT[lang].apiReached}</span>
               </div>
             </div>
           </div>
@@ -1672,7 +2456,7 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
                 </svg>
               </div>
               <div>
-                <p className="text-xs font-bold text-amber-800">Acesso restrito — Feature Flag</p>
+                <p className="text-xs font-bold text-amber-800">{MT[lang].accessRestricted}</p>
                 <p className="text-[10px] text-amber-700 font-mono font-semibold">HTTP 403 Forbidden</p>
               </div>
             </div>
@@ -1689,15 +2473,15 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
                 </div>
               </div>
               <div className="rounded-xl bg-blue-50 border border-blue-100 p-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-1">📧 Ação recomendada</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-1">{MT[lang].featureFlagAction}</p>
                 <p className="text-[10px] text-slate-600 leading-4">Solicite à equipe DrumWave a habilitação da feature flag de <strong>marketplace offers</strong> para o tenant sandbox.</p>
               </div>
               <div className="flex items-center gap-2 pt-1">
                 <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
                   <svg viewBox="0 0 8 8" width="6" height="6" fill="currentColor"><circle cx="4" cy="4" r="4"/></svg>
-                  Restrição de ambiente
+                  {MT[lang].envRestriction}
                 </span>
-                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">API executada</span>
+                <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-slate-100 text-slate-600 border border-slate-200">{MT[lang].apiExecuted}</span>
               </div>
             </div>
           </div>
@@ -1724,7 +2508,7 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
       {/* Captured variables */}
       {capturedKeys.length > 0 && (
         <div className="rounded-2xl bg-white border border-blue-100 p-3 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-2">📥 Variáveis capturadas</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4] mb-2">{MT[lang].capturedVars}</p>
           <div className="space-y-1.5">
             {capturedKeys.slice(0, 4).map(key => (
               <div key={key} className="flex items-start gap-2">
@@ -1743,11 +2527,11 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
       {/* Lista de schemas com cards visuais e filtro (passo 3) */}
       {isSchemaStep && result.ok && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Planos de dados disponíveis</p>
-          <SchemaCardList items={items} pickText={pickText} onSelect={onSchemaSelect} selectedSid={selectedSchemaSid} />
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">{MT[lang].availableDataPlans}</p>
+          <SchemaCardList items={items} pickText={pickText} onSelect={onSchemaSelect} selectedSid={selectedSchemaSid} lang={lang} />
           {onSchemaSelect && selectedSchemaSid && (
             <div className="mt-2 rounded-xl px-3 py-2 text-center" style={{ background: "#1351b410", border: "1px solid #1351b430" }}>
-              <p className="text-[9px] font-semibold text-[#1351b4]">Schema selecionado! Veja os produtos disponíveis no próximo passo.</p>
+              <p className="text-[9px] font-semibold text-[#1351b4]">{MT[lang].schemaSelected}</p>
             </div>
           )}
         </div>
@@ -1756,16 +2540,17 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
       {/* Lista de produtos com cards visuais e filtros nano banana (passo 4 e passo 5) */}
       {isProductStep && result.ok && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Produtos disponíveis</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">{MT[lang].availableProducts}</p>
           <ProductCardList
             items={items}
             pickText={pickText}
             onProductSelect={onProductSelect}
             selectedProductDsku={selectedProductDsku}
+            lang={lang}
           />
           {onProductSelect && selectedProductDsku && (
             <div className="mt-2 rounded-xl px-3 py-2 text-center" style={{ background: "#1351b410", border: "1px solid #1351b430" }}>
-              <p className="text-[9px] font-semibold text-[#1351b4]">Produto selecionado! Confirme abaixo para criar o Commercial Value Schema.</p>
+              <p className="text-[9px] font-semibold text-[#1351b4]">{MT[lang].productSelected}</p>
             </div>
           )}
         </div>
@@ -1774,7 +2559,7 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
       {/* Lista genérica para outros passos */}
       {!isSchemaStep && !isProductStep && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">Retorno da API</p>
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">{MT[lang].apiReturn}</p>
           <div className="space-y-2">
             {items.map((item, idx) => {
               const name = pickText(item, ["name", "title", "label", "displayName", "description"], `Item ${idx + 1}`);
@@ -1851,7 +2636,8 @@ export function HomologacaoPhoneMockup({
   }>;
   lang?: "pt" | "en";
 }) {
-  const screen = PHONE_SCREENS[stepId];
+  const screens = getPhoneScreens(lang);
+  const screen = screens[stepId];
   const [phase, setPhase] = useState<PhoneMockupPhase>("input");
   // When user explicitly clicks "Voltar ao formulário", prevent useEffect from overriding phase back to result
   const [showInputOverride, setShowInputOverride] = useState(false);
@@ -2567,12 +3353,12 @@ export function HomologacaoPhoneMockup({
                       className="w-full py-3 rounded-2xl text-sm font-bold text-white transition-all active:scale-[0.98] shadow-md"
                       style={{ background: "linear-gradient(135deg, #ea580c, #dc2626)" }}
                     >
-                      Aceitar Oferta → Passo 13
+                      {MT[lang].acceptOfferTitle.replace("Confirmar aceite da oferta do marketplace", lang === "en" ? "Accept Offer → Step 13" : "Aceitar Oferta → Passo 13")}
                     </button>
                   </>
                 ) : (
                   <div className="rounded-2xl bg-slate-50 border border-slate-200 p-4 text-center">
-                    <p className="text-xs text-slate-500">Oferta não encontrada neste ambiente sandbox.</p>
+                    <p className="text-xs text-slate-500">{MT[lang].offerNotFound}</p>
                   </div>
                 )}
 
@@ -2601,6 +3387,7 @@ export function HomologacaoPhoneMockup({
                   undefined
                 }
                 selectedProductDsku={(screen.stepId === 4 || screen.stepId === 5) ? selectedProductDsku : undefined}
+                lang={lang}
               />
               {/* Auto-advance hint for multi-step */}
               {stepActions && stepActions.length > 1 && activeResult.ok && (() => {
@@ -2761,7 +3548,7 @@ export function HomologacaoPhoneMockup({
                     className="rounded-2xl p-3 flex justify-around"
                     style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.12)" }}
                   >
-                    {[{label: "Pendente", value: "0"}, {label: "Aceito", value: "0"}, {label: "Recusado", value: "0"}].map((s, i) => (
+                    {[{label: MT[lang].pendingStatus, value: "0"}, {label: MT[lang].acceptedStatus, value: "0"}, {label: MT[lang].rejectedStatus, value: "0"}].map((s, i) => (
                       <div key={i} className="text-center">
                         <p className="text-lg font-bold text-white">{s.value}</p>
                         <p className="text-[9px] text-white/60">{s.label}</p>
@@ -2948,9 +3735,9 @@ export function HomologacaoPhoneMockup({
                     style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
                   >
                     {[
-                      { label: "Pendente", value: "0" },
-                      { label: "Aceito", value: "0" },
-                      { label: "Recusado", value: "0" },
+                      { label: MT[lang].pendingStatus, value: "0" },
+                      { label: MT[lang].acceptedStatus, value: "0" },
+                      { label: MT[lang].rejectedStatus, value: "0" },
                     ].map((s, i) => (
                       <React.Fragment key={i}>
                         {i > 0 && <div style={{ width: 1, background: "rgba(255,255,255,0.15)" }} />}
@@ -3017,14 +3804,14 @@ export function HomologacaoPhoneMockup({
                         <img src={img} alt={selectedProductName} className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.7)" }} />
                         <div className="absolute inset-0" style={{ background: "linear-gradient(to right, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.2) 100%)" }} />
                         <div className="relative z-10 p-3">
-                          <p className="text-[9px] font-bold uppercase tracking-wide text-white/70 mb-0.5">Produto selecionado</p>
+                          <p className="text-[9px] font-bold uppercase tracking-wide text-white/70 mb-0.5">{MT[lang].selectedProduct}</p>
                           <p className="text-xs font-bold text-white leading-tight">{selectedProductName || selectedProductDsku}</p>
                           <p className="text-[9px] font-mono text-white/70 mt-0.5">{selectedProductDsku}</p>
                         </div>
                       </>
                     ) : (
                       <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                        <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Produto selecionado</p>
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">{MT[lang].selectedProduct}</p>
                         <p className="text-xs font-bold text-slate-900 truncate">{selectedProductName || selectedProductDsku}</p>
                         <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">{selectedProductDsku}</p>
                       </div>
@@ -3032,7 +3819,7 @@ export function HomologacaoPhoneMockup({
                   })()}
                   {!selectedProductDsku && (
                     <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                      <p className="text-xs text-amber-600">Nenhum produto selecionado. Volte e selecione um produto.</p>
+                      <p className="text-xs text-amber-600">{MT[lang].noProductSelectedStep5}</p>
                     </div>
                   )}
                 </div>
@@ -3089,7 +3876,7 @@ export function HomologacaoPhoneMockup({
                 }}
                 className="w-full text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors py-1"
               >
-                ← Voltar e escolher outro produto
+                {MT[lang].backChooseProduct}
               </button>
             </div>
           )}
@@ -3097,29 +3884,29 @@ export function HomologacaoPhoneMockup({
           {!isGap && phase === "input" && actionId === "step4_create_commercial_value_schema" && (
             <div className="p-4 space-y-3">
               <div className="rounded-2xl bg-white border border-[#1351b4]/20 p-4 shadow-sm space-y-3">
-                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4]">Confirmar criação</p>
+                <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4]">{MT[lang].confirmCreation}</p>
                 {/* Schema selecionado */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Schema selecionado</p>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">{MT[lang].selectedSchema}</p>
                   {selectedSchemaSid ? (
                     <>
                       <p className="text-xs font-bold text-slate-900 truncate">{selectedSchemaName || selectedSchemaSid}</p>
                       <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">{selectedSchemaSid}</p>
                     </>
                   ) : (
-                    <p className="text-xs text-amber-600">Nenhum schema selecionado. Volte ao passo 3 e selecione um schema.</p>
+                    <p className="text-xs text-amber-600">{MT[lang].noSchemaSelected}</p>
                   )}
                 </div>
                 {/* Produto selecionado */}
                 <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Produto selecionado</p>
+                  <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">{MT[lang].selectedProduct}</p>
                   {selectedProductDsku ? (
                     <>
                       <p className="text-xs font-bold text-slate-900 truncate">{selectedProductName || selectedProductDsku}</p>
                       <p className="text-[9px] font-mono text-slate-400 truncate mt-0.5">{selectedProductDsku}</p>
                     </>
                   ) : (
-                    <p className="text-xs text-amber-600">Nenhum produto selecionado. Volte ao passo anterior e selecione um produto.</p>
+                    <p className="text-xs text-amber-600">{MT[lang].noProductSelected}</p>
                   )}
                 </div>
               </div>
@@ -3136,9 +3923,9 @@ export function HomologacaoPhoneMockup({
                       <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
                       <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
                     </svg>
-                    Criando…
+                    {MT[lang].creating}
                   </span>
-                ) : "Criar Commercial Value Schema"}
+                ) : MT[lang].createCVS}
               </button>
               <button
                 onClick={() => {
@@ -3149,7 +3936,7 @@ export function HomologacaoPhoneMockup({
                 }}
                 className="w-full text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors py-1"
               >
-                ← Voltar e escolher outro produto
+                {MT[lang].backChooseProduct}
               </button>
             </div>
           )}
@@ -3170,18 +3957,18 @@ export function HomologacaoPhoneMockup({
                       <img src={productImage} alt={displayName} className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.65)" }} />
                       <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%)" }} />
                       <div className="relative z-10 p-4 flex flex-col justify-end h-full">
-                        <p className="text-[9px] font-bold uppercase tracking-wide text-white/70 mb-0.5">Produto selecionado</p>
+                        <p className="text-[9px] font-bold uppercase tracking-wide text-white/70 mb-0.5">{MT[lang].selectedProduct}</p>
                         <p className="text-base font-bold text-white leading-tight">{displayName}</p>
                         {productDsku && <p className="text-[9px] font-mono text-white/60 mt-0.5">{productDsku}</p>}
                       </div>
                     </div>
                   ) : (
                     <div className="bg-slate-50 p-4">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">Produto selecionado</p>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400 mb-1">{MT[lang].selectedProduct}</p>
                       {displayName ? (
                         <p className="text-sm font-bold text-slate-900">{displayName}</p>
                       ) : (
-                        <p className="text-xs text-amber-600">⚠️ Nenhum produto selecionado. Volte ao passo 5.</p>
+                        <p className="text-xs text-amber-600">{MT[lang].noProductWarning}</p>
                       )}
                     </div>
                   )}
@@ -3191,13 +3978,13 @@ export function HomologacaoPhoneMockup({
                   <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 flex items-center gap-2">
                     <span className="text-lg">🏢</span>
                     <div className="min-w-0">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Empresa destinatária (businessId)</p>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">{MT[lang].recipientCompany}</p>
                       <p className="text-[9px] font-mono text-slate-700 truncate">{String(runState.businessId).slice(0, 20)}…</p>
                     </div>
                   </div>
                 ) : (
                   <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
-                    <p className="text-[9px] font-bold text-amber-800 mb-1">⚠️ businessId não encontrado</p>
+                    <p className="text-[9px] font-bold text-amber-800 mb-1">{MT[lang].businessIdNotFound}</p>
                     <p className="text-[9px] text-amber-700 leading-4">Execute o Passo 1 (criar empresa) ou use a ação “Consultar perfil do colaborador” para recuperar o businessId da empresa já associada ao seu login.</p>
                   </div>
                 )}
@@ -3211,15 +3998,15 @@ export function HomologacaoPhoneMockup({
                   {isExecuting ? (
                     <span className="flex items-center justify-center gap-2">
                       <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                      Enviando…
+                      {MT[lang].sendingRequest}
                     </span>
-                  ) : "📤 Enviar solicitação"}
+                  ) : MT[lang].sendRequest}
                 </button>
                 <button
                   onClick={() => { if (onStepChange) onStepChange(5); }}
                   className="w-full text-xs font-medium text-slate-400 hover:text-slate-600 transition-colors py-1"
                 >
-                  ← Voltar e escolher outro produto
+                  {MT[lang].backChooseProduct}
                 </button>
               </div>
             );
@@ -3245,8 +4032,8 @@ export function HomologacaoPhoneMockup({
                   {/* Card de erro */}
                   <div className="rounded-2xl overflow-hidden border border-red-200 bg-red-50">
                     <div className="bg-red-600 px-4 py-3">
-                      <p className="text-[9px] font-bold uppercase tracking-wide text-red-200 mb-0.5">Erro na listagem — Passo 7</p>
-                      <p className="text-sm font-bold text-white leading-tight">HTTP {step7ListError.httpStatus} — {is403 ? "Sem permissão" : is401 ? "Não autenticado" : "Falha na API"}</p>
+                      <p className="text-[9px] font-bold uppercase tracking-wide text-red-200 mb-0.5">{MT[lang].step7ErrorHeader}</p>
+                      <p className="text-sm font-bold text-white leading-tight">HTTP {step7ListError.httpStatus} — {is403 ? MT[lang].noPermission : is401 ? MT[lang].notAuthenticated : MT[lang].apiFailure}</p>
                     </div>
                     <div className="p-4 space-y-2.5">
                       {is403 && (
@@ -3254,12 +4041,12 @@ export function HomologacaoPhoneMockup({
                           <div className="flex items-start gap-2">
                             <span className="text-base mt-0.5">🔐</span>
                             <div>
-                              <p className="text-[10px] font-bold text-red-800 mb-0.5">Token sem vínculo com a empresa</p>
+                              <p className="text-[10px] font-bold text-red-800 mb-0.5">{MT[lang].tokenNoLink}</p>
                               <p className="text-[9px] text-red-700 leading-4">O token do funcionário autenticado não tem permissão para acessar este businessId. O token precisa pertencer ao mesmo employee que criou a empresa no Passo 1.</p>
                             </div>
                           </div>
                           <div className="rounded-lg bg-amber-50 border border-amber-200 p-2.5 space-y-1.5">
-                            <p className="text-[9px] font-bold text-amber-800">Como resolver:</p>
+                            <p className="text-[9px] font-bold text-amber-800">{MT[lang].howToFix}</p>
                             <div className="flex items-start gap-1.5"><span className="text-[9px] text-amber-700 font-bold">1.</span><p className="text-[9px] text-amber-700">Execute o Passo 1 completo (login do funcionário + criar empresa) em uma única sessão</p></div>
                             <div className="flex items-start gap-1.5"><span className="text-[9px] text-amber-700 font-bold">2.</span><p className="text-[9px] text-amber-700">O token gerado no login deve ser o mesmo usado no Passo 7</p></div>
                             <div className="flex items-start gap-1.5"><span className="text-[9px] text-amber-700 font-bold">3.</span><p className="text-[9px] text-amber-700">Não reutilize tokens de sessões anteriores para empresas diferentes</p></div>
@@ -3283,7 +4070,7 @@ export function HomologacaoPhoneMockup({
                     className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm transition-all active:scale-95"
                     style={{ background: "#1351b4" }}
                   >
-                    ← Tentar novamente
+                    {MT[lang].tryAgain}
                   </button>
                 </div>
               );
@@ -3295,7 +4082,7 @@ export function HomologacaoPhoneMockup({
                 <div className="p-4 space-y-4">
                   {/* Cabeçalho */}
                   <div className="rounded-2xl bg-[#1351b4] p-4 text-white">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200 mb-1">Passo 7 — Business dWallet</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200 mb-1">{MT[lang].step7Header}</p>
                     <p className="text-sm font-bold leading-tight">Solicitações de dados recebidas</p>
                     <p className="text-[9px] text-blue-200 mt-1">Consulte e gerencie as solicitações enviadas pelas pessoas.</p>
                   </div>
@@ -3303,10 +4090,10 @@ export function HomologacaoPhoneMockup({
                   {/* Descrição */}
                   <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
                     <p className="text-[10px] text-slate-600 leading-relaxed">
-                      Clique em <strong>Listar Solicitações</strong> para consultar as solicitações de dados pendentes recebidas pela empresa na API.
+                      {MT[lang].clickListRequests} <strong>{MT[lang].clickListRequestsBtn}</strong> {MT[lang].clickListRequestsDesc}
                     </p>
                     <p className="text-[9px] text-slate-400 mt-1.5">
-                      Após listar, selecione uma ou mais solicitações e clique em <strong>Aceitar</strong> ou <strong>Rejeitar</strong>.
+                      {MT[lang].afterListSelectRequests} <strong>{MT[lang].acceptBtn}</strong> {lang === "en" ? "or" : "ou"} <strong>{MT[lang].rejectBtn}</strong>.
                     </p>
                   </div>
 
@@ -3320,12 +4107,12 @@ export function HomologacaoPhoneMockup({
                     {isExecuting ? (
                       <span className="flex items-center justify-center gap-2">
                         <svg className="animate-spin" viewBox="0 0 20 20" width="15" height="15" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
-                        Consultando API...
+                        {MT[lang].consultingApi}
                       </span>
                     ) : (
                       <span className="flex items-center justify-center gap-2">
                         <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="white"/><rect x="3" y="9" width="10" height="2" rx="1" fill="white"/><rect x="3" y="13" width="12" height="2" rx="1" fill="white"/></svg>
-                        Listar Solicitações
+                        {MT[lang].listRequests}
                       </span>
                     )}
                   </button>
@@ -3350,7 +4137,7 @@ export function HomologacaoPhoneMockup({
                   <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(19,81,180,0.65) 0%, rgba(0,0,0,0.35) 100%)" }} />
                   <div className="relative z-10 px-4 py-3 flex items-center justify-between">
                     <div>
-                      <p className="text-[8px] font-bold uppercase tracking-wide text-blue-200">Solicitações recebidas</p>
+                      <p className="text-[8px] font-bold uppercase tracking-wide text-blue-200">{MT[lang].receivedRequests}</p>
                       <p className="text-[11px] font-bold text-white leading-tight">
                         {runState.selectedSchemaName ? String(runState.selectedSchemaName) : "Dados pessoais"}
                       </p>
@@ -3376,7 +4163,7 @@ export function HomologacaoPhoneMockup({
                           className="ml-auto text-[9px] font-semibold px-2 py-0.5 rounded-full"
                           style={{ background: "rgba(0,0,0,0.08)", color: batchResult.ok ? "#065f46" : "#991b1b" }}
                         >
-                          Refazer
+                          {MT[lang].redo}
                         </button>
                       </div>
                       {batchResult.results.map((r, i) => (
@@ -3409,7 +4196,7 @@ export function HomologacaoPhoneMockup({
                           : SCHEMA_TYPE_IMAGES.consent;
                         // Status visual
                         const statusColor = batchItemResult
-                          ? (batchItemResult.ok ? { bg: "#dcfce7", text: "#15803d", label: batchResult?.action === "accept" ? "✅ Aceito" : "✅ Recusado" } : { bg: "#fee2e2", text: "#991b1b", label: "❌ Erro" })
+                          ? (batchItemResult.ok ? { bg: "#dcfce7", text: "#15803d", label: batchResult?.action === "accept" ? MT[lang].acceptedLabel : MT[lang].rejectedLabel } : { bg: "#fee2e2", text: "#991b1b", label: "❌ Erro" })
                           : { bg: "#fef3c7", text: "#92400e", label: req.status ?? "pending" };
                         return (
                           <button
@@ -3452,7 +4239,7 @@ export function HomologacaoPhoneMockup({
                                   <p className="text-[11px] font-bold text-white leading-tight truncate">
                                     {schemaFriendly && schemaFriendly !== schemaKey
                                       ? schemaFriendly
-                                      : senderName || "Solicitação de Dados"}
+                                      : senderName || MT[lang].dataRequest}
                                   </p>
                                   {senderCpf && (
                                     <p className="text-[8px] text-white/60 truncate">CPF: {senderCpf}</p>
@@ -3506,9 +4293,9 @@ export function HomologacaoPhoneMockup({
                       <div className="w-12 h-12 rounded-full bg-slate-100 flex items-center justify-center mb-3">
                         <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="#94a3b8" strokeWidth="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/></svg>
                       </div>
-                      <p className="text-xs font-bold text-slate-500">Nenhuma solicitação pendente</p>
-                      <p className="text-[9px] text-slate-400 mt-1">A API não retornou solicitações pendentes para esta empresa.</p>
-                      <button onClick={() => setStep7Phase("idle")} className="mt-2 text-[9px] font-bold text-blue-600 underline">Tentar novamente</button>
+                      <p className="text-xs font-bold text-slate-500">{MT[lang].noRequestsPending}</p>
+                      <p className="text-[9px] text-slate-400 mt-1">{MT[lang].apiNoRequests}</p>
+                      <button onClick={() => setStep7Phase("idle")} className="mt-2 text-[9px] font-bold text-blue-600 underline">{MT[lang].tryAgainShort}</button>
                       <button
                         onClick={() => {
                           const demoId = runState.dataRequestId as string || "demo-req-" + Math.random().toString(36).slice(2, 10);
@@ -3523,7 +4310,7 @@ export function HomologacaoPhoneMockup({
                         className="mt-2 text-[9px] font-bold px-3 py-1.5 rounded-lg text-white"
                         style={{ background: "#1351b4" }}
                       >
-                        🧪 Usar dados de demonstração
+                        {MT[lang].useDemoData}
                       </button>
                     </div>
                   )}
@@ -3533,7 +4320,7 @@ export function HomologacaoPhoneMockup({
                 <div className="shrink-0 border-t border-slate-200 bg-white px-3 py-3 space-y-2">
                   {selectedRequestIds.length > 0 && !batchResult && (
                     <p className="text-[9px] text-center font-semibold" style={{ color: "#1351b4" }}>
-                      {selectedRequestIds.length} {selectedRequestIds.length === 1 ? "solicitação selecionada" : "solicitações selecionadas"}
+                      {selectedRequestIds.length} {MT[lang].requestsSelected(selectedRequestIds.length)}
                     </p>
                   )}
                   {!batchResult && (
@@ -3556,7 +4343,7 @@ export function HomologacaoPhoneMockup({
                         ) : (
                           <span className="flex items-center justify-center gap-1">
                             <svg viewBox="0 0 16 16" width="11" height="11" fill="none"><path d="M3 8l3.5 3.5 6.5-7" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-                            Aceitar
+                            {MT[lang].acceptBtn}
                           </span>
                         )}
                       </button>
@@ -3578,14 +4365,14 @@ export function HomologacaoPhoneMockup({
                         ) : (
                           <span className="flex items-center justify-center gap-1">
                             <svg viewBox="0 0 16 16" width="11" height="11" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="white" strokeWidth="2" strokeLinecap="round"/></svg>
-                            Recusar
+                            {MT[lang].rejectBtn}
                           </span>
                         )}
                       </button>
                     </div>
                   )}
                   {!batchResult && !hasRequests && (
-                    <p className="text-[9px] text-center text-slate-400">Nenhuma solicitação para processar</p>
+                    <p className="text-[9px] text-center text-slate-400">{MT[lang].noRequestsToProcess}</p>
                   )}
                 </div>
               </div>
@@ -3601,8 +4388,8 @@ export function HomologacaoPhoneMockup({
                 <img src={SCHEMA_TYPE_IMAGES.accept} alt="Aceitar" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(5,150,105,0.7) 0%, rgba(0,0,0,0.3) 100%)" }} />
                 <div className="relative z-10 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200 mb-1">Aceitar solicitação</p>
-                  <p className="text-sm font-bold text-white leading-tight">Confirmar aceite da solicitação de dados</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-emerald-200 mb-1">{MT[lang].acceptRequestHeader}</p>
+                  <p className="text-sm font-bold text-white leading-tight">{MT[lang].acceptRequestTitle}</p>
                   {runState.dataRequestId && <p className="text-[9px] font-mono text-white/70 mt-1">ID: {String(runState.dataRequestId)}</p>}
                 </div>
               </div>
@@ -3615,9 +4402,9 @@ export function HomologacaoPhoneMockup({
                 {isExecuting ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                    Aceitando…
+                    {MT[lang].accepting}
                   </span>
-                ) : "✅ Aceitar solicitação"}
+                ) : MT[lang].acceptRequest}
               </button>
             </div>
           )}
@@ -3629,8 +4416,8 @@ export function HomologacaoPhoneMockup({
                 <img src={SCHEMA_TYPE_IMAGES.reject} alt="Rejeitar" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(220,38,38,0.7) 0%, rgba(0,0,0,0.3) 100%)" }} />
                 <div className="relative z-10 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-red-200 mb-1">Rejeitar solicitação</p>
-                  <p className="text-sm font-bold text-white leading-tight">Confirmar rejeição da solicitação de dados</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-red-200 mb-1">{MT[lang].rejectRequestHeader}</p>
+                  <p className="text-sm font-bold text-white leading-tight">{MT[lang].rejectRequestTitle}</p>
                   {runState.dataRequestId && <p className="text-[9px] font-mono text-white/70 mt-1">ID: {String(runState.dataRequestId)}</p>}
                 </div>
               </div>
@@ -3643,9 +4430,9 @@ export function HomologacaoPhoneMockup({
                 {isExecuting ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                    Rejeitando…
+                    {MT[lang].rejecting}
                   </span>
-                ) : "❌ Rejeitar solicitação"}
+                ) : MT[lang].rejectRequest}
               </button>
             </div>
           )}
@@ -3659,13 +4446,13 @@ export function HomologacaoPhoneMockup({
               return (
                 <div className="p-4 space-y-4">
                   <div className="rounded-2xl bg-[#7c3aed] p-4 text-white">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200 mb-1">Passo 10 — Personal dWallet</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200 mb-1">{MT[lang].step10Header}</p>
                     <p className="text-sm font-bold leading-tight">Data Savings Plans (DSP)</p>
-                    <p className="text-[9px] text-purple-200 mt-1">Consulte, visualize detalhes e adira a um plano DSP.</p>
+                    <p className="text-[9px] text-purple-200 mt-1">{MT[lang].step10LeadText}</p>
                   </div>
                   <div className="rounded-xl bg-slate-50 border border-slate-200 px-4 py-3">
-                    <p className="text-[10px] text-slate-600 leading-relaxed">Clique em <strong>Listar DSPs</strong> para consultar os planos de poupança de dados disponíveis.</p>
-                    <p className="text-[9px] text-slate-400 mt-1.5">Após listar, clique em um DSP para ver detalhes e selecione um para aderir.</p>
+                    <p className="text-[10px] text-slate-600 leading-relaxed">{MT[lang].clickListDsps} <strong>{MT[lang].clickListDspsBtn}</strong> {MT[lang].clickListDspsDesc}</p>
+                    <p className="text-[9px] text-slate-400 mt-1.5">{MT[lang].afterListSelectDsp}</p>
                   </div>
                   <button
                     onClick={handleStep10ListDsps}
@@ -3676,12 +4463,12 @@ export function HomologacaoPhoneMockup({
                     {isExec ? (
                       <span className="flex items-center justify-center gap-2">
                         <svg className="animate-spin" viewBox="0 0 20 20" width="15" height="15" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
-                        Consultando API...
+                        {MT[lang].consultingApi}
                       </span>
                     ) : (
                       <span className="flex items-center justify-center gap-2">
                         <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="white"/><rect x="3" y="9" width="10" height="2" rx="1" fill="white"/><rect x="3" y="13" width="12" height="2" rx="1" fill="white"/></svg>
-                        Listar DSPs
+                        {MT[lang].listDsps}
                       </span>
                     )}
                   </button>
@@ -3695,17 +4482,17 @@ export function HomologacaoPhoneMockup({
                 <div className="flex flex-col" style={{ height: 390 }}>
                   {/* Cabeçalho fixo */}
                   <div className="shrink-0 bg-[#7c3aed] px-4 py-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200">Passo 10 — DSPs disponíveis</p>
-                    <p className="text-[11px] font-bold text-white">{step10Dsps.length} plano(s) encontrado(s)</p>
-                    <p className="text-[9px] text-purple-200 mt-0.5">Clique para ver detalhes · Selecione para aderir</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200">{MT[lang].step10ListHeader}</p>
+                    <p className="text-[11px] font-bold text-white">{MT[lang].plansFound(step10Dsps.length)}</p>
+                    <p className="text-[9px] text-purple-200 mt-0.5">{MT[lang].clickForDetails}</p>
                   </div>
 
                   {/* Lista scrollável */}
                   <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {step10Dsps.length === 0 ? (
                       <div className="text-center py-6">
-                        <p className="text-[10px] text-slate-400">Nenhum DSP encontrado na API.</p>
-                        <button onClick={handleStep10ListDsps} className="mt-2 text-[9px] text-purple-600 underline">Tentar novamente</button>
+                        <p className="text-[10px] text-slate-400">{MT[lang].noDspFound}</p>
+                        <button onClick={handleStep10ListDsps} className="mt-2 text-[9px] text-purple-600 underline">{MT[lang].retryLabel}</button>
                       </div>
                     ) : step10Dsps.map(dsp => {
                       const isExpanded = step10ExpandedDspId === dsp.id;
@@ -3790,9 +4577,9 @@ export function HomologacaoPhoneMockup({
                                 {isExec && isSelected ? (
                                   <span className="flex items-center justify-center gap-1">
                                     <svg className="animate-spin" viewBox="0 0 20 20" width="11" height="11" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
-                                    Aderindo...
+                                    {MT[lang].enrolling}
                                   </span>
-                                ) : isSelected ? "✓ Selecionado — Aderir a este DSP" : "💰 Selecionar e Aderir"}
+                                ) : isSelected ? MT[lang].selectedJoinDsp : MT[lang].selectAndJoin}
                               </button>
                             </div>
                           )}
@@ -3816,7 +4603,7 @@ export function HomologacaoPhoneMockup({
                       <img src={enrolledDspImg} alt={String(enrolledDspName)} className="w-full h-full object-cover" style={{ objectPosition: "center 25%" }} />
                       <div className="absolute inset-0" style={{ background: "linear-gradient(to bottom, transparent 20%, rgba(0,0,0,0.6) 100%)" }} />
                       <div className="absolute bottom-2 left-3">
-                        <p className="text-[9px] font-semibold text-white/80">Plano selecionado</p>
+                        <p className="text-[9px] font-semibold text-white/80">{MT[lang].selected}</p>
                         <p className="text-[12px] font-bold text-white truncate">{String(enrolledDspName)}</p>
                       </div>
                     </div>
@@ -3864,12 +4651,12 @@ export function HomologacaoPhoneMockup({
                     {isExec ? (
                       <span className="flex items-center justify-center gap-2">
                         <svg className="animate-spin" viewBox="0 0 20 20" width="15" height="15" fill="none"><circle cx="10" cy="10" r="7" stroke="white" strokeWidth="2" strokeDasharray="32" strokeDashoffset="12"/></svg>
-                        Consultando...
+                        {MT[lang].consulting}
                       </span>
                     ) : (
                       <span className="flex items-center justify-center gap-2">
                         <svg viewBox="0 0 20 20" width="15" height="15" fill="none"><rect x="3" y="5" width="14" height="2" rx="1" fill="white"/><rect x="3" y="9" width="10" height="2" rx="1" fill="white"/><rect x="3" y="13" width="12" height="2" rx="1" fill="white"/></svg>
-                        Listar Commercial DSPs
+                        {MT[lang].listCommercialDsps}
                       </span>
                     )}
                   </button>
@@ -3879,7 +4666,7 @@ export function HomologacaoPhoneMockup({
                     onClick={() => { setStep10Phase("listing"); setStep10EnrollResult(null); }}
                     className="w-full rounded-xl px-4 py-2 text-[10px] font-semibold text-slate-500 border border-slate-200 transition-all active:scale-95"
                   >
-                    ← Voltar para lista de DSPs
+                    {MT[lang].backToDspList}
                   </button>
                 </div>
               );
@@ -3891,9 +4678,9 @@ export function HomologacaoPhoneMockup({
                 <div className="flex flex-col" style={{ height: 390 }}>
                   {/* Header */}
                   <div className="shrink-0 px-4 py-3" style={{ background: "linear-gradient(135deg, #1351b4 0%, #0e4091 100%)" }}>
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200">Passo 10 — Planos Contratados</p>
-                    <p className="text-[12px] font-bold text-white">Meus Planos de Poupança</p>
-                    <p className="text-[9px] text-blue-200 mt-0.5">{step10SavingsAccounts.length} plano(s) encontrado(s)</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200">{MT[lang].step10SavingsHeader}</p>
+                    <p className="text-[12px] font-bold text-white">{MT[lang].mySavingsPlans}</p>
+                    <p className="text-[9px] text-blue-200 mt-0.5">{MT[lang].plansFound(step10SavingsAccounts.length)}</p>
                   </div>
 
                   {/* Lista de planos */}
@@ -3907,7 +4694,7 @@ export function HomologacaoPhoneMockup({
                           </svg>
                         </div>
                         <div className="text-center">
-                          <p className="text-[11px] font-semibold text-slate-700">Nenhum plano contratado</p>
+                          <p className="text-[11px] font-semibold text-slate-700">{MT[lang].noContractedPlan}</p>
                           <p className="text-[9px] text-slate-500 mt-1 leading-relaxed px-2">
                             A API <span className="font-mono font-bold">GET /v1/dsavings/data-savings-accounts</span> retornou lista vazia.
                           </p>
@@ -3923,13 +4710,13 @@ export function HomologacaoPhoneMockup({
                           ])}
                           className="text-[9px] font-semibold px-3 py-1.5 rounded-full border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
                         >
-                          Usar dados de demonstração
+                          {MT[lang].useDemoData}
                         </button>
                       </div>
                     ) : step10SavingsAccounts.map((acc, idx) => {
                       const statusColor = acc.status === "active" ? "#15803d" : acc.status === "pending" ? "#b45309" : "#64748b";
                       const statusBg = acc.status === "active" ? "#f0fdf4" : acc.status === "pending" ? "#fffbeb" : "#f8fafc";
-                      const statusLabel = acc.status === "active" ? "Ativo" : acc.status === "pending" ? "Pendente" : (acc.status ?? "Desconhecido");
+                      const statusLabel = acc.status === "active" ? (lang === "en" ? "Active" : "Ativo") : acc.status === "pending" ? (lang === "en" ? "Pending" : "Pendente") : (acc.status ?? (lang === "en" ? "Unknown" : "Desconhecido"));
                       const goalVal = acc.savingsGoal ? Number(acc.savingsGoal) : null;
                       const balanceVal = acc.balance ? Number(acc.balance) : null;
                       const progress = goalVal && balanceVal ? Math.min(100, Math.round((balanceVal / goalVal) * 100)) : 0;
@@ -4015,7 +4802,7 @@ export function HomologacaoPhoneMockup({
                       className="w-full rounded-xl px-4 py-2 text-[10px] font-semibold text-white disabled:opacity-60 transition-all active:scale-95"
                       style={{ background: "#1351b4" }}
                     >
-                      {isExec ? "Atualizando..." : "↻ Atualizar planos"}
+                      {isExec ? MT[lang].updatingPlans : MT[lang].refreshPlans}
                     </button>
                     <button
                       onClick={() => { setStep10Phase("enrolling"); }}
@@ -4033,13 +4820,13 @@ export function HomologacaoPhoneMockup({
               return (
                 <div className="flex flex-col" style={{ height: 390 }}>
                   <div className="shrink-0 bg-[#1351b4] px-4 py-3">
-                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200">Passo 10 — Commercial DSPs</p>
+                    <p className="text-[10px] font-bold uppercase tracking-wide text-blue-200">{MT[lang].step10CommercialHeader}</p>
                     <p className="text-[11px] font-bold text-white">{step10CommercialDsps.length} commercial DSP(s) encontrado(s)</p>
                   </div>
                   <div className="flex-1 overflow-y-auto p-3 space-y-2">
                     {step10CommercialDsps.length === 0 ? (
                       <div className="text-center py-6">
-                        <p className="text-[10px] text-slate-400">Nenhum commercial DSP encontrado.</p>
+                        <p className="text-[10px] text-slate-400">{MT[lang].noCommercialDsp}</p>
                       </div>
                     ) : step10CommercialDsps.map((cdsp, idx) => (
                       <div key={cdsp.id ?? idx} className="rounded-xl border border-slate-200 bg-white px-3 py-2.5">
@@ -4058,7 +4845,7 @@ export function HomologacaoPhoneMockup({
                       onClick={() => { setStep10Phase("listing"); }}
                       className="w-full rounded-xl px-4 py-2 text-[10px] font-semibold text-slate-500 border border-slate-200 transition-all active:scale-95"
                     >
-                      ← Voltar para lista de DSPs
+                      {MT[lang].backToDspList}
                     </button>
                   </div>
                 </div>
@@ -4075,8 +4862,8 @@ export function HomologacaoPhoneMockup({
                 <img src={SCHEMA_TYPE_IMAGES.dsp} alt="Plano DSP" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(124,58,237,0.7) 0%, rgba(0,0,0,0.3) 100%)" }} />
                 <div className="relative z-10 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200 mb-1">Aderir ao plano DSP</p>
-                  <p className="text-sm font-bold text-white leading-tight">Confirmar adesão ao Data Savings Plan</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-purple-200 mb-1">{MT[lang].step10EnrollHeader}</p>
+                  <p className="text-sm font-bold text-white leading-tight">{MT[lang].step10EnrollTitle}</p>
                   {runState.selectedDspId && <p className="text-[9px] font-mono text-white/70 mt-1">ID: {String(runState.selectedDspId)}</p>}
                 </div>
               </div>
@@ -4089,9 +4876,9 @@ export function HomologacaoPhoneMockup({
                 {isExecuting ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                    Aderindo…
+                    {MT[lang].enrolling}
                   </span>
-                ) : "💾 Aderir ao plano DSP"}
+                ) : MT[lang].enrollDsp}
               </button>
             </div>
           )}
@@ -4103,10 +4890,10 @@ export function HomologacaoPhoneMockup({
                 <img src={SCHEMA_TYPE_IMAGES.offer} alt="Oferta" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
                 <div className="absolute inset-0" style={{ background: "linear-gradient(135deg, rgba(234,88,12,0.7) 0%, rgba(0,0,0,0.3) 100%)" }} />
                 <div className="relative z-10 p-4">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-orange-200 mb-1">Aceitar oferta</p>
-                  <p className="text-sm font-bold text-white leading-tight">Confirmar aceite da oferta do marketplace</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-orange-200 mb-1">{MT[lang].acceptOfferHeader}</p>
+                  <p className="text-sm font-bold text-white leading-tight">{MT[lang].acceptOfferTitle}</p>
                   {runState.offerId && <p className="text-[9px] font-mono text-white/70 mt-1">ID: {String(runState.offerId)}</p>}
-                  {!runState.offerId && <p className="text-[9px] text-orange-200 mt-1">⚠️ Nenhuma oferta selecionada — execute o passo 12 primeiro</p>}
+                  {!runState.offerId && <p className="text-[9px] text-orange-200 mt-1">{MT[lang].noOfferSelected}</p>}
                 </div>
               </div>
               <button
@@ -4118,9 +4905,9 @@ export function HomologacaoPhoneMockup({
                 {isExecuting ? (
                   <span className="flex items-center justify-center gap-2">
                     <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                    Aceitando…
+                    {MT[lang].acceptingOffer}
                   </span>
-                ) : "🤝 Aceitar oferta"}
+                ) : MT[lang].acceptOffer}
               </button>
             </div>
           )}
@@ -4140,7 +4927,7 @@ export function HomologacaoPhoneMockup({
                       : "border-red-200 bg-red-50 text-red-700 hover:bg-red-100"
                   }`}
                 >
-                  {activeResult.ok ? "✅ Ver último resultado →" : "❌ Ver último erro →"}
+                  {activeResult.ok ? MT[lang].seeLastResult : MT[lang].seeLastError}
                 </button>
               )}
 
@@ -4150,12 +4937,12 @@ export function HomologacaoPhoneMockup({
                 const capturedIdMap: Record<number, Array<{ key: string; label: string; fromStep: number; fromStepLabel: string }>> = {
                   4: [
                     { key: "businessDwalletId", label: "Business dWallet ID", fromStep: 1, fromStepLabel: "Passo 1" },
-                    { key: "valueSchemaSid", label: "Schema selecionado", fromStep: 3, fromStepLabel: "Passo 3" },
+                    { key: "valueSchemaSid", label: MT[lang].selectedSchema, fromStep: 3, fromStepLabel: "Passo 3" },
                   ],
                   6: [
                     { key: "businessDwalletId", label: "Business dWallet ID", fromStep: 1, fromStepLabel: "Passo 1" },
                     { key: "personDwalletId", label: "Personal dWallet ID", fromStep: 2, fromStepLabel: "Passo 2" },
-                    { key: "valueSchemaSid", label: "Schema selecionado", fromStep: 3, fromStepLabel: "Passo 3" },
+                    { key: "valueSchemaSid", label: MT[lang].selectedSchema, fromStep: 3, fromStepLabel: "Passo 3" },
                   ],
                   7: [
                     { key: "dataRequestId", label: "ID da solicitação", fromStep: 6, fromStepLabel: "Passo 6" },
@@ -4198,7 +4985,7 @@ export function HomologacaoPhoneMockup({
                 return (
                   <div className="rounded-2xl border p-3 space-y-2" style={{ borderColor: captured.length === relevantIds.length ? "#bbf7d0" : "#fde68a", background: captured.length === relevantIds.length ? "#f0fdf4" : "#fffbeb" }}>
                     <p className="text-[9px] font-bold uppercase tracking-wide" style={{ color: captured.length === relevantIds.length ? "#15803d" : "#92400e" }}>
-                      {captured.length === relevantIds.length ? "✅ IDs capturados" : "⚠️ IDs necessários"}
+                      {captured.length === relevantIds.length ? MT[lang].capturedIds : MT[lang].requiredIds}
                     </p>
                     <div className="space-y-1.5">
                       {relevantIds.map(item => {
@@ -4228,7 +5015,7 @@ export function HomologacaoPhoneMockup({
               {/* Form fields */}
               {hasFields && (
                 <div className="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm space-y-3">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">Dados da operação</p>
+                  <p className="text-[10px] font-bold uppercase tracking-wide text-slate-400">{MT[lang].operationData}</p>
                   {activeScreen.fields.map(field => {
                     const value = String(runState[field.key] ?? "");
                     const displayValue = field.sensitive && value ? "••••••••" : value;
@@ -4277,7 +5064,7 @@ export function HomologacaoPhoneMockup({
                         <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
                         <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
                       </svg>
-                      Enviando…
+                      {MT[lang].sending}
                     </span>
                   ) : activeScreen.ctaLabel}
                 </button>

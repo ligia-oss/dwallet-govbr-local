@@ -393,10 +393,10 @@
 
 ## Sprint — Passos 6 e 7 funcionando end-to-end
 
-- [ ] Executar Passo 6 via API real e identificar todos os erros
-- [ ] Executar Passo 7 via API real e identificar todos os erros
-- [ ] Corrigir todos os problemas de contrato, autenticação e estado
-- [ ] Validar TypeScript, testes e salvar checkpoint
+- [x] Executar Passo 6 via API real e identificar todos os erros
+- [x] Executar Passo 7 via API real e identificar todos os erros
+- [x] Corrigir todos os problemas de contrato, autenticação e estado
+- [x] Validar TypeScript, testes e salvar checkpoint
 
 ## Sprint — Passos 6 e 7 funcionando end-to-end
 
@@ -409,3 +409,12 @@
 - [x] Validar passo 7 end-to-end: ok=true, httpStatus=200, solicitação listada
 - [x] Atualizar card de resultado do passo 6 para mostrar dataRequestId recuperado
 - [x] TypeScript limpo, 105 testes passando, checkpoint salvo
+
+## Sprint — Persistência de Idioma (PT/EN)
+
+- [x] Persistir idioma selecionado no localStorage (sobrevive a recarregamentos e navegação)
+- [x] Inicializar lang state a partir do localStorage (default PT se não houver valor salvo)
+- [x] Internacionalizar textos hardcoded em PT no HomologacaoPhoneMockup (PHONE_SCREENS + JSX)
+- [x] Internacionalizar textos hardcoded em PT no Homologacao.tsx não cobertos pelo T dict
+- [x] Garantir que troca de idioma não é resetada por navegação entre passos ou abas
+- [x] Executar testes, TypeScript e salvar checkpoint

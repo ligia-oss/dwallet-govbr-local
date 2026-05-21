@@ -106,6 +106,27 @@ const T = {
     tokenHandle: "Token Handle",
     expiresAt: "Expira em",
     savedAt: "Salvo em",
+    appEmulator: "Emulador do Aplicativo",
+    appEmulatorSub: "Tela do app para o passo selecionado",
+    credsFillHint: "Após preencher as credenciais, clique em Gerar M2M Token para autenticar.",
+    generating: "Gerando…",
+    acceptBatch: "Aceitar solicitações (batch)",
+    rejectBatch: "Rejeitar solicitações (batch)",
+    genToken: "Gerar Token M2M",
+    genTokenSub: "Autenticação técnica — necessária para todas as chamadas protegidas",
+    m2mAuthFailed: "Falha na autenticação M2M",
+    viewApiResponse: "Ver resposta da API ▸",
+    goToVariables: "Ir para Variáveis →",
+    serverCreds: "Credenciais do servidor disponíveis.",
+    autoFill: "Auto-preencher",
+    usingServerCreds: "Usando credenciais configuradas no servidor.",
+    variables: "variáveis",
+    noVarsYet: "Nenhuma variável capturada ainda. Execute os passos para ver os dados aqui.",
+    selectStep: "Selecione um passo na linha de progresso",
+    m2mFailed: "Falha ao gerar token M2M",
+    unknownError: "Erro desconhecido",
+    resetSuccess: "Teste resetado com sucesso.",
+    langToggle: "EN",
   },
   en: {
     title: "DrumWave Homologation Journey",
@@ -162,6 +183,27 @@ const T = {
     tokenHandle: "Token Handle",
     expiresAt: "Expires at",
     savedAt: "Saved at",
+    appEmulator: "App Emulator",
+    appEmulatorSub: "App screen for the selected step",
+    credsFillHint: "After filling in the credentials, click Generate M2M Token to authenticate.",
+    generating: "Generating…",
+    acceptBatch: "Accept requests (batch)",
+    rejectBatch: "Reject requests (batch)",
+    genToken: "Generate M2M Token",
+    genTokenSub: "Technical authentication — required for all protected calls",
+    m2mAuthFailed: "M2M Authentication Failed",
+    viewApiResponse: "View API response ▸",
+    goToVariables: "Go to Variables →",
+    serverCreds: "Server credentials available.",
+    autoFill: "Auto-fill",
+    usingServerCreds: "Using server-configured credentials.",
+    variables: "variables",
+    noVarsYet: "No variables captured yet. Execute steps to see data here.",
+    selectStep: "Select a step from the progress line",
+    m2mFailed: "Failed to generate M2M token",
+    unknownError: "Unknown error",
+    resetSuccess: "Test reset successfully.",
+    langToggle: "PT",
   },
 } as const;
 
@@ -170,6 +212,7 @@ const T = {
 const STORAGE_KEY_STATE = "homologacao.runState.v1";
 const STORAGE_KEY_RESULTS = "homologacao.stepResults.v1";
 const STORAGE_KEY_ACTIVE_STEP = "homologacao.activeStep.v1";
+const STORAGE_KEY_LANG = "homologacao.lang.v1";
 
 function loadFromStorage<T>(key: string, fallback: T): T {
   try {
@@ -286,7 +329,13 @@ function TokenStatusBadge({ m2mStatus, lang }: { m2mStatus: ReturnType<typeof re
 // ─── Main component ───────────────────────────────────────────────────────────
 
 export default function Homologacao() {
-  const [lang, setLang] = useState<Lang>("pt");
+  const [lang, setLang] = useState<Lang>(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY_LANG);
+      if (saved === "pt" || saved === "en") return saved;
+    } catch { /* ignore */ }
+    return "pt";
+  });
   const t = T[lang];
 
   // Credentials (sessionStorage via dataprevCredentials lib)
@@ -315,6 +364,7 @@ export default function Homologacao() {
   useEffect(() => { saveToStorage(STORAGE_KEY_STATE, runState); }, [runState]);
   useEffect(() => { saveToStorage(STORAGE_KEY_RESULTS, stepResults); }, [stepResults]);
   useEffect(() => { saveToStorage(STORAGE_KEY_ACTIVE_STEP, activeStep); }, [activeStep]);
+  useEffect(() => { saveToStorage(STORAGE_KEY_LANG, lang); }, [lang]);
 
   // Sync M2M token from server
   useEffect(() => {
@@ -430,14 +480,14 @@ export default function Homologacao() {
         };
         setM2mStatus(status);
         persistM2MTokenStatus(status);
-        toast.success(lang === "pt" ? "Token M2M gerado com sucesso!" : "M2M Token generated successfully!");
+        toast.success(lang === "pt" ? "Token M2M gerado com sucesso!" : "M2M Token generated successfully!"); // i18n via inline ternary — kept for brevity
         metadata.refetch();
       } else {
         const failStatus = {
           ok: false,
           active: false,
           savedAt: new Date().toISOString(),
-          message: result.message ?? (lang === "pt" ? "Falha ao gerar token M2M" : "Failed to generate M2M token"),
+          message: result.message ?? t.m2mFailed,
           responseBody: (result as unknown as { responseBody?: unknown }).responseBody,
           httpStatus: (result as unknown as { httpStatus?: number }).httpStatus,
         };
@@ -446,7 +496,7 @@ export default function Homologacao() {
         toast.error(failStatus.message);
       }
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Erro desconhecido");
+      toast.error(err instanceof Error ? err.message : t.unknownError);
     } finally {
       setGeneratingToken(false);
     }
@@ -534,7 +584,7 @@ export default function Homologacao() {
     } catch { /* ignore */ }
     setCreds({ baseUrl: "", apiKey: "", clientId: "", clientSecret: "" });
     metadata.refetch();
-    toast.success(lang === "pt" ? "Teste resetado com sucesso." : "Test reset successfully.");
+    toast.success(t.resetSuccess);
   };
 
     // ─── Render ───────────────────────────────────────────────────────────────
@@ -622,7 +672,7 @@ export default function Homologacao() {
     // Registrar resultado no stepResults para evidência
     const batchEvidence: ActionResult = {
       actionId,
-      actionTitle: actionId === "step7_accept_data_request" ? "Aceitar solicitações (batch)" : "Rejeitar solicitações (batch)",
+      actionTitle: actionId === "step7_accept_data_request" ? t.acceptBatch : t.rejectBatch,
       status: result.ok ? "done" : "failed",
       ok: result.ok,
       message: result.message,
@@ -656,7 +706,7 @@ export default function Homologacao() {
                 onClick={() => setLang(l => l === "pt" ? "en" : "pt")}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-white/20 hover:border-white/50 hover:text-white transition-colors text-xs font-medium"
               >
-                🌐 {lang === "pt" ? "EN" : "PT"}
+                🌐 {t.langToggle}
               </button>
               <button
                 onClick={handleReset}
@@ -737,7 +787,7 @@ export default function Homologacao() {
                             {/* Label */}
                             <div className="flex-1 min-w-0 pt-0.5">
                               <div className={`text-xs font-semibold truncate ${isSelected ? "text-[#1351b4]" : "text-gray-800"}`}>
-                                {lang === "pt" ? label?.pt : label?.en}
+                                {lang === "pt" ? label?.pt : label?.en ?? label?.pt}
                               </div>
                               <div className="flex items-center gap-1 mt-0.5">
                                 <AppBadge app={label?.app ?? ""} lang={lang} />
@@ -801,7 +851,7 @@ export default function Homologacao() {
                   ) : (
                     <div className="p-8 text-center text-gray-400">
                       <div className="text-4xl mb-3">📋</div>
-                      <p>{lang === "pt" ? "Selecione um passo na linha de progresso" : "Select a step from the progress line"}</p>
+                      <p>{t.selectStep}</p>
                     </div>
                   )}
                 </div>
@@ -810,8 +860,8 @@ export default function Homologacao() {
               {/* Phone mockup column */}
               <div className="flex flex-col items-center gap-4">
                 <div className="w-full rounded-xl border border-[#1351b4]/20 bg-white px-4 py-3 shadow-sm">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#1351b4]">Emulador do Aplicativo</p>
-                  <p className="text-[10px] text-slate-500 mt-0.5">Tela do app para o passo selecionado</p>
+                  <p className="text-[11px] font-bold uppercase tracking-wide text-[#1351b4]">{t.appEmulator}</p>
+                  <p className="text-[10px] text-slate-500 mt-0.5">{t.appEmulatorSub}</p>
                 </div>
                 <HomologacaoPhoneMockup
                   stepId={activeStep}
@@ -894,8 +944,8 @@ function Step0Panel({
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-white font-bold text-sm">0</div>
           <div>
-            <h2 className="text-base font-bold text-white">{lang === "pt" ? "Gerar Token M2M" : "Generate M2M Token"}</h2>
-            <p className="text-xs text-white/70">{lang === "pt" ? "Autenticação técnica — necessária para todas as chamadas protegidas" : "Technical authentication — required for all protected calls"}</p>
+            <h2 className="text-base font-bold text-white">{t.genToken}</h2>
+            <p className="text-xs text-white/70">{t.genTokenSub}</p>
           </div>
           <div className="ml-auto">
             <AppBadge app="BdW/PdW" lang={lang} />
@@ -911,7 +961,7 @@ function Step0Panel({
           <div className="flex items-center gap-2 mb-2">
             <span className="text-lg">{isActive ? "🟢" : (m2mStatus && !m2mStatus.ok) ? "🔴" : "🟡"}</span>
             <span className="font-semibold text-sm">
-              {isActive ? t.tokenActive : (m2mStatus && !m2mStatus.ok) ? (lang === "pt" ? "Falha na autenticação M2M" : "M2M Authentication Failed") : t.tokenNone}
+              {isActive ? t.tokenActive : (m2mStatus && !m2mStatus.ok) ? t.m2mAuthFailed : t.tokenNone}
             </span>
             {m2mStatus && !m2mStatus.ok && (m2mStatus as { httpStatus?: number }).httpStatus && (
               <span className="ml-auto text-xs font-mono bg-red-100 text-red-700 px-2 py-0.5 rounded">
@@ -936,7 +986,7 @@ function Step0Panel({
           {m2mStatus && !m2mStatus.ok && (m2mStatus as { responseBody?: unknown }).responseBody !== undefined && (
             <details className="mt-3">
               <summary className="text-xs font-semibold text-red-700 cursor-pointer hover:text-red-900">
-                {lang === "pt" ? "Ver resposta da API ▸" : "View API response ▸"}
+                {t.viewApiResponse}
               </summary>
               <pre className="mt-2 text-xs bg-red-100 text-red-800 rounded p-2 overflow-x-auto max-h-40 whitespace-pre-wrap break-all">
                 {JSON.stringify((m2mStatus as { responseBody?: unknown }).responseBody, null, 2)}
@@ -949,25 +999,25 @@ function Step0Panel({
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-4 text-sm text-amber-800">
             ⚠️ {t.credsMissing}{" "}
             <button onClick={onGoToVariables} className="underline font-semibold hover:text-amber-900">
-              {lang === "pt" ? "Ir para Variáveis →" : "Go to Variables →"}
+              {t.goToVariables}
             </button>
           </div>
         )}
 
         {!hasCredentials && !hasPartialCredentials && onAutoFill && (
           <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700 flex items-center justify-between gap-3">
-            <span>ℹ️ {lang === "pt" ? "Credenciais do servidor disponíveis." : "Server credentials available."}</span>
+            <span>ℹ️ {t.serverCreds}</span>
             <button
               onClick={onAutoFill}
               className="shrink-0 text-xs font-semibold bg-blue-600 text-white px-3 py-1.5 rounded-md hover:bg-blue-700 transition-colors"
             >
-              {lang === "pt" ? "Auto-preencher" : "Auto-fill"}
+              {t.autoFill}
             </button>
           </div>
         )}
         {!hasCredentials && !hasPartialCredentials && !onAutoFill && (
           <div className="rounded-lg bg-blue-50 border border-blue-200 p-3 text-sm text-blue-700">
-            ℹ️ {lang === "pt" ? "Usando credenciais configuradas no servidor." : "Using server-configured credentials."}
+            ℹ️ {t.usingServerCreds}
           </div>
         )}
 
@@ -992,7 +1042,7 @@ function Step0Panel({
           size="lg"
         >
           {generatingToken ? (
-            <span className="flex items-center gap-2"><span className="animate-spin">⟳</span> {lang === "pt" ? "Gerando…" : "Generating…"}</span>
+            <span className="flex items-center gap-2"><span className="animate-spin">⟳</span> {t.generating}</span>
           ) : (
             <span>🔑 {t.btnGenToken}</span>
           )}
@@ -1054,7 +1104,7 @@ function StepDetailPanel({
           <div className="rounded-lg bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 flex items-center gap-2">
             ⚠️ {t.credsMissing}{" "}
             <button onClick={onGoToVariables} className="underline font-semibold">
-              {lang === "pt" ? "Ir para Variáveis →" : "Go to Variables →"}
+              {t.goToVariables}
             </button>
           </div>
         )}
@@ -1218,9 +1268,7 @@ function VariablesTab({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs text-gray-500">
-                {lang === "pt"
-                  ? "Após preencher as credenciais, clique em Gerar M2M Token para autenticar."
-                  : "After filling in the credentials, click Generate M2M Token to authenticate."}
+                {t.credsFillHint}
               </p>
             </div>
             <Button
@@ -1229,7 +1277,7 @@ function VariablesTab({
               className="bg-[#1351b4] hover:bg-[#0c326f] text-white font-semibold ml-4 flex-shrink-0"
             >
               {generatingToken ? (
-                <span className="flex items-center gap-2"><span className="animate-spin">⟳</span> {lang === "pt" ? "Gerando…" : "Generating…"}</span>
+                <span className="flex items-center gap-2"><span className="animate-spin">⟳</span> {t.generating}</span>
               ) : (
                 <span>🔑 {t.btnGenToken}</span>
               )}
@@ -1252,12 +1300,12 @@ function VariablesTab({
         <div className="px-5 py-3 bg-gray-50 border-b border-gray-200 flex items-center gap-2">
           <span className="text-lg">📊</span>
           <h3 className="font-bold text-sm text-gray-800">{t.sectionVariables}</h3>
-          <Badge variant="outline" className="ml-auto text-xs">{stateEntries.length} {lang === "pt" ? "variáveis" : "variables"}</Badge>
+          <Badge variant="outline" className="ml-auto text-xs">{stateEntries.length} {t.variables}</Badge>
         </div>
         <div className="p-5">
           {stateEntries.length === 0 ? (
             <p className="text-sm text-gray-400 text-center py-4">
-              {lang === "pt" ? "Nenhuma variável capturada ainda. Execute os passos para ver os dados aqui." : "No variables captured yet. Execute steps to see data here."}
+              {t.noVarsYet}
             </p>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
