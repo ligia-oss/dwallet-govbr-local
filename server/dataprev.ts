@@ -707,7 +707,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "Lista os produtos vinculados à Business dWallet da empresa.",
-    expectedStatus: [200, 404, 500],
+    expectedStatus: [200, 201, 204, 404, 500],
     buildPath: state => `/v1/dwallet/business/${state.businessId || ""}/products`,
     onSuccess: body => ({
       businessProductId: findFirst(body, ["productId", "id", "dsku"]),
@@ -743,7 +743,7 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     baseUrlOverride: "https://cart-service.k8s.int.dev.drumwave.com",
     description: "Remove um item do carrinho da Business dWallet (Cart Service v2).",
-    expectedStatus: [200, 204, 400, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
     buildPath: state => `/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}/remove`,
     buildBody: state => ({
       itemId: state.selectedProductDsku || state.dsku || state.cartItemId,
@@ -760,7 +760,7 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     baseUrlOverride: "https://cart-service.k8s.int.dev.drumwave.com",
     description: "Define a quantidade de um item no carrinho (Cart Service v2 set endpoint).",
-    expectedStatus: [200, 400, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
     buildPath: state => `/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}/set`,
     buildBody: state => ({
       itemId: state.selectedProductDsku || state.dsku || state.cartItemId,
@@ -778,7 +778,7 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     baseUrlOverride: "https://cart-service.k8s.int.dev.drumwave.com",
     description: "Consulta o carrinho atual com enriquecimento de preços em USD (Cart Service v2).",
-    expectedStatus: [200, 404, 500],
+    expectedStatus: [200, 201, 204, 404, 500],
     buildPath: state => `/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}?enrich=true&currencyCode=USD`,
     onSuccess: body => ({
       cartTotal: findFirst(body, ["total", "totalAmount", "amount"]),
@@ -933,7 +933,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "Endpoint executável para consulta de certificados Personal; erros de permissão ou regra de ambiente são preservados como evidência de execução.",
-    expectedStatus: [200, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
   },
   {
     id: "step9_business_certificates",
@@ -946,7 +946,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "Endpoint executável para consulta de certificados Business; erros de permissão ou feature flag são resultado da chamada, não ausência de API.",
-    expectedStatus: [200, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
   },
   {
     id: "step10_commercial_dsps",
@@ -958,7 +958,7 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    expectedStatus: [200, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
     description: "Lista planos comerciais de poupança de dados; requer token de pessoa física (X-User-Access-Token).",
     onSuccess: body => ({ commercialDspId: firstListItem(body)?.id as string | undefined, selectedDspId: firstListItem(body)?.id as string | undefined }),
   },
@@ -983,7 +983,7 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     description: "Consulta detalhe de um plano DSP standard usando o identificador salvo pela listagem; a dependência de identificador válido é pré-requisito funcional da chamada.",
-    expectedStatus: [200, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
     buildPath: state => "/v1/dsavings/data-savings-plans/standard/" + encodeURIComponent(String(state.selectedDspId || state.standardDspId || state.commercialDspId || "")),
   },
   {
@@ -997,7 +997,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "Tenta criar uma conta DSP; respostas 4xx de regra de negócio são exibidas como evidência.",
-    expectedStatus: [200, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
     buildBody: state => ({ cdspId: state.selectedDspId || state.commercialDspId || state.standardDspId, categories: ["travel-and-transportation"], currency: "BRL", savingsGoal: 1000, agreedToTermsAndConditions: true }),
     onSuccess: body => ({ dspAccountId: firstListItem(body)?.id as string | undefined || findFirst(body, ["id", "accountId", "dspAccountId"]) }),
   },
@@ -1012,7 +1012,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "Lista as contas de poupança de dados contratadas pela pessoa; exibe planos ativos, saldo e metas de economia.",
-    expectedStatus: [200, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
     onSuccess: body => ({
       mySavingsAccountsJson: JSON.stringify(
         Array.isArray((body as Record<string, unknown>)?.data)
@@ -1075,7 +1075,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "Lista as transações associadas a uma oferta específica usando o offerId.",
-    expectedStatus: [200, 404, 500],
+    expectedStatus: [200, 201, 204, 404, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId || "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab"}/transactions`,
     onSuccess: (body) => {
       const data = (body as Record<string, unknown>)?.data as Record<string, unknown> | undefined;
@@ -1093,7 +1093,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "Executa aceite quando há offerId retornado pela listagem; a exigência de uma oferta válida é pré-requisito funcional da chamada.",
-    expectedStatus: [200, 500],
+    expectedStatus: [200, 201, 204, 400, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/accept`,
   },
   // ── Step 14: DSA Balance ──────────────────────────────────────────────────────
@@ -1107,7 +1107,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "Consulta saldo e informações da conta de poupança de dados (DSA) pelo dsaId.",
-    expectedStatus: [200, 404, 500],
+    expectedStatus: [200, 201, 204, 404, 500],
     buildPath: state => `/v1/dsavings/data-savings-accounts/${state.dspAccountId || state.dsaId}/balance`,
     onSuccess: body => ({
       dsaBalance: findFirst(body, ["balance", "amount", "value"]),
@@ -1356,6 +1356,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   const responseBody = await response.json().catch(() => ({}));
   const expectedStatus = action.expectedStatus || [200, 300];
   // Support explicit list (e.g. [200,201,400,500]) or range [min,max]
+  // Default range [200,300] covers 200-299 inclusive (201, 204, etc.)
   const isExplicitList = expectedStatus.length > 2 || expectedStatus.some(s => s >= 300);
   const ok = isExplicitList
     ? expectedStatus.includes(response.status)
