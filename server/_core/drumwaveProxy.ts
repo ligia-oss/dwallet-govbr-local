@@ -39,6 +39,9 @@ export function registerDrumwaveProxy(app: Application) {
       "api.sandbox.drumwave.com.br",
       "api.drumwave.com.br",
       "sandbox.drumwave.com.br",
+      "drumwave.com",
+      "drumwave.com.br",
+      "k8s.int.dev.drumwave.com",
     ];
     let targetUrl: URL;
     try {
@@ -68,9 +71,11 @@ export function registerDrumwaveProxy(app: Application) {
       const responseText = await upstream.text();
 
       // Repassar status e corpo da resposta upstream
-      res.status(upstream.status);
-      res.setHeader("Content-Type", upstream.headers.get("Content-Type") || "application/json");
-      res.send(responseText);
+      // IMPORTANT: wrap in JSON envelope so the caller can read the real upstream status
+      res.status(200).json({
+        upstreamStatus: upstream.status,
+        body: (() => { try { return JSON.parse(responseText); } catch { return responseText; } })(),
+      });
     } catch (err) {
       const message = err instanceof Error ? err.message : String(err);
       res.status(502).json({ error: `Proxy upstream error: ${message}` });
@@ -124,16 +129,12 @@ async function fetchViaProxyEndpoint(
       body: options.body,
     }),
   });
-  const responseText = await proxyResponse.text();
-  let parsedBody: unknown;
-  try {
-    parsedBody = JSON.parse(responseText);
-  } catch {
-    parsedBody = responseText;
-  }
+  const envelope = await proxyResponse.json() as { upstreamStatus?: number; body?: unknown };
+  const realStatus = envelope.upstreamStatus ?? proxyResponse.status;
+  const parsedBody = envelope.body ?? {};
   return {
-    ok: proxyResponse.ok,
-    status: proxyResponse.status,
+    ok: realStatus >= 200 && realStatus < 300,
+    status: realStatus,
     json: async () => parsedBody,
   };
 }
