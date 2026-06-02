@@ -24,6 +24,8 @@ type JourneyAction = {
   includeRegion?: boolean;
   acceptLanguage?: string;
   expectedStatus?: number[];
+  /** Override the base URL for this action (e.g. Cart Service, Order Service) */
+  baseUrlOverride?: string;
   buildBody?: (state: RunState, credentials?: DataprevCredentialsInput) => JsonValue;
   buildPath?: (state: RunState) => string;
   onSuccess?: (body: unknown, state: RunState) => RunState;
@@ -696,6 +698,22 @@ const actions: JourneyAction[] = [
     onSuccess: body => ({ dsku: firstListItem(body)?.dsku as string | undefined || firstListItem(body)?.id as string | undefined }),
   },
   {
+    id: "step4_list_business_products",
+    title: "Listar produtos da empresa (Business dWallet)",
+    app: "Business",
+    group: "Data Registry",
+    method: "GET",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    description: "Lista os produtos vinculados à Business dWallet da empresa.",
+    expectedStatus: [200, 404, 500],
+    buildPath: state => `/v1/dwallet/business/${state.businessId || ""}/products`,
+    onSuccess: body => ({
+      businessProductId: findFirst(body, ["productId", "id", "dsku"]),
+    }),
+  },
+  {
     id: "step4_add_dsku_to_cart",
     title: "Adicionar produto (dSKU) ao carrinho",
     app: "Business",
@@ -705,13 +723,85 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "employee",
-    description: "Adiciona o dSKU selecionado ao carrinho da Business dWallet (prg-cart). Requer o ID da BdW (businessDwalletId) capturado no passo 1.",
-    buildPath: state => `/v1/marketplace/cart/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}/add`,
+    baseUrlOverride: "https://cart-service.k8s.int.dev.drumwave.com",
+    description: "Adiciona o dSKU selecionado ao carrinho da Business dWallet (Cart Service v2). Requer o ID da BdW (businessDwalletId) capturado no passo 1.",
+    buildPath: state => `/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}/add`,
     buildBody: state => ({
       itemType: "dsku-registration-annual",
       itemId: state.selectedProductDsku || state.dsku,
     }),
     onSuccess: body => ({ cartItemId: (body as Record<string, unknown>)?.id as string | undefined || (body as Record<string, unknown>)?.itemId as string | undefined }),
+  },
+  {
+    id: "step4_remove_from_cart",
+    title: "Remover item do carrinho",
+    app: "Business",
+    group: "Marketplace Cart",
+    method: "POST",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    baseUrlOverride: "https://cart-service.k8s.int.dev.drumwave.com",
+    description: "Remove um item do carrinho da Business dWallet (Cart Service v2).",
+    expectedStatus: [200, 204, 400, 500],
+    buildPath: state => `/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}/remove`,
+    buildBody: state => ({
+      itemId: state.selectedProductDsku || state.dsku || state.cartItemId,
+    }),
+  },
+  {
+    id: "step4_set_cart_quantity",
+    title: "Definir quantidade no carrinho",
+    app: "Business",
+    group: "Marketplace Cart",
+    method: "POST",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    baseUrlOverride: "https://cart-service.k8s.int.dev.drumwave.com",
+    description: "Define a quantidade de um item no carrinho (Cart Service v2 set endpoint).",
+    expectedStatus: [200, 400, 500],
+    buildPath: state => `/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}/set`,
+    buildBody: state => ({
+      itemId: state.selectedProductDsku || state.dsku || state.cartItemId,
+      quantity: 1,
+    }),
+  },
+  {
+    id: "step4_view_cart",
+    title: "Visualizar carrinho com preços",
+    app: "Business",
+    group: "Marketplace Cart",
+    method: "GET",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    baseUrlOverride: "https://cart-service.k8s.int.dev.drumwave.com",
+    description: "Consulta o carrinho atual com enriquecimento de preços em USD (Cart Service v2).",
+    expectedStatus: [200, 404, 500],
+    buildPath: state => `/v2/prg-cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}?enrich=true&currencyCode=USD`,
+    onSuccess: body => ({
+      cartTotal: findFirst(body, ["total", "totalAmount", "amount"]),
+    }),
+  },
+  {
+    id: "step4_checkout",
+    title: "Checkout — criar pedido e sessão de pagamento",
+    app: "Business",
+    group: "Marketplace Cart",
+    method: "POST",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    baseUrlOverride: "https://order-service.k8s.int.dev.drumwave.com",
+    description: "Cria o pedido, gera sessão de pagamento Stripe e exclui o carrinho. Retorna detalhes do pedido e contexto Stripe para o frontend.",
+    expectedStatus: [200, 201, 400, 500],
+    buildPath: state => `/v1/orders/checkout/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}`,
+    buildBody: () => ({}),
+    onSuccess: body => ({
+      orderId: findFirst(body, ["orderId", "id", "order_id"]),
+      stripeSessionId: findFirst(body, ["sessionId", "clientSecret", "stripeSessionId", "paymentSessionId"]),
+    }),
   },
   {
     id: "step4_create_commercial_value_schema",
@@ -931,31 +1021,63 @@ const actions: JourneyAction[] = [
       ),
     }),
   },
+  // ── Step 11: Create Offer (preview + purchase) ──────────────────────────────
   {
-    id: "step11_business_offers_gap",
-    title: "Empresa cria ofertas",
+    id: "step11_offer_preview",
+    title: "Empresa gera preview de oferta (com preço estimado)",
     app: "Business",
     group: "Marketplace Offers",
-    status: "gap",
-    description: "O roteiro não informa método, endpoint, payload ou resposta esperada para criação de ofertas.",
-    missingReason: "API de criação de ofertas não documentada nas lâminas do roteiro; etapa deve ser sinalizada como GAP/INT até externalização.",
+    method: "POST",
+    path: "/v1/marketplace/offers/preview",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    description: "Gera um preview da oferta com estimativa de preço. O previewId retornado é necessário para efetivar a compra no passo seguinte.",
+    expectedStatus: [200, 201, 400, 500],
+    buildBody: state => ({
+      dsku: state.selectedProductDsku || state.dsku,
+      dsaId: state.dspAccountId,
+      businessId: state.businessId,
+      currencyCode: "BRL",
+    }),
+    onSuccess: body => ({
+      offerPreviewId: findFirst(body, ["previewId", "id", "offerId"]),
+    }),
   },
   {
-    id: "step12_person_offers",
-    title: "Pessoa visualiza oferta disponível",
+    id: "step11_offer_purchase",
+    title: "Empresa efetiva compra da oferta",
+    app: "Business",
+    group: "Marketplace Offers",
+    method: "POST",
+    path: "/v1/marketplace/offers/purchase",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "employee",
+    description: "Efetiva a compra da oferta usando o previewId gerado no passo anterior.",
+    expectedStatus: [200, 201, 400, 500],
+    buildBody: state => ({
+      previewId: state.offerPreviewId,
+      businessId: state.businessId,
+    }),
+    onSuccess: body => ({
+      offerId: findFirst(body, ["offerId", "id"]),
+    }),
+  },
+  // ── Step 12: View Offer Transactions ─────────────────────────────────────────
+  {
+    id: "step12_offer_transactions",
+    title: "Visualizar transações de uma oferta",
     app: "Personal",
     group: "Marketplace Offers",
     method: "GET",
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "Consulta oferta específica pelo ID; o offerId é pré-populado com o ID fornecido e pode ser alterado manualmente.",
+    description: "Lista as transações associadas a uma oferta específica usando o offerId.",
     expectedStatus: [200, 404, 500],
-    buildPath: state => `/v1/marketplace/offers/${state.offerId || "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab"}`,
+    buildPath: state => `/v1/marketplace/offers/${state.offerId || "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab"}/transactions`,
     onSuccess: (body) => {
-      // Only propagate offerId when the API actually returns a valid offer object.
-      // Do NOT fall back to the canonical UUID — that would make step 13 appear executable
-      // even when step 12 returned 404/403 or an empty body.
       const data = (body as Record<string, unknown>)?.data as Record<string, unknown> | undefined;
       const realId = data?.id ? String(data.id) : ((body as Record<string, unknown>)?.offerId ? String((body as Record<string, unknown>).offerId) : undefined);
       return realId ? { offerId: realId } : {};
@@ -974,14 +1096,22 @@ const actions: JourneyAction[] = [
     expectedStatus: [200, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/accept`,
   },
+  // ── Step 14: DSA Balance ──────────────────────────────────────────────────────
   {
-    id: "step14_wallet_statement",
-    title: "Ambos visualizam extrato",
+    id: "step14_dsa_balance",
+    title: "Visualizar saldo da conta DSA",
     app: "Ambos",
-    group: "Wallet Statement",
-    status: "gap",
-    description: "Visualização de extrato financeiro da wallet não possui API externa disponível no ambiente sandbox.",
-    missingReason: "Não há endpoint de extrato financeiro disponível na sandbox DrumWave. A visualização de extrato é uma funcionalidade interna do aplicativo que não foi externalizada para integração.",
+    group: "Data Savings Account",
+    method: "GET",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "person",
+    description: "Consulta saldo e informações da conta de poupança de dados (DSA) pelo dsaId.",
+    expectedStatus: [200, 404, 500],
+    buildPath: state => `/v1/dsavings/data-savings-accounts/${state.dspAccountId || state.dsaId}/balance`,
+    onSuccess: body => ({
+      dsaBalance: findFirst(body, ["balance", "amount", "value"]),
+    }),
   },
   {
     id: "step15_withdrawal_internal",
@@ -1028,17 +1158,17 @@ const steps: JourneyStep[] = [
   { id: 1, title: "Empresa cria conta", app: "Business", summary: "Cadastro, OTP anti-automação, login e criação da entidade empresarial.", status: "external", actions: actions.filter(a => a.id.startsWith("step1_")) },
   { id: 2, title: "Pessoa cria carteira", app: "Personal", summary: "Cadastro, OTP anti-automação, login e identificação da pessoa física.", status: "external", actions: actions.filter(a => a.id.startsWith("step2_")) },
   { id: 3, title: "Empresa consulta schemas", app: "Business", summary: "Consulta de Standard Value Schemas.", status: "external", actions: actions.filter(a => a.id === "step3_list_schemas") },
-  { id: 4, title: "Empresa consulta/cadastra produtos", app: "Business", summary: "Catálogo executável; seleção de produto, adição ao carrinho e criação de Commercial Value Schema.", status: "external", actions: actions.filter(a => a.id === "step4_list_products" || a.id === "step4_add_dsku_to_cart" || a.id === "step4_create_commercial_value_schema") },
+  { id: 4, title: "Empresa consulta/cadastra produtos", app: "Business", summary: "Catálogo, produtos da empresa, carrinho (Cart Service v2: add/remove/set/view) e checkout com sessão Stripe (Order Service).", status: "external", actions: actions.filter(a => ["step4_list_products","step4_list_business_products","step4_add_dsku_to_cart","step4_remove_from_cart","step4_set_cart_quantity","step4_view_cart","step4_checkout","step4_create_commercial_value_schema"].includes(a.id)) },
   { id: 5, title: "Pessoa consulta produtos", app: "Personal", summary: "Visão de catálogo de produtos e empresas disponíveis.", status: "external", actions: actions.filter(a => a.id === "step5_person_catalog") },
   { id: 6, title: "Pessoa solicita dados", app: "Personal", summary: "Criação de data request para uma empresa.", status: "external", actions: actions.filter(a => a.id === "step6_create_data_request") },
   { id: 7, title: "Empresa responde solicitação", app: "Business", summary: "Listagem e aceite de solicitação de dados.", status: "external", actions: actions.filter(a => a.id.startsWith("step7_")) },
   { id: 8, title: "Pessoa consulta certificados", app: "Personal", summary: "Certificados associados à conta pessoal.", status: "external", actions: actions.filter(a => a.id === "step8_person_certificates") },
   { id: 9, title: "Empresa consulta certificados", app: "Business", summary: "Endpoint de certificados empresariais não disponível nesta sandbox.", status: "gap", actions: actions.filter(a => a.id === "step9_business_certificates") },
   { id: 10, title: "Pessoa seleciona DSP", app: "Personal", summary: "Consulta e tentativa de adesão a planos DSP.", status: "external", actions: actions.filter(a => a.id.startsWith("step10_")) },
-  { id: 11, title: "Empresa cria ofertas", app: "Business", summary: "Endpoint não documentado no roteiro.", status: "gap", actions: actions.filter(a => a.id === "step11_business_offers_gap") },
-  { id: 12, title: "Pessoa visualiza ofertas", app: "Personal", summary: "Listagem de ofertas sujeita a dados e permissões do ambiente.", status: "external", actions: actions.filter(a => a.id === "step12_person_offers") },
+  { id: 11, title: "Empresa cria ofertas", app: "Business", summary: "Gera preview de oferta com estimativa de preço e efetiva compra via previewId.", status: "external", actions: actions.filter(a => a.id === "step11_offer_preview" || a.id === "step11_offer_purchase") },
+  { id: 12, title: "Visualizar transações de oferta", app: "Personal", summary: "Lista transações de uma oferta específica via offerId.", status: "external", actions: actions.filter(a => a.id === "step12_offer_transactions") },
   { id: 13, title: "Pessoa aceita/rejeita oferta", app: "Personal", summary: "Ação depende de oferta utilizável retornada no passo 12.", status: "external", actions: actions.filter(a => a.id === "step13_offer_accept") },
-  { id: 14, title: "Ambos visualizam extrato", app: "Ambos", summary: "Sem API disponível — endpoint de extrato financeiro não externalizado no sandbox.", status: "gap", actions: actions.filter(a => a.id === "step14_wallet_statement") },
+  { id: 14, title: "Visualizar saldo DSA", app: "Ambos", summary: "Consulta saldo e informações da Data Savings Account (DSA) pelo dsaId.", status: "external", actions: actions.filter(a => a.id === "step14_dsa_balance") },
   { id: 15, title: "Solicitar resgate", app: "Ambos", summary: "APIs marcadas como internas.", status: "internal", actions: actions.filter(a => a.id === "step15_withdrawal_internal") },
   { id: 16, title: "Cadastrar PIX/conta", app: "Ambos", summary: "APIs inexistentes ou não externalizadas.", status: "gap", actions: actions.filter(a => a.id === "step16_accounts_gap") },
   { id: 17, title: "Histórico de resgates", app: "Ambos", summary: "APIs inexistentes ou não externalizadas.", status: "gap", actions: actions.filter(a => a.id === "step17_history_gap") },
@@ -1085,8 +1215,16 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
   if (action.id === "step2_person_verify_code" && !(state.personVerificationCode || state.otp)) return "Informe o código recebido por e-mail para confirmar a pessoa física.";
   if (action.id === "step4_add_dsku_to_cart" && !(state.selectedProductDsku || state.dsku)) return "Selecione um produto na lista antes de adicioná-lo ao carrinho.";
   if (action.id === "step4_add_dsku_to_cart" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o ID da Business dWallet necessário para o carrinho.";
+  if (action.id === "step4_remove_from_cart" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de operar o carrinho.";
+  if (action.id === "step4_set_cart_quantity" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de operar o carrinho.";
+  if (action.id === "step4_view_cart" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de visualizar o carrinho.";
+  if (action.id === "step4_checkout" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de efetuar o checkout.";
+  if (action.id === "step4_list_business_products" && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o businessId necessário para listar produtos.";
   if (action.id === "step4_create_commercial_value_schema" && !(state.selectedProductDsku || state.dsku)) return "Adicione um produto ao carrinho antes de criar o Commercial Value Schema.";
   if (action.id === "step4_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema (passo 3) antes de criar o Commercial Value Schema.";
+  if (action.id === "step11_offer_preview" && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de gerar preview de oferta.";
+  if (action.id === "step11_offer_purchase" && !state.offerPreviewId) return "Gere o preview da oferta (step11_offer_preview) antes de efetivar a compra.";
+  if (action.id === "step14_dsa_balance" && !state.dspAccountId && !state.dsaId) return "Crie uma conta DSP (passo 10) para obter o dsaId necessário para consultar o saldo.";
   // Verificação de token com lazy loading do banco (sobrevive a reinicializações do servidor)
   if (action.requiresUser === "employee") {
     const employeeToken = await getStoredToken(String(state.employeeTokenHandle || ""));
@@ -1110,7 +1248,7 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
   if (action.id === "step13_offer_accept") {
     const CANONICAL_OFFER_ID = "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab";
     if (!state.offerId || state.offerId === CANONICAL_OFFER_ID) {
-      return "Execute o Passo 12 (visualizar oferta) antes de aceitar. O offerId deve ser retornado pela API real, n\u00e3o o valor padr\u00e3o.";
+      return "Execute o Passo 12 (visualizar transações de oferta) antes de aceitar. O offerId deve ser retornado pela API real, não o valor padrão.";
     }
   }
   return undefined;
@@ -1208,7 +1346,8 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
     };
   }
   const requestHeaders = headers({ m2m, userToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage }, credentials);
-  const url = `${env(credentials).baseUrl}${path}`;
+  const effectiveBaseUrl = action.baseUrlOverride || env(credentials).baseUrl;
+  const url = `${effectiveBaseUrl}${path}`;
   const response = await fetchViaProxy(url, {
     method: action.method,
     headers: requestHeaders,
