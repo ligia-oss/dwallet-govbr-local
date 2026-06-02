@@ -1354,8 +1354,12 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
     body: action.method === "GET" || body === undefined ? undefined : body,
   });
   const responseBody = await response.json().catch(() => ({}));
-  const [min, max] = action.expectedStatus || [200, 300];
-  const ok = response.status >= min && response.status < max;
+  const expectedStatus = action.expectedStatus || [200, 300];
+  // Support explicit list (e.g. [200,201,400,500]) or range [min,max]
+  const isExplicitList = expectedStatus.length > 2 || expectedStatus.some(s => s >= 300);
+  const ok = isExplicitList
+    ? expectedStatus.includes(response.status)
+    : response.status >= expectedStatus[0] && response.status < expectedStatus[1];
   let stateUpdates = ok && action.onSuccess ? compactStateUpdates(action.onSuccess(responseBody, state)) : {};
   // Se onSuccessAsync está definido, chama para complementar/substituir stateUpdates (ex: fallback após 500 de outbox)
   if (ok && action.onSuccessAsync) {
