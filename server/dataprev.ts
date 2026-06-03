@@ -1513,6 +1513,24 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
     };
   }
   const userToken = action.requiresUser === "employee" ? await getStoredToken(String(state.employeeTokenHandle || "")) : action.requiresUser === "person" ? await getStoredToken(String(state.personTokenHandle || "")) : undefined;
+
+  // Guard: if action requires user token but none is available, return clear error
+  if (action.requiresUser && !userToken) {
+    const tokenType = action.requiresUser === "employee" ? "colaborador Business" : "pessoa física";
+    return {
+      actionId: action.id,
+      actionTitle: action.title,
+      status: "not_executable" as const,
+      ok: false,
+      message: `Token de ${tokenType} não encontrado no servidor. Execute o login novamente (passo 1d para BdW ou passo 2d para PdW) e tente de novo.`,
+      responseBody: { tokenMissing: action.requiresUser, handle: state.employeeTokenHandle || state.personTokenHandle || "(nenhum)" },
+      executedAt,
+    };
+  }
+
+  // Debug: log which tokens are being sent (helps diagnose 403)
+  console.log(`[execute] ${action.id} m2m=${!!m2m} userToken=${!!userToken} handle=${action.requiresUser === "employee" ? state.employeeTokenHandle : state.personTokenHandle}`);
+
   const path = action.buildPath ? action.buildPath(state) : action.path;
   if (!path || path.includes("undefined") || path.includes("null")) {
     return {
