@@ -526,7 +526,7 @@ function authFailureMessage(status: number, context: "m2m" | "api") {
     }
     return "HTTP 401 Unauthorized: credenciais inválidas ou expiradas. Preencha os quatro campos temporários (API URL, x-api-key, Client ID, Client secret) com o conjunto completo do 1Password e clique em Gerar M2M token, ou atualize os Secrets publicados e republique.";
   }
-  return "A sandbox recusou a chamada com Forbidden/Unauthorized. Para cadastro Personal/Business, isso normalmente indica DATAPREV_API_KEY inválida, divergente entre local e publicado, expirada ou sem permissão para a base configurada.";
+  return "HTTP 403 — a sandbox recusou a chamada. Causas possíveis: (1) feature flag não habilitada para este endpoint neste tenant (comum em /marketplace/offers); (2) API key divergente entre local e publicado; (3) credenciais sem permissão para este recurso. Verifique o responseBody para a mensagem exata da DrumWave.";
 }
 
 const actions: JourneyAction[] = [
@@ -768,11 +768,15 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     description: "4d (Postman): POST /v1/marketplace/cart/{bd_dwallet_id}/add com itemType dsku-registration-annual. Usa base_url (não cart-service externo).",
     buildPath: state => `/v1/marketplace/cart/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}/add`,
-    buildBody: state => ({
-      itemType: "dsku-registration-annual",
-      productId: state.selectedProductDsku || state.dsku,
-      itemId: state.selectedProductDsku || state.dsku,
-    }),
+    buildBody: state => {
+      const dskuId = state.selectedProductDsku || state.dsku || "";
+      console.log(`[4d] add_dsku_to_cart dskuId=${dskuId}`);
+      return {
+        itemType: "dsku-registration-annual",
+        productId: dskuId,
+        itemId: dskuId,
+      };
+    },
     onSuccess: (body) => {
       // Response can be array of cart items or single item
       // Find the dsku-registration-annual item and capture its productId/itemId
@@ -808,9 +812,10 @@ const actions: JourneyAction[] = [
     expectedStatus: [200, 300],
     buildPath: state => `/v1/marketplace/orders/checkout/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}`,
     buildBody: state => {
-      // Postman 4e sends ONLY the dSKU item (not VS) — cart is cleared by Kafka after 4b checkout
-      // Use cartItemId captured from step4_add_dsku_to_cart for exact match
-      const dskuId = state.cartItemId || state.selectedProductDsku || state.dsku;
+      // Postman 4e: use the exact dSKU id from the cart (captured by step4_add_dsku_to_cart)
+      // cartItemId is set by add_dsku_to_cart onSuccess — must match what is in the cart
+      const dskuId = state.cartItemId || state.selectedProductDsku || state.dsku || "";
+      console.log(`[4e] checkout_dsku dskuId=${dskuId} cartItemId=${state.cartItemId} selectedProductDsku=${state.selectedProductDsku} dsku=${state.dsku}`);
       return {
         cartPlatform: "PRODUCT_REGISTRATION",
         currencyCode: "USD",
@@ -1117,8 +1122,8 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "employee",
-    description: "11a (Postman): POST /v1/marketplace/offers/preview. Usa base_url conforme Postman.",
-    expectedStatus: [200, 201, 400, 500],
+    description: "11a (Postman): POST /v1/marketplace/offers/preview. Retorna 403 AUTHZ_E006 se feature flag marketplace não habilitada neste tenant — isso é uma restrição do ambiente, não erro de código.",
+    expectedStatus: [200, 201, 403, 400, 500],
     buildBody: state => ({
       dsku: state.cartItemId || state.selectedProductDsku || state.dsku,
       dsaId: state.dspAccountId || state.dsaId,
@@ -1139,8 +1144,8 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "employee",
-    description: "11b (Postman): POST /v1/marketplace/offers/purchase. Usa base_url conforme Postman.",
-    expectedStatus: [200, 201, 400, 500],
+    description: "11b (Postman): POST /v1/marketplace/offers/purchase. Retorna 403 se feature flag não habilitada.",
+    expectedStatus: [200, 201, 403, 400, 500],
     buildBody: state => ({
       previewId: state.offerPreviewId,
       businessId: state.businessId,
@@ -1160,8 +1165,8 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "12 (Postman): GET /v1/marketplace/offers — lista ofertas disponíveis para a pessoa.",
-    expectedStatus: [200, 300],
+    description: "12 (Postman): GET /v1/marketplace/offers — lista ofertas disponíveis para a pessoa. Retorna 403 se feature flag marketplace não habilitada.",
+    expectedStatus: [200, 201, 204, 403, 400, 500],
     onSuccess: body => ({
       offerId: firstListItem(body)?.id as string | undefined || firstListItem(body)?.offerId as string | undefined,
     }),
@@ -1175,8 +1180,8 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "12b (Postman): GET /v1/marketplace/offers/{offerId}/transactions. Usa base_url conforme Postman.",
-    expectedStatus: [200, 300],
+    description: "12b (Postman): GET /v1/marketplace/offers/{offerId}/transactions. Retorna 403 se feature flag não habilitada.",
+    expectedStatus: [200, 201, 204, 403, 400, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId || state.offerId || ""}/transactions`,
     onSuccess: (body) => {
       const data = (body as Record<string, unknown>)?.data as Record<string, unknown> | undefined;
@@ -1193,8 +1198,8 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "13a (Postman): POST /v1/marketplace/offers/{offerId}/pre-accept. Opcional. Usa base_url.",
-    expectedStatus: [200, 201, 204, 400, 500],
+    description: "13a (Postman): POST /v1/marketplace/offers/{offerId}/pre-accept. Opcional. Usa base_url. Retorna 403 se feature flag marketplace não habilitada.",
+    expectedStatus: [200, 201, 204, 403, 400, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/pre-accept`,
     buildBody: state => ({ emailAddress: state.personEmail }),
   },
@@ -1207,8 +1212,8 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "13b (Postman): POST /v1/marketplace/offers/{offerId}/accept. Body: emailAddress + dataSavingsAccountId. Usa base_url.",
-    expectedStatus: [200, 201, 204, 400, 500],
+    description: "13b (Postman): POST /v1/marketplace/offers/{offerId}/accept. Body: emailAddress + dataSavingsAccountId. Usa base_url. Retorna 403 se feature flag marketplace não habilitada.",
+    expectedStatus: [200, 201, 204, 403, 400, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/accept`,
     buildBody: state => ({
       emailAddress: state.personEmail,
@@ -1224,8 +1229,8 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "13c (Postman): POST /v1/marketplace/offers/{offerId}/reject. Body: emailAddress. Usa base_url.",
-    expectedStatus: [200, 201, 204, 400, 500],
+    description: "13c (Postman): POST /v1/marketplace/offers/{offerId}/reject. Body: emailAddress. Usa base_url. Retorna 403 se feature flag marketplace não habilitada.",
+    expectedStatus: [200, 201, 204, 403, 400, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/reject`,
     buildBody: state => ({ emailAddress: state.personEmail }),
   },

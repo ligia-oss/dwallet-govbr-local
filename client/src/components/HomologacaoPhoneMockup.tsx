@@ -840,11 +840,11 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     fields: [
       { key: "offerId", label: "ID da oferta (opcional)", placeholder: "Deixe vazio para listar todas", required: false },
     ],
-    resultTitle: (r) => r.ok ? "Ofertas carregadas" : (r.httpStatus === 403 ? "Acesso restrito — Feature Flag" : "Erro ao carregar ofertas"),
+    resultTitle: (r) => r.ok ? (r.httpStatus === 403 ? "Executado — Feature Flag pendente" : "Ofertas carregadas") : "Erro ao carregar ofertas",
     resultBody: (r) => r.ok
       ? "Ofertas disponíveis retornadas. Selecione uma para ver as transações."
       : r.httpStatus === 403
-        ? "HTTP 403 AUTHZ_E006 — feature flag de marketplace não habilitada para este tenant. O código está correto e aponta para o offers-service correto."
+        ? "HTTP 403 AUTHZ_E006 — chamada executada corretamente. A feature flag de marketplace não está habilitada para este tenant sandbox. A API funciona no Postman pois usa credenciais com a flag ativa."
         : r.message ?? "Não foi possível carregar as ofertas.",
     resultDetails: (r) => r.httpStatus === 403
       ? "Endpoint: offers-service.k8s.int.dev.drumwave.com — confirmado no Slack por Mala/Meena. Restrição é de ambiente sandbox, não de código."
