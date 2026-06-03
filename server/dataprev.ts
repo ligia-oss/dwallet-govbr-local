@@ -1355,13 +1355,12 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   });
   const responseBody = await response.json().catch(() => ({}));
   const expectedStatus = action.expectedStatus || [200, 300];
-  // Support explicit list (e.g. [200,201,400,500]) or range [min,max]
-  // Default range [200,300] covers 200-299 inclusive (201, 204, etc.)
-  const isExplicitList = expectedStatus.length > 2 || expectedStatus.some(s => s >= 300);
-  const ok = isExplicitList
-    ? expectedStatus.includes(response.status)
-    : response.status >= expectedStatus[0] && response.status < expectedStatus[1];
-  console.log(`[execute] ${action.id} status=${response.status} expectedStatus=${JSON.stringify(expectedStatus)} isExplicitList=${isExplicitList} ok=${ok}`);
+  // [min, max) range when exactly 2 items and second >= first+100 (e.g. [200,300])
+  // Explicit list otherwise (e.g. [200,201,400,500])
+  const isRange = expectedStatus.length === 2 && expectedStatus[1] >= expectedStatus[0] + 100;
+  const ok = isRange
+    ? response.status >= expectedStatus[0] && response.status < expectedStatus[1]
+    : expectedStatus.includes(response.status);
   let stateUpdates = ok && action.onSuccess ? compactStateUpdates(action.onSuccess(responseBody, state)) : {};
   // Se onSuccessAsync está definido, chama para complementar/substituir stateUpdates (ex: fallback após 500 de outbox)
   if (ok && action.onSuccessAsync) {
