@@ -840,11 +840,11 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     fields: [
       { key: "offerId", label: "ID da oferta (opcional)", placeholder: "Deixe vazio para listar todas", required: false },
     ],
-    resultTitle: (r) => r.ok ? (r.httpStatus === 403 ? "Executado — Feature Flag pendente" : "Ofertas carregadas") : "Erro ao carregar ofertas",
+    resultTitle: (r) => r.ok ? (r.httpStatus === 403 ? "Executado — permissão marketplace necessária" : "Ofertas carregadas") : "Erro ao carregar ofertas",
     resultBody: (r) => r.ok
       ? "Ofertas disponíveis retornadas. Selecione uma para ver as transações."
       : r.httpStatus === 403
-        ? "HTTP 403 AUTHZ_E006 — chamada executada corretamente. A feature flag de marketplace não está habilitada para este tenant sandbox. A API funciona no Postman pois usa credenciais com a flag ativa."
+        ? "HTTP 403 AUTHZ_E006 — A chamada está tecnicamente correta. Esta API key não tem permissão de marketplace habilitada no gateway DrumWave. Para resolver: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key usada. A API funciona no Postman porque aquelas credenciais têm essa permissão ativa."
         : r.message ?? "Não foi possível carregar as ofertas.",
     resultDetails: (r) => r.httpStatus === 403
       ? "Endpoint: offers-service.k8s.int.dev.drumwave.com — confirmado no Slack por Mala/Meena. Restrição é de ambiente sandbox, não de código."
