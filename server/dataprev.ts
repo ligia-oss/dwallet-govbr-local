@@ -804,7 +804,7 @@ const actions: JourneyAction[] = [
     }),
   },
   {
-    id: "step4_create_commercial_value_schema",
+    id: "step3_create_commercial_value_schema",
     title: "Criar Commercial Value Schema",
     app: "Business",
     group: "Data Registry",
@@ -1157,8 +1157,8 @@ function classifyJourneySteps(journeySteps: JourneyStep[]): JourneyStep[] {
 const steps: JourneyStep[] = [
   { id: 1, title: "Empresa cria conta", app: "Business", summary: "Cadastro, OTP anti-automação, login e criação da entidade empresarial.", status: "external", actions: actions.filter(a => a.id.startsWith("step1_")) },
   { id: 2, title: "Pessoa cria carteira", app: "Personal", summary: "Cadastro, OTP anti-automação, login e identificação da pessoa física.", status: "external", actions: actions.filter(a => a.id.startsWith("step2_")) },
-  { id: 3, title: "Empresa consulta schemas", app: "Business", summary: "Consulta de Standard Value Schemas.", status: "external", actions: actions.filter(a => a.id === "step3_list_schemas") },
-  { id: 4, title: "Empresa consulta/cadastra produtos", app: "Business", summary: "Catálogo, produtos da empresa, carrinho (Cart Service v2: add/remove/set/view) e checkout com sessão Stripe (Order Service).", status: "external", actions: actions.filter(a => ["step4_list_products","step4_list_business_products","step4_add_dsku_to_cart","step4_remove_from_cart","step4_set_cart_quantity","step4_view_cart","step4_checkout","step4_create_commercial_value_schema"].includes(a.id)) },
+  { id: 3, title: "Empresa consulta schemas e cria CVS", app: "Business", summary: "Consulta Standard Value Schemas e cria Commercial Value Schema baseado no SVS selecionado.", status: "external", actions: actions.filter(a => a.id === "step3_list_schemas" || a.id === "step3_create_commercial_value_schema") },
+  { id: 4, title: "Empresa cadastra produto e faz checkout", app: "Business", summary: "Consulta catálogo de dSKUs baseado no CVS criado no passo 3, adiciona ao carrinho (Cart Service v2), gerencia itens e faz checkout via Order Service.", status: "external", actions: actions.filter(a => ["step4_list_products","step4_list_business_products","step4_add_dsku_to_cart","step4_remove_from_cart","step4_set_cart_quantity","step4_view_cart","step4_checkout"].includes(a.id)) },
   { id: 5, title: "Pessoa consulta produtos", app: "Personal", summary: "Visão de catálogo de produtos e empresas disponíveis.", status: "external", actions: actions.filter(a => a.id === "step5_person_catalog") },
   { id: 6, title: "Pessoa solicita dados", app: "Personal", summary: "Criação de data request para uma empresa.", status: "external", actions: actions.filter(a => a.id === "step6_create_data_request") },
   { id: 7, title: "Empresa responde solicitação", app: "Business", summary: "Listagem e aceite de solicitação de dados.", status: "external", actions: actions.filter(a => a.id.startsWith("step7_")) },
@@ -1220,8 +1220,8 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
   if (action.id === "step4_view_cart" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de visualizar o carrinho.";
   if (action.id === "step4_checkout" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de efetuar o checkout.";
   if (action.id === "step4_list_business_products" && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o businessId necessário para listar produtos.";
-  if (action.id === "step4_create_commercial_value_schema" && !(state.selectedProductDsku || state.dsku)) return "Adicione um produto ao carrinho antes de criar o Commercial Value Schema.";
-  if (action.id === "step4_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema (passo 3) antes de criar o Commercial Value Schema.";
+  if (action.id === "step3_create_commercial_value_schema" && !(state.selectedProductDsku || state.dsku)) return "Selecione um produto (dSKU) antes de criar o Commercial Value Schema.";
+  if (action.id === "step3_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema antes de criar o Commercial Value Schema.";
   if (action.id === "step11_offer_preview" && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de gerar preview de oferta.";
   if (action.id === "step11_offer_purchase" && !state.offerPreviewId) return "Gere o preview da oferta (step11_offer_preview) antes de efetivar a compra.";
   if (action.id === "step14_dsa_balance" && !state.dspAccountId && !state.dsaId) return "Crie uma conta DSP (passo 10) para obter o dsaId necessário para consultar o saldo.";

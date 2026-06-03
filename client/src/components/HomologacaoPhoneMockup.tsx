@@ -552,9 +552,35 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
       if (!body) return undefined;
       const items = (body.items ?? body.data ?? body.valueSchemas ?? body.schemas) as unknown[];
       if (Array.isArray(items) && items.length > 0) {
-        return `${items.length} schema(s) disponível(is).`;
+        return `${items.length} schema(s) disponível(is). Selecione um para criar o CVS.`;
       }
       return "Resposta recebida da sandbox.";
+    },
+    actionScreens: {
+      step3_list_schemas: {
+        appHeader: "Catálogo de schemas",
+        appLead: "Selecione um Standard Value Schema para basear o seu produto de dados.",
+        ctaLabel: "Consultar schemas",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Schemas carregados" : "Erro ao consultar schemas",
+        resultBody: (r) => r.ok
+          ? "Schemas disponíveis. Selecione um para criar seu Commercial Value Schema."
+          : r.message ?? "Não foi possível carregar os schemas.",
+      },
+      step3_create_commercial_value_schema: {
+        appHeader: "Criar produto de dados",
+        appLead: "Crie um Commercial Value Schema baseado no Standard Value Schema selecionado.",
+        ctaLabel: "Criar Commercial Value Schema",
+        fields: [
+          { key: "valueSchemaSid", label: "Standard Value Schema", placeholder: "Selecionado no passo anterior", required: true },
+          { key: "selectedProductDsku", label: "Produto (dSKU)", placeholder: "Selecione um produto", required: true },
+          { key: "selectedProductName", label: "Nome do produto", placeholder: "Ex: Dados de localização", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Commercial Value Schema criado!" : "Erro ao criar schema",
+        resultBody: (r) => r.ok
+          ? "CVS criado com sucesso. Agora vá ao passo 4 para adicionar o produto ao carrinho."
+          : r.message ?? "Não foi possível criar o Commercial Value Schema.",
+      },
     },
   },
   4: {
@@ -572,41 +598,83 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
       : r.message ?? "Não foi possível carregar os produtos.",
     actionScreens: {
       step4_list_products: {
-        appHeader: "Catálogo de produtos",
-        appLead: "Selecione um produto para criar o Commercial Value Schema.",
+        appHeader: "Catálogo de dSKUs",
+        appLead: "Consulte os produtos disponíveis com base no Commercial Value Schema criado no passo anterior.",
         ctaLabel: "Consultar produtos",
         fields: [],
-        resultTitle: (r) => r.ok ? "Produtos carregados" : "Erro ao consultar produtos",
+        resultTitle: (r) => r.ok ? "Produtos disponíveis" : "Erro ao consultar produtos",
         resultBody: (r) => r.ok
-          ? "Selecione um produto abaixo para continuar."
+          ? "Selecione um produto (dSKU) para adicionar ao carrinho."
           : r.message ?? "Não foi possível carregar os produtos.",
+      },
+      step4_list_business_products: {
+        appHeader: "Meus produtos",
+        appLead: "Veja os produtos já cadastrados na sua Business dWallet.",
+        ctaLabel: "Ver meus produtos",
+        fields: [
+          { key: "businessId", label: "ID da empresa", placeholder: "Preenchido automaticamente", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Produtos da empresa" : "Erro ao listar produtos",
+        resultBody: (r) => r.ok
+          ? "Produtos cadastrados na sua Business dWallet."
+          : r.message ?? "Não foi possível listar os produtos da empresa.",
       },
       step4_add_dsku_to_cart: {
         appHeader: "Adicionar ao carrinho",
-        appLead: "Adicionando o produto selecionado ao carrinho da Business dWallet.",
+        appLead: "Selecione o produto (dSKU) e adicione-o ao carrinho da Business dWallet.",
         ctaLabel: "Adicionar ao carrinho",
         fields: [
-          { key: "selectedProductDsku", label: "Produto (dSKU)", placeholder: "Produto selecionado", required: true },
-          { key: "businessDwalletId", label: "ID da Business dWallet", placeholder: "Capturado no passo 1", required: true },
+          { key: "selectedProductDsku", label: "Produto (dSKU)", placeholder: "Selecionado no catálogo", required: true },
+          { key: "businessDwalletId", label: "ID da Business dWallet", placeholder: "Preenchido automaticamente", required: true },
         ],
-        resultTitle: (r) => r.ok ? "Produto adicionado ao carrinho!" : "Erro ao adicionar ao carrinho",
+        resultTitle: (r) => r.ok ? "Produto adicionado!" : "Erro ao adicionar",
         resultBody: (r) => r.ok
-          ? "Produto adicionado com sucesso. Agora crie o Commercial Value Schema."
-          : r.message ?? "Não foi possível adicionar o produto ao carrinho.",
+          ? "Produto adicionado ao carrinho com sucesso."
+          : r.message ?? "Não foi possível adicionar ao carrinho.",
       },
-      step4_create_commercial_value_schema: {
-        appHeader: "Criar produto de dados",
-        appLead: "Confirme o schema e o produto selecionados para criar o Commercial Value Schema.",
-        ctaLabel: "Criar Commercial Value Schema",
+      step4_remove_from_cart: {
+        appHeader: "Remover do carrinho",
+        appLead: "Remove o produto selecionado do carrinho da Business dWallet.",
+        ctaLabel: "Remover do carrinho",
         fields: [
-          { key: "valueSchemaSid", label: "Schema selecionado", placeholder: "Selecione um schema no passo anterior", required: true },
-          { key: "selectedProductDsku", label: "Produto selecionado (dSKU)", placeholder: "Selecione um produto acima", required: true },
-          { key: "selectedProductName", label: "Nome do produto", placeholder: "Nome do produto selecionado", required: false },
+          { key: "selectedProductDsku", label: "Produto (dSKU) a remover", placeholder: "dSKU do produto no carrinho", required: true },
         ],
-        resultTitle: (r) => r.ok ? "Commercial Value Schema criado!" : "Erro ao criar schema",
+        resultTitle: (r) => r.ok ? "Produto removido" : "Erro ao remover",
         resultBody: (r) => r.ok
-          ? "Commercial Value Schema criado com sucesso. O produto de dados está pronto para uso."
-          : r.message ?? "Não foi possível criar o Commercial Value Schema.",
+          ? "Produto removido do carrinho com sucesso."
+          : r.message ?? "Não foi possível remover o produto do carrinho.",
+      },
+      step4_set_cart_quantity: {
+        appHeader: "Quantidade no carrinho",
+        appLead: "Ajuste a quantidade do produto no carrinho.",
+        ctaLabel: "Definir quantidade",
+        fields: [
+          { key: "selectedProductDsku", label: "Produto (dSKU)", placeholder: "dSKU do produto", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Quantidade atualizada" : "Erro ao atualizar",
+        resultBody: (r) => r.ok
+          ? "Quantidade do produto atualizada no carrinho."
+          : r.message ?? "Não foi possível atualizar a quantidade.",
+      },
+      step4_view_cart: {
+        appHeader: "Meu carrinho",
+        appLead: "Veja os itens no carrinho com preços enriquecidos em USD.",
+        ctaLabel: "Ver carrinho",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Carrinho carregado" : "Carrinho vazio ou erro",
+        resultBody: (r) => r.ok
+          ? "Itens do carrinho com preços retornados. Confirme para fazer checkout."
+          : r.message ?? "Não foi possível carregar o carrinho.",
+      },
+      step4_checkout: {
+        appHeader: "Checkout",
+        appLead: "Finalize o pedido. Será criado um pedido, gerada sessão de pagamento Stripe e o carrinho será excluído.",
+        ctaLabel: "Finalizar compra",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Pedido criado!" : "Erro no checkout",
+        resultBody: (r) => r.ok
+          ? "Pedido criado com sucesso. Sessão de pagamento Stripe gerada. O produto de dados foi registrado na BdW."
+          : r.message ?? "Não foi possível concluir o checkout.",
       },
     },
   },
@@ -1080,64 +1148,120 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
   },
   3: {
     stepId: 3, appKind: "BdW",
-    screenTitle: "Query schemas",
-    screenSubtitle: "Company queries available Standard Value Schemas",
+    screenTitle: "Schemas & Create CVS",
+    screenSubtitle: "Company queries Standard Value Schemas and creates a Commercial Value Schema",
     appHeader: "Schema catalog",
-    appLead: "See the data schemas available to create products.",
+    appLead: "Select a Standard Value Schema to base your data product on, then create the CVS.",
     ctaLabel: "Query schemas",
     fields: [],
     resultTitle: (r) => r.ok ? "Schemas loaded" : "Error querying schemas",
-    resultBody: (r) => r.ok ? "List of Standard Value Schemas returned by the sandbox." : r.message ?? "Could not load schemas.",
+    resultBody: (r) => r.ok ? "List of Standard Value Schemas returned. Select one to create your CVS." : r.message ?? "Could not load schemas.",
     resultDetails: (r: ActionResult): string | undefined => {
       if (!r.ok) return undefined;
       const body = r.responseBody as Record<string, unknown> | undefined;
       if (!body) return undefined;
       const items = (body.items ?? body.data ?? body.valueSchemas ?? body.schemas) as unknown[];
-      if (Array.isArray(items) && items.length > 0) return `${items.length} schema(s) available.`;
+      if (Array.isArray(items) && items.length > 0) return `${items.length} schema(s) available. Select one to create the CVS.`;
       return "Response received from sandbox.";
+    },
+    actionScreens: {
+      step3_list_schemas: {
+        appHeader: "Schema catalog",
+        appLead: "Select a Standard Value Schema to base your data product on.",
+        ctaLabel: "Query schemas",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Schemas loaded" : "Error loading schemas",
+        resultBody: (r) => r.ok ? "Schemas available. Select one to create your Commercial Value Schema." : r.message ?? "Could not load schemas.",
+      },
+      step3_create_commercial_value_schema: {
+        appHeader: "Create data product",
+        appLead: "Create a Commercial Value Schema based on the selected Standard Value Schema.",
+        ctaLabel: "Create Commercial Value Schema",
+        fields: [
+          { key: "valueSchemaSid", label: "Standard Value Schema", placeholder: "Selected in previous step", required: true },
+          { key: "selectedProductDsku", label: "Product (dSKU)", placeholder: "Select a product", required: true },
+          { key: "selectedProductName", label: "Product name", placeholder: "e.g. Location data", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Commercial Value Schema created!" : "Error creating schema",
+        resultBody: (r) => r.ok ? "CVS created. Now go to step 4 to add the product to the cart." : r.message ?? "Could not create the Commercial Value Schema.",
+      },
     },
   },
   4: {
     stepId: 4, appKind: "BdW",
-    screenTitle: "Company products",
-    screenSubtitle: "Company queries and registers data products",
+    screenTitle: "Products, Cart & Checkout",
+    screenSubtitle: "Company browses dSKUs, manages cart and completes checkout",
     appHeader: "My products",
-    appLead: "Manage your company's data products.",
-    ctaLabel: "Query products",
+    appLead: "Browse available dSKUs, add to cart, manage quantities, and checkout.",
+    ctaLabel: "Browse products",
     fields: [],
-    resultTitle: (r) => r.ok ? "Products loaded" : "Error querying products",
-    resultBody: (r) => r.ok ? "Product catalog returned by the sandbox." : r.message ?? "Could not load products.",
+    resultTitle: (r) => r.ok ? "Products loaded" : "Error loading products",
+    resultBody: (r) => r.ok ? "Product catalog returned. Select one to add to cart." : r.message ?? "Could not load products.",
     actionScreens: {
       step4_list_products: {
-        appHeader: "Product catalog",
-        appLead: "Select a product to create the Commercial Value Schema.",
-        ctaLabel: "Query products",
+        appHeader: "dSKU catalog",
+        appLead: "Browse products available based on the Commercial Value Schema created in step 3.",
+        ctaLabel: "Browse products",
         fields: [],
-        resultTitle: (r) => r.ok ? "Products loaded" : "Error querying products",
-        resultBody: (r) => r.ok ? "Select a product below to continue." : r.message ?? "Could not load products.",
+        resultTitle: (r) => r.ok ? "Products available" : "Error loading products",
+        resultBody: (r) => r.ok ? "Select a product (dSKU) to add to the cart." : r.message ?? "Could not load products.",
+      },
+      step4_list_business_products: {
+        appHeader: "My products",
+        appLead: "View products already registered in your Business dWallet.",
+        ctaLabel: "View my products",
+        fields: [
+          { key: "businessId", label: "Company ID", placeholder: "Auto-filled", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Company products" : "Error listing products",
+        resultBody: (r) => r.ok ? "Products registered in your Business dWallet." : r.message ?? "Could not list company products.",
       },
       step4_add_dsku_to_cart: {
         appHeader: "Add to cart",
-        appLead: "Adding the selected product to the Business dWallet cart.",
+        appLead: "Select the product (dSKU) and add it to the Business dWallet cart.",
         ctaLabel: "Add to cart",
         fields: [
-          { key: "selectedProductDsku", label: "Product (dSKU)", placeholder: "Selected product", required: true },
-          { key: "businessDwalletId", label: "Business dWallet ID", placeholder: "Captured in step 1", required: true },
+          { key: "selectedProductDsku", label: "Product (dSKU)", placeholder: "Selected from catalog", required: true },
+          { key: "businessDwalletId", label: "Business dWallet ID", placeholder: "Auto-filled", required: true },
         ],
-        resultTitle: (r) => r.ok ? "Product added to cart!" : "Error adding to cart",
-        resultBody: (r) => r.ok ? "Product added successfully. Now create the Commercial Value Schema." : r.message ?? "Could not add the product to the cart.",
+        resultTitle: (r) => r.ok ? "Product added!" : "Error adding",
+        resultBody: (r) => r.ok ? "Product successfully added to cart." : r.message ?? "Could not add to cart.",
       },
-      step4_create_commercial_value_schema: {
-        appHeader: "Create data product",
-        appLead: "Confirm the selected schema and product to create the Commercial Value Schema.",
-        ctaLabel: "Create Commercial Value Schema",
+      step4_remove_from_cart: {
+        appHeader: "Remove from cart",
+        appLead: "Remove the selected product from the Business dWallet cart.",
+        ctaLabel: "Remove from cart",
         fields: [
-          { key: "valueSchemaSid", label: "Selected schema", placeholder: "Select a schema in the previous step", required: true },
-          { key: "selectedProductDsku", label: "Selected product (dSKU)", placeholder: "Select a product above", required: true },
-          { key: "selectedProductName", label: "Product name", placeholder: "Name of the selected product", required: false },
+          { key: "selectedProductDsku", label: "Product (dSKU) to remove", placeholder: "dSKU of the cart item", required: true },
         ],
-        resultTitle: (r) => r.ok ? "Commercial Value Schema created!" : "Error creating schema",
-        resultBody: (r) => r.ok ? "Commercial Value Schema created successfully. The data product is ready for use." : r.message ?? "Could not create the Commercial Value Schema.",
+        resultTitle: (r) => r.ok ? "Product removed" : "Error removing",
+        resultBody: (r) => r.ok ? "Product successfully removed from cart." : r.message ?? "Could not remove from cart.",
+      },
+      step4_set_cart_quantity: {
+        appHeader: "Cart quantity",
+        appLead: "Adjust the quantity of the product in the cart.",
+        ctaLabel: "Set quantity",
+        fields: [
+          { key: "selectedProductDsku", label: "Product (dSKU)", placeholder: "Product dSKU", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Quantity updated" : "Error updating",
+        resultBody: (r) => r.ok ? "Product quantity updated in cart." : r.message ?? "Could not update quantity.",
+      },
+      step4_view_cart: {
+        appHeader: "My cart",
+        appLead: "View cart items with enriched USD pricing.",
+        ctaLabel: "View cart",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Cart loaded" : "Cart empty or error",
+        resultBody: (r) => r.ok ? "Cart items with pricing returned. Confirm to checkout." : r.message ?? "Could not load cart.",
+      },
+      step4_checkout: {
+        appHeader: "Checkout",
+        appLead: "Finalize the order. An order will be created, a Stripe payment session generated, and the cart deleted.",
+        ctaLabel: "Place order",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Order created!" : "Checkout error",
+        resultBody: (r) => r.ok ? "Order created. Stripe session generated. Data product registered in BdW." : r.message ?? "Could not complete checkout.",
       },
     },
   },
@@ -3895,8 +4019,8 @@ export function HomologacaoPhoneMockup({
               </button>
             </div>
           )}
-          {/* CONFIRMAÇÃO: step4_create_commercial_value_schema */}
-          {!isGap && phase === "input" && actionId === "step4_create_commercial_value_schema" && (
+          {/* CONFIRMAÇÃO: step3_create_commercial_value_schema */}
+          {!isGap && phase === "input" && actionId === "step3_create_commercial_value_schema" && (
             <div className="p-4 space-y-3">
               <div className="rounded-2xl bg-white border border-[#1351b4]/20 p-4 shadow-sm space-y-3">
                 <p className="text-[10px] font-bold uppercase tracking-wide text-[#1351b4]">{MT[lang].confirmCreation}</p>
@@ -4948,7 +5072,7 @@ export function HomologacaoPhoneMockup({
           {/* PASSO 7 INPUT: removido — substituído pelo bloco autocontido screen.stepId === 7 acima */}
 
           {/* INPUT state */}
-          {!isGap && phase === "input" && stepId !== 0 && actionId !== "step4_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_list_business_requests" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && !(screen.stepId === 6 && actionId === "step6_create_data_request") && (
+          {!isGap && phase === "input" && stepId !== 0 && actionId !== "step3_create_commercial_value_schema" && actionId !== "step4_add_dsku_to_cart" && actionId !== "step7_list_business_requests" && actionId !== "step7_accept_data_request" && actionId !== "step7_reject_data_request" && actionId !== "step10_create_dsp_account" && screen.stepId !== 13 && !(screen.stepId === 6 && actionId === "step6_create_data_request") && (
             <div className="p-4 space-y-3">
               {/* Previous result indicator */}
               {activeResult && (
