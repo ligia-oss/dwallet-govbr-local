@@ -3222,67 +3222,44 @@ export function HomologacaoPhoneMockup({
         <div className={screen.stepId === 7 ? "" : "overflow-y-auto"} style={{ maxHeight: 390 }}>
           {/* PASSO 0 — Tela especial de autenticação M2M */}
           {!isGap && stepId === 0 && (
-            <div className="p-4 space-y-3">
-              {/* Status do token */}
-              <div className={`rounded-2xl p-4 border ${
-                activeResult?.ok ? "bg-emerald-50 border-emerald-200" :
-                activeResult && !activeResult.ok ? "bg-red-50 border-red-200" :
-                "bg-amber-50 border-amber-200"
-              }`}>
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-lg">{activeResult?.ok ? "🟢" : activeResult ? "🔴" : "🟡"}</span>
-                  <span className="text-sm font-bold text-slate-900">
-                    {activeResult?.ok ? "Token M2M ativo" : activeResult ? "Falha na autenticação" : "Token não gerado"}
-                  </span>
+            <div className="flex flex-col items-center justify-center py-8 px-4 space-y-4" style={{ minHeight: 300 }}>
+              {/* Splash screen gov.br — processo transparente ao usuário */}
+              <div className="flex flex-col items-center gap-3">
+                {/* Logo gov.br grande */}
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-lg" style={{ background: "linear-gradient(135deg, #155BCB 0%, #071D41 100%)" }}>
+                  <svg viewBox="0 0 32 32" width="36" height="36" fill="white">
+                    <polygon points="16,2 19.5,10.5 28.5,11.2 22,17.5 24.2,26.5 16,21.5 7.8,26.5 10,17.5 3.5,11.2 12.5,10.5"/>
+                  </svg>
                 </div>
-{(() => {
-                  if (!activeResult?.ok || !activeResult.stateUpdates?.tokenHandle) return null;
-                  const handle = String(activeResult.stateUpdates.tokenHandle);
-                  return (
-                    <div className="space-y-1">
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-[9px] font-semibold text-slate-500">Token Handle:</span>
-                        <span className="text-[9px] font-mono text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded truncate">
-                          {handle.slice(0, 14)}…{handle.slice(-8)}
-                        </span>
-                      </div>
-                      <p className="text-[9px] text-slate-500 leading-4">Todas as chamadas protegidas usarão este token como Bearer.</p>
-                    </div>
-                  );
-                })()}
-                {activeResult && !activeResult.ok && (
-                  <p className="text-[9px] text-red-700 leading-4">{activeResult.message ?? "Verifique as credenciais e tente novamente."}</p>
-                )}
-                {!activeResult && (
-                  <p className="text-[9px] text-amber-700 leading-4">Execute a autenticação para liberar todas as chamadas protegidas da jornada.</p>
-                )}
+                <div className="text-center">
+                  <p className="text-xl font-black tracking-tight text-slate-900">gov<span style={{ color: "#155BCB" }}>.br</span></p>
+                  <p className="text-[10px] text-slate-500 font-medium tracking-wide">Carteira Digital de Dados</p>
+                </div>
               </div>
 
-              {/* Botão CTA — sempre visível */}
+              {/* Status de autenticação de plataforma */}
+              <div className="w-full rounded-2xl p-4 space-y-2" style={{ background: activeResult?.ok ? "#f0fdf4" : "#f8fafc", border: `1px solid ${activeResult?.ok ? "#bbf7d0" : "#e2e8f0"}` }}>
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${activeResult?.ok ? "bg-green-500" : "bg-amber-400"}`} style={{ animation: "pulse 2s infinite" }} />
+                  <span className="text-[10px] font-bold text-slate-600 uppercase tracking-wide">
+                    {activeResult?.ok ? "Plataforma autenticada" : "Autenticando plataforma…"}
+                  </span>
+                </div>
+                <p className="text-[9px] text-slate-500 leading-4">
+                  A autenticação da plataforma ocorre automaticamente em segundo plano. O usuário final não vê esta etapa.
+                </p>
+              </div>
+
+              {/* Botão — apenas para homologação */}
               <button
                 onClick={() => onExecute("step0_m2m_auth")}
                 disabled={isExecuting}
-                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
-                style={{ background: colors.accent }}
+                className="w-full rounded-xl px-4 py-2.5 text-xs font-bold text-white disabled:opacity-60 transition-all active:scale-[0.97]"
+                style={{ background: "#155BCB", opacity: 0.85 }}
               >
-                {isExecuting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
-                      <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
-                      <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
-                    </svg>
-                    Gerando token…
-                  </span>
-                ) : activeResult?.ok ? "🔄 Regenerar M2M Token" : "🔑 Gerar M2M Token"}
+                {isExecuting ? "Autenticando…" : activeResult?.ok ? "✓ Reautenticar plataforma" : "Autenticar plataforma (homologação)"}
               </button>
-
-              {/* Informativo */}
-              <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
-                <p className="text-[9px] font-bold uppercase tracking-wide text-[#1351b4] mb-1.5">ℹ️ Sobre o Passo 0</p>
-                <p className="text-[9px] text-slate-600 leading-4">
-                  Este passo é um pré-requisito técnico. O token M2M não é visível ao usuário final — ele é usado internamente para autenticar todas as chamadas à API Dataprev.
-                </p>
-              </div>
+              <p className="text-[9px] text-center text-slate-400 leading-4">Este passo é invisível ao usuário final — aparece aqui apenas para fins de homologação técnica.</p>
             </div>
           )}
 
@@ -3760,129 +3737,92 @@ export function HomologacaoPhoneMockup({
             );
 
             return (
-              <div className="flex flex-col" style={{ background: accentBg, minHeight: 420 }}>
-
-                {/* Header: saudão + avatar pequeno + menu */}
-                <div
-                  className="px-4 pt-3 pb-3 flex items-center justify-between"
-                  style={{ borderBottom: "1px solid rgba(255,255,255,0.12)" }}
-                >
-                  <div className="flex items-center gap-2.5">
-                    {/* Avatar pequeno no header */}
-                    <div
-                      className="w-9 h-9 rounded-full overflow-hidden flex items-center justify-center shrink-0"
-                      style={{ background: `${accentColor}40`, border: "2px solid rgba(255,255,255,0.3)" }}
-                    >
-                      <svg viewBox="0 0 40 40" width="28" height="28" fill="none">
-                        {isBdW ? (
-                          <>
-                            <ellipse cx="20" cy="34" rx="11" ry="6" fill="rgba(255,255,255,0.3)" />
-                            <ellipse cx="20" cy="17" rx="8" ry="8.5" fill="rgba(255,255,255,0.9)" />
-                            <path d="M12 15 Q12 7 20 7 Q28 7 28 15" fill="rgba(255,255,255,0.4)" />
-                          </>
-                        ) : (
-                          <>
-                            <path d="M11 16 Q9 27 11 35 Q15 38 20 38 Q25 38 29 35 Q31 27 29 16" fill="rgba(255,255,255,0.25)" />
-                            <ellipse cx="20" cy="17" rx="7.5" ry="8" fill="rgba(255,255,255,0.9)" />
-                            <path d="M12.5 14 Q12.5 7 20 6.5 Q27.5 7 27.5 14" fill="rgba(255,255,255,0.4)" />
-                          </>
-                        )}
+              <div className="flex flex-col" style={{ minHeight: 420, background: "#f2f4f7" }}>
+                {/* Header gov.br wallet */}
+                <div className="px-4 pt-3 pb-4" style={{ background: accentBg }}>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.15)" }}>
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="white"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+                      </div>
+                      <div>
+                        <p className="text-[8px] text-white/50 uppercase tracking-wide">Olá,</p>
+                        <p className="text-xs font-bold text-white">{firstName}</p>
+                      </div>
+                    </div>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="white" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </div>
+                  </div>
+                  {/* Wallet card */}
+                  <div className="rounded-2xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-[8px] text-white/45 uppercase tracking-widest">{appLabel}</p>
+                        <p className="text-[11px] font-bold text-white mt-0.5">Carteira Digital de Dados</p>
+                        <div className="flex items-center gap-1 mt-1.5">
+                          <div className="h-[3px] w-4 rounded-full" style={{ background: "#6BC02A" }} />
+                          <div className="h-[3px] w-2.5 rounded-full" style={{ background: "#FFCD07" }} />
+                          <p className="text-[7px] text-white/40 ml-0.5">gov.br · Verificado</p>
+                        </div>
+                      </div>
+                      <svg viewBox="0 0 32 32" width="24" height="24" fill="rgba(255,255,255,0.3)">
+                        <polygon points="16,2 19.5,10.5 28.5,11.2 22,17.5 24.2,26.5 16,21.5 7.8,26.5 10,17.5 3.5,11.2 12.5,10.5"/>
                       </svg>
                     </div>
-                    <div>
-                      <p className="text-[9px] text-white/50 leading-none">Olá,</p>
-                      <p className="text-sm font-bold text-white leading-tight">{firstName}!</p>
-                    </div>
-                  </div>
-                  {/* Menu hamburguer */}
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center"
-                    style={{ background: "rgba(255,255,255,0.12)", border: "1px solid rgba(255,255,255,0.2)" }}
-                  >
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="white">
-                      <rect x="3" y="6" width="18" height="2" rx="1" />
-                      <rect x="3" y="11" width="18" height="2" rx="1" />
-                      <rect x="3" y="16" width="18" height="2" rx="1" />
-                    </svg>
                   </div>
                 </div>
 
-                {/* Área central: avatar grande + nome + app */}
-                <div className="flex flex-col items-center pt-5 pb-4 px-4">
-                  {/* Avatar grande com anéis concêntricos */}
-                  <div
-                    className="relative w-24 h-24 rounded-full flex items-center justify-center mb-3"
-                    style={{
-                      background: `${accentColor}30`,
-                      boxShadow: `0 0 0 5px ${accentColor}25, 0 0 0 10px ${accentColor}12, 0 0 0 16px ${accentColor}06`
-                    }}
-                  >
-                    {AvatarSVG}
-                  </div>
-                  <p className="text-base font-bold text-white tracking-wide">{firstName}</p>
-                  <p className="text-[10px] text-white/55 mt-0.5">{appLabel}</p>
-                </div>
-
-                {/* Título seção */}
-                <div className="px-4 pb-1">
-                  <p className="text-sm font-bold text-white text-center">Minhas solicitações</p>
-                  <p className="text-[10px] text-white/50 text-center mt-0.5">Solicite dados das empresas com as quais possui relação</p>
-                </div>
-
-                {/* Stats */}
-                <div className="px-4 py-3">
-                  <div
-                    className="rounded-2xl flex justify-around py-3"
-                    style={{ background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.12)" }}
-                  >
-                    {[
-                      { label: MT[lang].pendingStatus, value: "0" },
-                      { label: MT[lang].acceptedStatus, value: "0" },
-                      { label: MT[lang].rejectedStatus, value: "0" },
-                    ].map((s, i) => (
-                      <React.Fragment key={i}>
-                        {i > 0 && <div style={{ width: 1, background: "rgba(255,255,255,0.15)" }} />}
-                        <div className="text-center px-3">
-                          <p className="text-xl font-bold text-white">{s.value}</p>
-                          <p className="text-[9px] text-white/55 mt-0.5">{s.label}</p>
-                        </div>
-                      </React.Fragment>
+                {/* Ações rápidas */}
+                <div className="px-3 pt-3">
+                  <div className="grid grid-cols-4 gap-2 mb-3">
+                    {(isBdW
+                      ? [{ icon: "📦", label: "Produtos" }, { icon: "📋", label: "Pedidos" }, { icon: "🏅", label: "Certificados" }, { icon: "⚙️", label: "Ajustes" }]
+                      : [{ icon: "📤", label: "Solicitar" }, { icon: "📋", label: "Histórico" }, { icon: "🏅", label: "Certificados" }, { icon: "⚙️", label: "Ajustes" }]
+                    ).map((a, i) => (
+                      <button key={i} onClick={() => setPhase("input")}
+                        className="flex flex-col items-center gap-1 py-2 rounded-xl transition-all active:scale-95"
+                        style={{ background: "white", border: "1px solid #e8edf2", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                        <span className="text-sm">{a.icon}</span>
+                        <span className="text-[7px] font-semibold text-slate-500">{a.label}</span>
+                      </button>
                     ))}
                   </div>
+
+                  {/* Stats card */}
+                  <div className="rounded-2xl p-3 mb-2" style={{ background: "white", border: "1px solid #e8edf2" }}>
+                    <p className="text-[8px] font-bold uppercase tracking-widest mb-2" style={{ color: "#8a9ab5" }}>
+                      {isBdW ? "Produtos registrados" : "Solicitações de dados"}
+                    </p>
+                    <div className="flex justify-around">
+                      {(isBdW
+                        ? [{ label: "Produtos", value: "0", color: "#155BCB" }, { label: "Pedidos", value: "0", color: "#6BC02A" }, { label: "Ofertas", value: "0", color: "#FFCD07" }]
+                        : [{ label: "Pendentes", value: "0", color: "#FFCD07" }, { label: "Aceitas", value: "0", color: "#6BC02A" }, { label: "Recusadas", value: "0", color: "#E52207" }]
+                      ).map((s, i) => (
+                        <div key={i} className="text-center">
+                          <div className="w-9 h-9 rounded-full flex items-center justify-center mx-auto mb-1" style={{ background: `${s.color}15` }}>
+                            <p className="text-sm font-black" style={{ color: s.color }}>{s.value}</p>
+                          </div>
+                          <p className="text-[7px] text-slate-400 font-medium">{s.label}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
 
-                {/* Botões de ação */}
-                <div className="px-4 pb-4 space-y-2">
-                  <button
-                    className="w-full rounded-2xl py-3 text-sm font-bold transition-all active:scale-95"
-                    style={{ background: "rgba(255,255,255,0.95)", color: accentBg }}
-                    onClick={() => setPhase("input")}
-                  >
-                    Solicite mais dados
-                  </button>
-                  <button
-                    className="w-full rounded-2xl py-3 text-sm font-bold text-white border transition-all active:scale-95"
-                    style={{ background: "transparent", borderColor: "rgba(255,255,255,0.4)" }}
-                    onClick={() => setPhase("input")}
-                  >
-                    Ver minhas solicitações
-                  </button>
-                  {/* Continuar jornada */}
+                {/* CTA continuar */}
+                <div className="px-3 pb-3 mt-auto">
                   <button
                     onClick={() => {
                       if (onAutoAdvance && stepActions && actionId) {
                         const currentIdx = stepActions.findIndex(a => a.id === actionId);
                         const nextAction = stepActions[currentIdx + 1];
-                        if (nextAction) {
-                          onAutoAdvance(nextAction.id);
-                          setPhase("input");
-                          return;
-                        }
+                        if (nextAction) { onAutoAdvance(nextAction.id); setPhase("input"); return; }
                       }
                       setPhase("input");
                     }}
-                    className="w-full rounded-2xl py-2.5 text-xs font-semibold text-white/70 transition-all"
-                    style={{ background: "rgba(255,255,255,0.06)" }}
+                    className="w-full rounded-2xl py-2.5 text-xs font-bold text-white transition-all active:scale-[0.97]"
+                    style={{ background: accentBg, boxShadow: `0 4px 12px ${accentBg}44` }}
                   >
                     Continuar jornada →
                   </button>
@@ -3951,12 +3891,41 @@ export function HomologacaoPhoneMockup({
                   </div>
                 </div>
               </div>
+              {/* Carrinho atual */}
+              {runState.valueSchemaSid && (
+                <div className="rounded-xl p-3 space-y-2" style={{ background: "#f0f7ff", border: "1px solid #155BCB22" }}>
+                  <p className="text-[8px] font-bold uppercase tracking-widest" style={{ color: "#155BCB" }}>🛒 Carrinho atual</p>
+                  <div className="rounded-lg p-2 bg-white space-y-1.5" style={{ border: "1px solid #e2e8f0" }}>
+                    {/* VS item - já está no carrinho */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">📋</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[8px] font-bold text-slate-600 truncate">Value Schema (VS)</p>
+                        <p className="text-[7px] font-mono text-slate-400 truncate">{String(runState.valueSchemaSid)}</p>
+                      </div>
+                      <span className="text-[8px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "#6BC02A15", color: "#168821" }}>✓</span>
+                    </div>
+                    {/* dSKU item - sendo adicionado */}
+                    {selectedProductDsku && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">📦</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-[8px] font-bold text-slate-600 truncate">{selectedProductName || "Produto selecionado"}</p>
+                          <p className="text-[7px] font-mono text-slate-400 truncate">{selectedProductDsku}</p>
+                        </div>
+                        <span className="text-[8px] px-1.5 py-0.5 rounded font-semibold" style={{ background: "#155BCB15", color: "#155BCB" }}>+</span>
+                      </div>
+                    )}
+                  </div>
+                  <p className="text-[7px] text-slate-400">O checkout enviará ambos os itens para garantir consistência com o carrinho.</p>
+                </div>
+              )}
               {/* Botão de confirmar */}
               <button
                 onClick={handleCta}
                 disabled={isExecuting || !selectedProductDsku || (!runState.businessDwalletId && !runState.businessId)}
-                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
-                style={{ background: colors.accent }}
+                className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-[0.97]"
+                style={{ background: colors.accent, boxShadow: `0 4px 12px ${colors.accent}44` }}
               >
                 {isExecuting ? (
                   <span className="flex items-center justify-center gap-2">
