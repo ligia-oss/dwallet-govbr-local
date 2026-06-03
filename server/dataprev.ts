@@ -714,7 +714,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "Faz checkout do VS. Após este passo o produto aparece no catálogo de dSKUs em /v1/data-registry/dskus/product.",
-    expectedStatus: [200, 201, 400, 500],
+    expectedStatus: [200, 300],
     buildPath: state => `/v1/marketplace/orders/checkout/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}`,
     buildBody: state => ({
       cartPlatform: "PRODUCT_REGISTRATION",
@@ -760,7 +760,18 @@ const actions: JourneyAction[] = [
       productId: state.selectedProductDsku || state.dsku,
       itemId: state.selectedProductDsku || state.dsku,
     }),
-    onSuccess: body => ({ cartItemId: findFirst(body, ["id", "itemId", "cartItemId"]) }),
+    onSuccess: (body) => {
+      // Response is array of cart items — find the dsku-registration-annual item
+      const arr = Array.isArray(body) ? body : (body as Record<string,unknown>)?.items;
+      if (Array.isArray(arr)) {
+        const dskuItem = [...arr].reverse().find((i: unknown) => {
+          const item = i as Record<string,unknown>;
+          return item?.itemType === "dsku-registration-annual";
+        }) as Record<string,unknown> | undefined;
+        if (dskuItem) return { cartItemId: String(dskuItem.productId || dskuItem.itemId || dskuItem.id || "") };
+      }
+      return { cartItemId: findFirst(body, ["productId", "itemId", "id"]) };
+    },
   },
   {
     id: "step4_checkout_dsku",
@@ -772,21 +783,25 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "Faz checkout do dSKU. Este é o checkout final — cria e registra o produto de dados na Business dWallet.",
-    expectedStatus: [200, 201, 400, 500],
+    expectedStatus: [200, 300],
     buildPath: state => `/v1/marketplace/orders/checkout/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}`,
-    buildBody: state => ({
-      cartPlatform: "PRODUCT_REGISTRATION",
-      currencyCode: "USD",
-      email: state.employeeEmail,
-      items: [{
-        productId: state.selectedProductDsku || state.dsku,
-        productDescription: "dSKU Registration",
-        itemId: state.selectedProductDsku || state.dsku,
-        itemType: "dsku-registration-annual",
-        itemDescription: "Annual dSKU registration",
-        quantity: 1,
-      }],
-    }),
+    buildBody: state => {
+      // Use cartItemId captured from step4_add_dsku_to_cart — must match what's in the cart
+      const dskuId = state.cartItemId || state.selectedProductDsku || state.dsku;
+      return {
+        cartPlatform: "PRODUCT_REGISTRATION",
+        currencyCode: "USD",
+        email: state.employeeEmail,
+        items: [{
+          productId: dskuId,
+          productDescription: "dSKU Registration",
+          itemId: dskuId,
+          itemType: "dsku-registration-annual",
+          itemDescription: "Annual dSKU registration",
+          quantity: 1,
+        }],
+      };
+    },
     onSuccess: body => ({
       orderId: findFirst(body, ["orderId", "id", "order_id"]),
       businessProductId: findFirst(body, ["productId", "dskuId", "registeredProductId"]),
@@ -802,8 +817,8 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "Confirma que o produto foi registrado listando os produtos da Business dWallet.",
-    expectedStatus: [200, 201, 204, 404, 500],
-    buildPath: state => `/v1/dwallet/business/${state.businessId || ""}/products`,
+    expectedStatus: [200, 300],
+    buildPath: state => `/v1/dwallet/business/${state.businessDwalletId || state.businessId || ""}/products`,
     onSuccess: body => ({
       businessProductId: findFirst(body, ["productId", "id", "dsku"]),
     }),
@@ -818,11 +833,11 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "employee",
-    description: "Cria um Commercial Value Schema vinculando o Standard Value Schema selecionado ao produto (dSKU) da empresa.",
+    description: "Cria um Commercial Value Schema vinculado ao Standard Value Schema. Nota: este endpoint não consta na coleção Postman oficial — pode estar em fase de implementação.",
     buildBody: state => ({
-      valueSchemaSid: state.valueSchemaSid,
-      dsku: state.selectedProductDsku || state.dsku,
+      standardValueSchemaSid: state.valueSchemaSid,
       name: state.selectedProductName || "Produto de dados",
+      description: "Commercial Value Schema criado durante homologação",
     }),
     onSuccess: body => ({ commercialValueSchemaId: (body as Record<string, unknown>)?.id as string | undefined }),
   },
@@ -1225,8 +1240,7 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
   if (action.id === "step4_add_dsku_to_cart" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o ID da Business dWallet.";
   if (action.id === "step4_checkout_dsku" && !(state.selectedProductDsku || state.dsku)) return "Adicione o dSKU ao carrinho (step4_add_dsku_to_cart) antes de fazer checkout.";
   if (action.id === "step4_list_business_products" && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o businessId.";
-  if (action.id === "step3_create_commercial_value_schema" && !(state.selectedProductDsku || state.dsku)) return "Selecione um produto (dSKU) antes de criar o Commercial Value Schema.";
-  if (action.id === "step3_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema antes de criar o Commercial Value Schema.";
+  if (action.id === "step3_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema (execute o passo 3_list_schemas primeiro).";
   if (action.id === "step11_offer_preview" && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de gerar preview de oferta.";
   if (action.id === "step11_offer_purchase" && !state.offerPreviewId) return "Gere o preview da oferta (step11_offer_preview) antes de efetivar a compra.";
   if (action.id === "step14_dsa_balance" && !state.dspAccountId && !state.dsaId) return "Crie uma conta DSP (passo 10) para obter o dsaId necessário para consultar o saldo.";

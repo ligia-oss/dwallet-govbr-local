@@ -568,18 +568,17 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
           : r.message ?? "Não foi possível carregar os schemas.",
       },
       step3_create_commercial_value_schema: {
-        appHeader: "Criar produto de dados",
-        appLead: "Crie um Commercial Value Schema baseado no Standard Value Schema selecionado.",
+        appHeader: "Criar CVS (opcional)",
+        appLead: "Cria um Commercial Value Schema vinculado ao SVS. Endpoint exploratório — não consta na coleção Postman oficial.",
         ctaLabel: "Criar Commercial Value Schema",
         fields: [
-          { key: "valueSchemaSid", label: "Standard Value Schema", placeholder: "Selecionado no passo anterior", required: true },
-          { key: "selectedProductDsku", label: "Produto (dSKU)", placeholder: "Selecione um produto", required: true },
-          { key: "selectedProductName", label: "Nome do produto", placeholder: "Ex: Dados de localização", required: false },
+          { key: "valueSchemaSid", label: "Standard Value Schema", placeholder: "Selecionado acima", required: true },
+          { key: "selectedProductName", label: "Nome do CVS", placeholder: "Ex: Dados de localização", required: false },
         ],
-        resultTitle: (r) => r.ok ? "Commercial Value Schema criado!" : "Erro ao criar schema",
+        resultTitle: (r) => r.ok ? "CVS criado!" : "Erro ao criar CVS",
         resultBody: (r) => r.ok
-          ? "CVS criado com sucesso. Agora vá ao passo 4 para adicionar o produto ao carrinho."
-          : r.message ?? "Não foi possível criar o Commercial Value Schema.",
+          ? "Commercial Value Schema criado. Este endpoint é exploratório — o fluxo oficial usa o passo 4."
+          : r.message ?? "Endpoint pode não estar disponível no ambiente sandbox.",
       },
     },
   },
@@ -645,13 +644,15 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
       },
       step4_checkout_dsku: {
         appHeader: "Checkout Final — Registrar Produto",
-        appLead: "Finalize o registro do produto de dados na Business dWallet. Este é o checkout que cria o produto.",
+        appLead: "Finalize o registro do produto de dados na Business dWallet. O itemId no body deve bater com o item no carrinho.",
         ctaLabel: "Registrar produto na BdW",
         fields: [],
         resultTitle: (r) => r.ok ? "Produto criado e registrado na BdW! 🎉" : "Erro no checkout do dSKU",
         resultBody: (r) => r.ok
-          ? "Produto de dados registrado com sucesso na Business dWallet. O ciclo de criação de produto está completo!"
-          : r.message ?? "Não foi possível registrar o produto.",
+          ? "Produto de dados registrado com sucesso na Business dWallet. Ciclo completo!"
+          : r.message?.includes("do not match") 
+            ? "Items no body não batem com o carrinho. Execute step4_add_dsku_to_cart novamente para recarregar o cartItemId."
+            : r.message ?? "Não foi possível registrar o produto.",
       },
       step4_list_business_products: {
         appHeader: "Confirmar — Meus Produtos",
@@ -1161,16 +1162,15 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
         resultBody: (r) => r.ok ? "Schemas available. Select one to create your Commercial Value Schema." : r.message ?? "Could not load schemas.",
       },
       step3_create_commercial_value_schema: {
-        appHeader: "Create data product",
-        appLead: "Create a Commercial Value Schema based on the selected Standard Value Schema.",
+        appHeader: "Create CVS (optional)",
+        appLead: "Creates a Commercial Value Schema linked to the SVS. Exploratory endpoint — not in the official Postman collection.",
         ctaLabel: "Create Commercial Value Schema",
         fields: [
-          { key: "valueSchemaSid", label: "Standard Value Schema", placeholder: "Selected in previous step", required: true },
-          { key: "selectedProductDsku", label: "Product (dSKU)", placeholder: "Select a product", required: true },
-          { key: "selectedProductName", label: "Product name", placeholder: "e.g. Location data", required: false },
+          { key: "valueSchemaSid", label: "Standard Value Schema", placeholder: "Selected above", required: true },
+          { key: "selectedProductName", label: "CVS name", placeholder: "e.g. Location data", required: false },
         ],
-        resultTitle: (r) => r.ok ? "Commercial Value Schema created!" : "Error creating schema",
-        resultBody: (r) => r.ok ? "CVS created. Now go to step 4 to add the product to the cart." : r.message ?? "Could not create the Commercial Value Schema.",
+        resultTitle: (r) => r.ok ? "CVS created!" : "Error creating CVS",
+        resultBody: (r) => r.ok ? "Commercial Value Schema created. This is an exploratory endpoint — the official flow uses step 4." : r.message ?? "Endpoint may not be available in the sandbox environment.",
       },
     },
   },
