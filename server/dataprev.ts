@@ -635,6 +635,25 @@ const actions: JourneyAction[] = [
     },
   },
   {
+    id: "step1_employee_relogin",
+    title: "Re-login do colaborador (pós-criação da empresa)",
+    app: "Business",
+    group: "dWallet Auth",
+    method: "POST",
+    path: "/v1/dwallet/auth/signin",
+    status: "external",
+    requiresM2M: true,
+    includeRegion: true,
+    description: "OBRIGATÓRIO após criar a empresa (step1_business_create). O Postman instrui: 're-run Step 1d after creating the business in Step 1e'. O novo token contém o dWalletId da empresa, necessário para os passos 4, 11 e outros.",
+    buildBody: state => ({ email: state.employeeEmail, password: state.employeePassword || DEFAULT_PASSWORD }),
+    onSuccess: body => ({
+      employeeTokenHandle: storeToken(findFirst(body, ["accessToken", "access_token"])),
+      employeeDwalletId: findFirst(body, ["dWalletId"]),
+      // Re-extract businessDwalletId from the refreshed token context if present
+      businessDwalletId: findFirst(body, ["dWalletId"]) || undefined,
+    }),
+  },
+  {
     id: "step2_person_signup",
     title: "Criar Personal dWallet",
     app: "Personal",
@@ -1333,7 +1352,7 @@ function classifyJourneySteps(journeySteps: JourneyStep[]): JourneyStep[] {
 }
 
 const steps: JourneyStep[] = [
-  { id: 1, title: "Empresa cria conta", app: "Business", summary: "Cadastro, OTP anti-automação, login e criação da entidade empresarial.", status: "external", actions: actions.filter(a => a.id.startsWith("step1_")) },
+  { id: 1, title: "Empresa cria conta", app: "Business", summary: "Cadastro, OTP, login, criação da empresa e RE-LOGIN obrigatório após criar a empresa (token precisa do dWalletId para passos 4 e 11).", status: "external", actions: actions.filter(a => a.id.startsWith("step1_")) }, // includes step1_employee_relogin
   { id: 2, title: "Pessoa cria carteira", app: "Personal", summary: "Cadastro, OTP anti-automação, login e identificação da pessoa física.", status: "external", actions: actions.filter(a => a.id.startsWith("step2_")) },
   { id: 3, title: "Empresa consulta Standard Value Schemas", app: "Business", summary: "Consulta Standard Value Schemas disponíveis na plataforma. Endpoint de CVS não existe (Cannot POST /commercial).", status: "external", actions: actions.filter(a => a.id === "step3_list_schemas") },
   { id: 4, title: "Empresa registra produto (VS + dSKU)", app: "Business", summary: "Dois sub-fluxos: (1) adiciona VS ao carrinho → checkout registra o produto no catálogo; (2) seleciona dSKU → checkout registra o produto na BdW.", status: "external", actions: actions.filter(a => ["step4_add_vs_to_cart","step4_checkout_vs","step4_list_products","step4_add_dsku_to_cart","step4_checkout_dsku","step4_list_business_products"].includes(a.id)) },

@@ -443,10 +443,20 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
           { key: "businessName", label: "Nome da empresa", placeholder: "Empresa Teste LTDA", required: false },
           { key: "businessCnpj", label: "CNPJ", placeholder: "00.000.000/0001-00", required: false },
         ],
-        resultTitle: (r) => r.ok ? "Empresa criada" : "Erro ao criar empresa",
+        resultTitle: (r) => r.ok ? "Empresa criada! ✅" : "Erro ao criar empresa",
         resultBody: (r, s) => r.ok
-          ? `Business dWallet criada para ${String(s.businessName ?? "a empresa")}.`
+          ? `Business dWallet criada. IMPORTANTE: execute o Re-Login abaixo para obter token com dWalletId — necessário para passos 4 e 11.`
           : r.message ?? "Não foi possível criar a empresa.",
+      },
+      step1_employee_relogin: {
+        appHeader: "Re-Login obrigatório",
+        appLead: "Faça login novamente para obter token com dWalletId da empresa. Exigido pelo Postman após criar a empresa.",
+        ctaLabel: "🔄 Re-Login (obter token com dWalletId)",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Token renovado com dWalletId! 🎉" : "Erro no re-login",
+        resultBody: (r) => r.ok
+          ? "Novo token obtido. O colaborador agora tem o dWalletId embutido — passos 4 e 11 funcionarão."
+          : r.message ?? "Não foi possível renovar o token.",
       },
       step1_employee_profile: {
         appHeader: "Perfil do colaborador",
@@ -1038,10 +1048,20 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
           { key: "businessName", label: "Company name", placeholder: "Test Company LLC", required: false },
           { key: "businessCnpj", label: "CNPJ", placeholder: "00.000.000/0001-00", required: false },
         ],
-        resultTitle: (r) => r.ok ? "Company created" : "Error creating company",
+        resultTitle: (r) => r.ok ? "Company created! ✅" : "Error creating company",
         resultBody: (r, s) => r.ok
-          ? `Business dWallet created for ${String(s.businessName ?? "the company")}.`
+          ? `Business dWallet created. IMPORTANT: run Re-Login below to get token with dWalletId — required for steps 4 and 11.`
           : r.message ?? "Could not create the company.",
+      },
+      step1_employee_relogin: {
+        appHeader: "Re-Login required",
+        appLead: "Log in again to get a token with the company dWalletId. Required by Postman after creating the company.",
+        ctaLabel: "🔄 Re-Login (get token with dWalletId)",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Token refreshed with dWalletId! 🎉" : "Re-login error",
+        resultBody: (r) => r.ok
+          ? "New token obtained. The employee now has the dWalletId embedded — steps 4 and 11 will work."
+          : r.message ?? "Could not refresh the token.",
       },
       step1_employee_profile: {
         appHeader: "Employee profile",
