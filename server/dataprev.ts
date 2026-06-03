@@ -812,22 +812,35 @@ const actions: JourneyAction[] = [
     expectedStatus: [200, 300],
     buildPath: state => `/v1/marketplace/orders/checkout/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}`,
     buildBody: state => {
-      // Postman 4e: use the exact dSKU id from the cart (captured by step4_add_dsku_to_cart)
-      // cartItemId is set by add_dsku_to_cart onSuccess — must match what is in the cart
-      const dskuId = state.cartItemId || state.selectedProductDsku || state.dsku || "";
-      console.log(`[4e] checkout_dsku dskuId=${dskuId} cartItemId=${state.cartItemId} selectedProductDsku=${state.selectedProductDsku} dsku=${state.dsku}`);
+      // CRITICAL: Cart is NEVER cleared between 4b and 4e.
+      // Meena confirmed: cart clears only after billing.payment.paid Kafka event — not at checkout.
+      // Cart state after 4d: [VS item (from 4a), dSKU item (from 4d)]
+      // The checkout body MUST exactly match ALL items currently in the cart.
+      const vsId = String(state.valueSchemaSid || "");
+      const dskuId = String(state.cartItemId || state.selectedProductDsku || state.dsku || "");
+      console.log(`[4e] checkout body: vsId=${vsId} dskuId=${dskuId}`);
+      const items: {productId: string; productDescription: string; itemId: string; itemType: string; itemDescription: string; quantity: number}[] = [];
+      if (dskuId) items.push({
+        productId: dskuId,
+        productDescription: "dSKU Registration",
+        itemId: dskuId,
+        itemType: "dsku-registration-annual",
+        itemDescription: "Annual dSKU registration",
+        quantity: 1,
+      });
+      if (vsId) items.push({
+        productId: vsId,
+        productDescription: "Value Schema Registration",
+        itemId: vsId,
+        itemType: "vs-registration-annual",
+        itemDescription: "Annual VS registration",
+        quantity: 1,
+      });
       return {
         cartPlatform: "PRODUCT_REGISTRATION",
         currencyCode: "USD",
         email: state.employeeEmail,
-        items: [{
-          productId: String(dskuId),
-          productDescription: "dSKU Registration",
-          itemId: String(dskuId),
-          itemType: "dsku-registration-annual",
-          itemDescription: "Annual dSKU registration",
-          quantity: 1,
-        }],
+        items,
       };
     },
     onSuccess: body => ({
@@ -844,7 +857,7 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "employee",
-    description: "Confirma que o produto foi registrado. Nota: pode retornar 404 se o businessId ainda não tem produtos — isso é normal no sandbox.",
+    description: "4f (Postman): GET /v1/dwallet/business/{business_id}/products. 404 = normal no sandbox (produtos ainda não registrados ou businessId de run anterior). Sucesso indica que o endpoint funciona.",
     expectedStatus: [200, 201, 204, 404, 500],
     buildPath: state => {
       // Postman uses {{business_id}} — this is the entity ID, not the dWallet ID
