@@ -1138,10 +1138,37 @@ const actions: JourneyAction[] = [
     description: "11a (Postman): POST /v1/marketplace/offers/preview. Retorna 403 AUTHZ_E006 se feature flag marketplace não habilitada neste tenant — isso é uma restrição do ambiente, não erro de código.",
     expectedStatus: [200, 201, 403, 400, 500],
     buildBody: state => ({
-      dsku: state.cartItemId || state.selectedProductDsku || state.dsku,
-      dsaId: state.dspAccountId || state.dsaId,
-      businessId: state.businessId || state.businessDwalletId,
-      currencyCode: "BRL",
+      dWalletId: state.businessDwalletId || state.businessId || "",
+      offerCriteria: {
+        title: "Oferta DrumWave Homologação",
+        description: "Oferta criada durante jornada de homologação Dataprev",
+        campaignName: "Campanha Dataprev",
+        callToAction: "Aceite esta oferta",
+        categories: ["consignado"],
+        dskus: [{
+          dsku: state.cartItemId || state.selectedProductDsku || state.dsku || "",
+          name: "Produto de dados",
+          category: "consignado",
+        }],
+        geographicRegions: ["BR"],
+        participantFilters: {
+          ageRange: { min: 18, max: 65 },
+          minDataContributions: 1,
+          customAttributes: {},
+        },
+        proposedBudget: {
+          totalAmount: 1000,
+          currencyCode: "BRL",
+          bidStrategy: "FIXED_BID",
+          paymentPerParticipant: 10,
+        },
+        maxParticipants: 100,
+        duration: {
+          startDate: "2026-06-03",
+          endDate: "2026-09-03",
+        },
+      },
+      paymentMethod: "PIX",
     }),
     onSuccess: body => ({
       offerPreviewId: findFirst(body, ["previewId", "id", "offerId"]),
@@ -1161,7 +1188,7 @@ const actions: JourneyAction[] = [
     expectedStatus: [200, 201, 403, 400, 500],
     buildBody: state => ({
       previewId: state.offerPreviewId,
-      businessId: state.businessId,
+      landingPageUrl: "https://example.com/offer-landing",
     }),
     onSuccess: body => ({
       offerId: findFirst(body, ["offerId", "id"]),
@@ -1177,8 +1204,8 @@ const actions: JourneyAction[] = [
     path: "/v1/marketplace/offers",
     status: "external",
     requiresM2M: true,
-    requiresUser: "person",
-    description: "12 (Postman): GET /v1/marketplace/offers — lista ofertas disponíveis para a pessoa. Retorna 403 se feature flag marketplace não habilitada.",
+    requiresUser: "employee",
+    description: "12 (Postman): GET /v1/marketplace/offers com employee_access_token conforme Postman. Retorna 403 se feature flag não habilitada.",
     expectedStatus: [200, 201, 204, 403, 400, 500],
     onSuccess: body => ({
       offerId: firstListItem(body)?.id as string | undefined || firstListItem(body)?.offerId as string | undefined,
@@ -1192,8 +1219,8 @@ const actions: JourneyAction[] = [
     method: "GET",
     status: "external",
     requiresM2M: true,
-    requiresUser: "person",
-    description: "12b (Postman): GET /v1/marketplace/offers/{offerId}/transactions. Retorna 403 se feature flag não habilitada.",
+    requiresUser: "employee",
+    description: "12b (Postman): GET /v1/marketplace/offers/{offerId}/transactions com employee_access_token. Retorna 403 se feature flag não habilitada.",
     expectedStatus: [200, 201, 204, 403, 400, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId || state.offerId || ""}/transactions`,
     onSuccess: (body) => {
