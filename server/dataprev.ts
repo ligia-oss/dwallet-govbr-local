@@ -774,16 +774,25 @@ const actions: JourneyAction[] = [
       itemId: state.selectedProductDsku || state.dsku,
     }),
     onSuccess: (body) => {
-      // Response is array of cart items — find the dsku-registration-annual item
+      // Response can be array of cart items or single item
+      // Find the dsku-registration-annual item and capture its productId/itemId
       const arr = Array.isArray(body) ? body : (body as Record<string,unknown>)?.items;
-      if (Array.isArray(arr)) {
-        const dskuItem = [...arr].reverse().find((i: unknown) => {
-          const item = i as Record<string,unknown>;
-          return item?.itemType === "dsku-registration-annual";
-        }) as Record<string,unknown> | undefined;
-        if (dskuItem) return { cartItemId: String(dskuItem.productId || dskuItem.itemId || dskuItem.id || "") };
+      if (Array.isArray(arr) && arr.length > 0) {
+        const dskuItem = (arr as Record<string,unknown>[]).slice().reverse()
+          .find(i => i?.itemType === "dsku-registration-annual" || 
+                     String(i?.itemId || "").startsWith("DSKU") ||
+                     String(i?.productId || "").startsWith("DSKU"));
+        if (dskuItem) {
+          const id = String(dskuItem.productId || dskuItem.itemId || dskuItem.id || "");
+          return { cartItemId: id, selectedProductDsku: id };
+        }
+        // fallback: last item
+        const last = (arr as Record<string,unknown>[])[arr.length - 1];
+        const id = String(last?.productId || last?.itemId || last?.id || "");
+        return { cartItemId: id, selectedProductDsku: id };
       }
-      return { cartItemId: findFirst(body, ["productId", "itemId", "id"]) };
+      const id = findFirst(body, ["productId", "itemId", "id"]);
+      return { cartItemId: id, selectedProductDsku: id };
     },
   },
   {
@@ -799,33 +808,21 @@ const actions: JourneyAction[] = [
     expectedStatus: [200, 300],
     buildPath: state => `/v1/marketplace/orders/checkout/${encodeURIComponent(String(state.businessDwalletId || state.businessId || ""))}`,
     buildBody: state => {
-      // Cart contains BOTH the VS item (from step4_add_vs_to_cart) AND the dSKU item
-      // (from step4_add_dsku_to_cart) since the VS checkout does NOT clear the cart.
-      // The checkout body must match the cart exactly — include both items.
-      const vsId = state.valueSchemaSid;
+      // Postman 4e sends ONLY the dSKU item (not VS) — cart is cleared by Kafka after 4b checkout
+      // Use cartItemId captured from step4_add_dsku_to_cart for exact match
       const dskuId = state.cartItemId || state.selectedProductDsku || state.dsku;
-      const items: Array<{productId: string; productDescription: string; itemId: string; itemType: string; itemDescription: string; quantity: number}> = [];
-      if (dskuId) items.push({
-        productId: String(dskuId),
-        productDescription: "dSKU Registration",
-        itemId: String(dskuId),
-        itemType: "dsku-registration-annual",
-        itemDescription: "Annual dSKU registration",
-        quantity: 1,
-      });
-      if (vsId) items.push({
-        productId: String(vsId),
-        productDescription: "Value Schema Registration",
-        itemId: String(vsId),
-        itemType: "vs-registration-annual",
-        itemDescription: "Annual VS registration",
-        quantity: 1,
-      });
       return {
         cartPlatform: "PRODUCT_REGISTRATION",
         currencyCode: "USD",
         email: state.employeeEmail,
-        items,
+        items: [{
+          productId: String(dskuId),
+          productDescription: "dSKU Registration",
+          itemId: String(dskuId),
+          itemType: "dsku-registration-annual",
+          itemDescription: "Annual dSKU registration",
+          quantity: 1,
+        }],
       };
     },
     onSuccess: body => ({
@@ -1017,7 +1014,7 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "employee",
-    description: "Usa a mesma API do Passo 8 (GET /v1/dsavings/certificates) com token de colaborador Business. Sandbox retorna lista vazia — sem dados de certificados ainda conforme alinhado no Slack.",
+    description: "Mesma API do Passo 8 com token Business. GET /v1/dsavings/certificates. Sandbox retorna lista vazia.",
     expectedStatus: [200, 201, 204, 400, 500],
     onSuccess: body => ({
       certificateId: firstListItem(body)?.id as string | undefined || firstListItem(body)?.certificateId as string | undefined,
@@ -1123,9 +1120,9 @@ const actions: JourneyAction[] = [
     description: "11a (Postman): POST /v1/marketplace/offers/preview. Usa base_url conforme Postman.",
     expectedStatus: [200, 201, 400, 500],
     buildBody: state => ({
-      dsku: state.selectedProductDsku || state.dsku,
-      dsaId: state.dspAccountId,
-      businessId: state.businessId,
+      dsku: state.cartItemId || state.selectedProductDsku || state.dsku,
+      dsaId: state.dspAccountId || state.dsaId,
+      businessId: state.businessId || state.businessDwalletId,
       currencyCode: "BRL",
     }),
     onSuccess: body => ({
@@ -1163,8 +1160,8 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "12 (Postman): GET /v1/marketplace/offers — lista ofertas disponíveis para a pessoa. Usa base_url conforme Postman.",
-    expectedStatus: [200, 201, 204, 403, 404, 500],
+    description: "12 (Postman): GET /v1/marketplace/offers — lista ofertas disponíveis para a pessoa.",
+    expectedStatus: [200, 300],
     onSuccess: body => ({
       offerId: firstListItem(body)?.id as string | undefined || firstListItem(body)?.offerId as string | undefined,
     }),
@@ -1179,8 +1176,8 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "12b (Postman): GET /v1/marketplace/offers/{offerId}/transactions. Usa base_url conforme Postman.",
-    expectedStatus: [200, 201, 204, 403, 404, 500],
-    buildPath: state => `/v1/marketplace/offers/${state.offerId || ""}/transactions`,
+    expectedStatus: [200, 300],
+    buildPath: state => `/v1/marketplace/offers/${state.offerId || state.offerId || ""}/transactions`,
     onSuccess: (body) => {
       const data = (body as Record<string, unknown>)?.data as Record<string, unknown> | undefined;
       const realId = data?.id ? String(data.id) : ((body as Record<string, unknown>)?.offerId ? String((body as Record<string, unknown>).offerId) : undefined);

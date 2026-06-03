@@ -837,7 +837,9 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     appHeader: "Ofertas disponíveis",
     appLead: "Veja as ofertas de dados disponíveis no marketplace (offers-service.k8s.int.dev.drumwave.com).",
     ctaLabel: "Ver ofertas",
-    fields: [],
+    fields: [
+      { key: "offerId", label: "ID da oferta (opcional)", placeholder: "Deixe vazio para listar todas", required: false },
+    ],
     resultTitle: (r) => r.ok ? "Ofertas carregadas" : (r.httpStatus === 403 ? "Acesso restrito — Feature Flag" : "Erro ao carregar ofertas"),
     resultBody: (r) => r.ok
       ? "Ofertas disponíveis retornadas. Selecione uma para ver as transações."
@@ -875,7 +877,8 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     appLead: "Pré-aceite (opcional) e aceite definitivo com e-mail e conta DSA.",
     ctaLabel: "Aceitar oferta",
     fields: [
-      { key: "offerId", label: "ID da oferta", placeholder: "Preenchido automaticamente", required: true },
+      { key: "offerId", label: "ID da oferta", placeholder: "Preenchido do passo 12", required: true },
+      { key: "dspAccountId", label: "Conta DSA (para aceite)", placeholder: "Preenchido do passo 10", required: false },
     ],
     resultTitle: (r) => r.ok ? "Decisão registrada" : "Erro ao processar oferta",
     resultBody: (r) => r.ok
