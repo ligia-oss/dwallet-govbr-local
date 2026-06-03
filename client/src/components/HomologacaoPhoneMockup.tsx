@@ -3558,118 +3558,26 @@ export function HomologacaoPhoneMockup({
 
           {/* APP-HOME state — após verificação de código bem-sucedida */}
           {!isGap && phase === "app-home" && (() => {
-            // Extrair nome do usuário da resposta ou do runState
-            const respBody = activeResult?.responseBody as Record<string, unknown> | null | undefined;
-            const firstName = String(
-              respBody?.firstName ?? respBody?.first_name ?? respBody?.name ??
-              runState.employeeFirstName ?? runState.personFirstName ?? "Usuário"
-            );
-            const isBdW = screen.appKind === "BdW";
-            const appLabel = isBdW ? "Business dWallet®" : "Personal dWallet®";
+            // app-home = após verify-code bem-sucedido (pós-cadastro, antes do login)
+            // Apenas para PdW — BdW não tem home de colaborador
             const accentBg = colors.bg;
             return (
-              <div className="flex flex-col" style={{ background: accentBg, minHeight: 390 }}>
-                {/* Header com saudão */}
-                <div className="px-4 pt-3 pb-3 flex items-center justify-between" style={{ borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
-                  {/* Avatar */}
-                  <div className="flex items-center gap-2.5">
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center shrink-0"
-                      style={{ background: "rgba(255,255,255,0.15)" }}
-                    >
-                      {/* Desenho de pessoa (silhueta neutra) */}
-                      <svg viewBox="0 0 24 24" width="22" height="22" fill="white">
-                        <circle cx="12" cy="7" r="4" />
-                        <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" strokeLinecap="round" />
-                      </svg>
-                    </div>
-                    <div>
-                      <p className="text-[9px] text-white/50 leading-none">Olá,</p>
-                      <p className="text-sm font-bold text-white leading-tight">{firstName}!</p>
-                    </div>
-                  </div>
-                  {/* Menu icon */}
-                  <div className="w-7 h-7 rounded-full bg-white/10 flex items-center justify-center">
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="white">
-                      <rect x="3" y="6" width="18" height="2" rx="1" />
-                      <rect x="3" y="11" width="18" height="2" rx="1" />
-                      <rect x="3" y="16" width="18" height="2" rx="1" />
-                    </svg>
-                  </div>
+              <div className="flex flex-col items-center justify-center py-8 px-4 gap-4" style={{ minHeight: 320, background: accentBg }}>
+                <div className="w-16 h-16 rounded-2xl flex items-center justify-center" style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.2)" }}>
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round">
+                    <path d="M9 12l2 2 4-4"/>
+                    <circle cx="12" cy="12" r="9"/>
+                  </svg>
                 </div>
-
-                {/* Área central — avatar grande + título */}
-                <div className="flex flex-col items-center pt-5 pb-3 px-4">
-                  {/* Avatar grande com anel */}
-                  <div
-                    className="w-20 h-20 rounded-full flex items-center justify-center mb-3"
-                    style={{
-                      background: "rgba(255,255,255,0.12)",
-                      boxShadow: `0 0 0 4px rgba(255,255,255,0.15), 0 0 0 8px rgba(255,255,255,0.06)`
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" width="44" height="44" fill="white">
-                      <circle cx="12" cy="8" r="4.5" />
-                      <path d="M3 22c0-5 4-9 9-9s9 4 9 9" strokeLinecap="round" />
-                    </svg>
-                  </div>
-                  <p className="text-base font-bold text-white">{firstName}</p>
-                  <p className="text-[10px] text-white/60 mt-0.5">{appLabel}</p>
+                <div className="text-center">
+                  <p className="text-sm font-bold text-white">E-mail verificado!</p>
+                  <p className="text-[10px] text-white/60 mt-1 leading-5">Cadastro concluído. Faça login para acessar sua carteira de dados.</p>
                 </div>
-
-                {/* Cards de ações */}
-                <div className="px-4 pb-4 space-y-2">
-                  <p className="text-[10px] font-bold text-white/50 uppercase tracking-widest mb-2">Minhas solicitações</p>
-
-                  {/* Stats row */}
-                  <div
-                    className="rounded-2xl p-3 flex justify-around"
-                    style={{ background: "rgba(255,255,255,0.10)", border: "1px solid rgba(255,255,255,0.12)" }}
-                  >
-                    {[{label: MT[lang].pendingStatus, value: "0"}, {label: MT[lang].acceptedStatus, value: "0"}, {label: MT[lang].rejectedStatus, value: "0"}].map((s, i) => (
-                      <div key={i} className="text-center">
-                        <p className="text-lg font-bold text-white">{s.value}</p>
-                        <p className="text-[9px] text-white/60">{s.label}</p>
-                      </div>
-                    ))}
-                  </div>
-
-                  {/* Botões de ação */}
-                  <button
-                    className="w-full rounded-xl py-2.5 text-xs font-bold text-white border border-white/30 transition-all active:scale-95"
-                    style={{ background: "rgba(255,255,255,0.15)" }}
-                    onClick={() => setPhase("input")}
-                  >
-                    Solicitar dados
-                  </button>
-                  <button
-                    className="w-full rounded-xl py-2.5 text-xs font-bold text-white border border-white/30 transition-all active:scale-95"
-                    style={{ background: "rgba(255,255,255,0.08)" }}
-                    onClick={() => setPhase("input")}
-                  >
-                    Ver minhas solicitações
-                  </button>
-
-                  {/* Continuar jornada */}
-                  <button
-                    onClick={() => {
-                      if (onAutoAdvance && stepActions && actionId) {
-                        const currentIdx = stepActions.findIndex(a => a.id === actionId);
-                        const nextAction = stepActions[currentIdx + 1];
-                        if (nextAction) {
-                          onAutoAdvance(nextAction.id);
-                          setPhase("input");
-                          return;
-                        }
-                      }
-                      setPhase("input");
-                    }}
-                    className="w-full rounded-xl py-2.5 text-xs font-semibold transition-all active:scale-95"
-                    style={{ background: "rgba(255,255,255,0.95)", color: accentBg }}
-                  >
-                    Continuar jornada →
-                  </button>
-                </div>
+                <button onClick={() => setPhase("input")}
+                  className="w-full rounded-2xl py-2.5 text-xs font-bold text-white transition-all active:scale-[0.97]"
+                  style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)" }}>
+                  Continuar para login →
+                </button>
               </div>
             );
           })()}
@@ -3677,68 +3585,96 @@ export function HomologacaoPhoneMockup({
           {/* SIGNIN-SUCCESS state — tela Home completa após login bem-sucedido */}
           {!isGap && phase === "signin-success" && (() => {
             const respBody = activeResult?.responseBody as Record<string, unknown> | null | undefined;
-            // Extrair nome do usuário da resposta ou do runState
             const firstName = String(
               respBody?.firstName ?? respBody?.first_name ??
               respBody?.name ?? respBody?.username ??
               runState.employeeFirstName ?? runState.personFirstName ?? "Usuário"
             );
             const isBdW = screen.appKind === "BdW";
-            const appLabel = isBdW ? "Business dWallet®" : "Personal dWallet®";
             const accentBg = colors.bg;
-            const accentColor = colors.accent;
+            const businessName = String(runState.businessName || runState.businessId ? "Minha Empresa" : "Empresa");
 
-            // Avatar SVG: homem para BdW, mulher para PdW
-            const AvatarSVG = isBdW ? (
-              // Homem: cabeça com cabelo curto
-              <svg viewBox="0 0 80 80" width="64" height="64" fill="none">
-                {/* Corpo */}
-                <ellipse cx="40" cy="68" rx="22" ry="12" fill="rgba(255,255,255,0.25)" />
-                {/* Pescoço */}
-                <rect x="35" y="46" width="10" height="10" rx="3" fill="rgba(255,255,255,0.5)" />
-                {/* Cabeça */}
-                <ellipse cx="40" cy="34" rx="16" ry="17" fill="rgba(255,255,255,0.85)" />
-                {/* Cabelo curto */}
-                <path d="M24 30 Q24 14 40 14 Q56 14 56 30" fill="rgba(255,255,255,0.4)" />
-                {/* Orelhas */}
-                <ellipse cx="24" cy="35" rx="3" ry="4" fill="rgba(255,255,255,0.6)" />
-                <ellipse cx="56" cy="35" rx="3" ry="4" fill="rgba(255,255,255,0.6)" />
-                {/* Olhos */}
-                <circle cx="34" cy="33" r="2.5" fill={accentBg} opacity="0.7" />
-                <circle cx="46" cy="33" r="2.5" fill={accentBg} opacity="0.7" />
-                {/* Boca */}
-                <path d="M34 42 Q40 46 46 42" stroke={accentBg} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
-              </svg>
-            ) : (
-              // Mulher: cabeça com cabelo longo
-              <svg viewBox="0 0 80 80" width="64" height="64" fill="none">
-                {/* Cabelo longo (atrás) */}
-                <path d="M22 32 Q18 55 22 70 Q30 76 40 76 Q50 76 58 70 Q62 55 58 32" fill="rgba(255,255,255,0.3)" />
-                {/* Corpo */}
-                <ellipse cx="40" cy="68" rx="20" ry="10" fill="rgba(255,255,255,0.25)" />
-                {/* Pescoço */}
-                <rect x="36" y="47" width="8" height="9" rx="3" fill="rgba(255,255,255,0.5)" />
-                {/* Cabeça */}
-                <ellipse cx="40" cy="34" rx="15" ry="16" fill="rgba(255,255,255,0.85)" />
-                {/* Cabelo topo */}
-                <path d="M25 28 Q25 14 40 13 Q55 14 55 28" fill="rgba(255,255,255,0.45)" />
-                {/* Orelhas */}
-                <ellipse cx="25" cy="35" rx="3" ry="4" fill="rgba(255,255,255,0.6)" />
-                <ellipse cx="55" cy="35" rx="3" ry="4" fill="rgba(255,255,255,0.6)" />
-                {/* Olhos */}
-                <ellipse cx="34" cy="33" rx="3" ry="2.5" fill={accentBg} opacity="0.7" />
-                <ellipse cx="46" cy="33" rx="3" ry="2.5" fill={accentBg} opacity="0.7" />
-                {/* Cílios */}
-                <path d="M31 30.5 Q34 29 37 30.5" stroke={accentBg} strokeWidth="1" fill="none" opacity="0.5" />
-                <path d="M43 30.5 Q46 29 49 30.5" stroke={accentBg} strokeWidth="1" fill="none" opacity="0.5" />
-                {/* Boca */}
-                <path d="M35 42 Q40 46 45 42" stroke={accentBg} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
-              </svg>
+            // ── BdW: Dashboard da empresa ──────────────────────────────────────
+            if (isBdW) return (
+              <div className="flex flex-col" style={{ minHeight: 420, background: "#f2f4f7" }}>
+                {/* Cabeçalho azul gov.br */}
+                <div className="px-4 pt-3 pb-5" style={{ background: accentBg }}>
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-2">
+                      {/* Ícone empresa */}
+                      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.15)" }}>
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="white" strokeWidth="1.5">
+                          <path d="M3 21h18M3 7l9-4 9 4M4 7v14M20 7v14M9 21v-6h6v6" strokeLinecap="round" strokeLinejoin="round"/>
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-[8px] text-white/45 uppercase tracking-wide">Business dWallet®</p>
+                        <p className="text-xs font-bold text-white">{String(runState.businessName || businessName)}</p>
+                      </div>
+                    </div>
+                    <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: "rgba(255,255,255,0.1)" }}>
+                      <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="white" strokeWidth="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                    </div>
+                  </div>
+                  {/* Resumo da empresa */}
+                  <div className="rounded-2xl p-3 flex items-center gap-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                    <div className="flex-1">
+                      <p className="text-[8px] text-white/45 uppercase tracking-widest">CNPJ</p>
+                      <p className="text-[10px] font-mono text-white/80">{String(runState.businessCnpj || "–")}</p>
+                    </div>
+                    <div style={{ width: 1, background: "rgba(255,255,255,0.15)", alignSelf: "stretch" }} />
+                    <div className="flex-1 text-right">
+                      <p className="text-[8px] text-white/45 uppercase tracking-widest">Status</p>
+                      <div className="flex items-center justify-end gap-1 mt-0.5">
+                        <div className="w-1.5 h-1.5 rounded-full" style={{ background: "#6BC02A" }} />
+                        <p className="text-[9px] font-semibold" style={{ color: "#6BC02A" }}>Ativa</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Menu de funcionalidades */}
+                <div className="px-3 pt-3 space-y-2">
+                  {[
+                    { icon: "📦", label: "Meus Produtos", sub: "Registrar e gerenciar dSKUs" },
+                    { icon: "📊", label: "Planos DSP", sub: "Consultar planos de poupança de dados" },
+                    { icon: "📥", label: "Solicitações Recebidas", sub: "Dados solicitados por pessoas físicas" },
+                  ].map((item, i) => (
+                    <button key={i} onClick={() => setPhase("input")}
+                      className="w-full rounded-2xl p-3 flex items-center gap-3 transition-all active:scale-[0.98] text-left"
+                      style={{ background: "white", border: "1px solid #e8edf2", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
+                      <span className="text-xl w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#f2f4f7" }}>{item.icon}</span>
+                      <div>
+                        <p className="text-xs font-bold text-slate-800">{item.label}</p>
+                        <p className="text-[9px] text-slate-400 mt-0.5">{item.sub}</p>
+                      </div>
+                      <svg className="ml-auto shrink-0" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="#aab" strokeWidth="2"><path d="M9 18l6-6-6-6"/></svg>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="px-3 pb-3 mt-2">
+                  <button
+                    onClick={() => {
+                      if (onAutoAdvance && stepActions && actionId) {
+                        const currentIdx = stepActions.findIndex(a => a.id === actionId);
+                        const nextAction = stepActions[currentIdx + 1];
+                        if (nextAction) { onAutoAdvance(nextAction.id); setPhase("input"); return; }
+                      }
+                      setPhase("input");
+                    }}
+                    className="w-full rounded-2xl py-2.5 text-xs font-bold text-white transition-all active:scale-[0.97]"
+                    style={{ background: accentBg, boxShadow: `0 4px 12px ${accentBg}44` }}
+                  >
+                    Continuar jornada →
+                  </button>
+                </div>
+              </div>
             );
 
+            // ── PdW: Wallet home pessoal ───────────────────────────────────────
             return (
               <div className="flex flex-col" style={{ minHeight: 420, background: "#f2f4f7" }}>
-                {/* Header gov.br wallet */}
                 <div className="px-4 pt-3 pb-4" style={{ background: accentBg }}>
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center gap-2">
@@ -3758,7 +3694,7 @@ export function HomologacaoPhoneMockup({
                   <div className="rounded-2xl p-3" style={{ background: "rgba(255,255,255,0.1)", border: "1px solid rgba(255,255,255,0.15)" }}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="text-[8px] text-white/45 uppercase tracking-widest">{appLabel}</p>
+                        <p className="text-[8px] text-white/45 uppercase tracking-widest">Personal dWallet®</p>
                         <p className="text-[11px] font-bold text-white mt-0.5">Carteira Digital de Dados</p>
                         <div className="flex items-center gap-1 mt-1.5">
                           <div className="h-[3px] w-4 rounded-full" style={{ background: "#6BC02A" }} />
@@ -3766,20 +3702,21 @@ export function HomologacaoPhoneMockup({
                           <p className="text-[7px] text-white/40 ml-0.5">gov.br · Verificado</p>
                         </div>
                       </div>
-                      <svg viewBox="0 0 32 32" width="24" height="24" fill="rgba(255,255,255,0.3)">
+                      <svg viewBox="0 0 32 32" width="24" height="24" fill="rgba(255,255,255,0.25)">
                         <polygon points="16,2 19.5,10.5 28.5,11.2 22,17.5 24.2,26.5 16,21.5 7.8,26.5 10,17.5 3.5,11.2 12.5,10.5"/>
                       </svg>
                     </div>
                   </div>
                 </div>
 
-                {/* Ações rápidas */}
                 <div className="px-3 pt-3">
                   <div className="grid grid-cols-4 gap-2 mb-3">
-                    {(isBdW
-                      ? [{ icon: "📦", label: "Produtos" }, { icon: "📋", label: "Pedidos" }, { icon: "🏅", label: "Certificados" }, { icon: "⚙️", label: "Ajustes" }]
-                      : [{ icon: "📤", label: "Solicitar" }, { icon: "📋", label: "Histórico" }, { icon: "🏅", label: "Certificados" }, { icon: "⚙️", label: "Ajustes" }]
-                    ).map((a, i) => (
+                    {[
+                      { icon: "📤", label: "Solicitar" },
+                      { icon: "📋", label: "Histórico" },
+                      { icon: "🏅", label: "Certific." },
+                      { icon: "⚙️", label: "Ajustes" },
+                    ].map((a, i) => (
                       <button key={i} onClick={() => setPhase("input")}
                         className="flex flex-col items-center gap-1 py-2 rounded-xl transition-all active:scale-95"
                         style={{ background: "white", border: "1px solid #e8edf2", boxShadow: "0 1px 3px rgba(0,0,0,0.06)" }}>
@@ -3788,17 +3725,14 @@ export function HomologacaoPhoneMockup({
                       </button>
                     ))}
                   </div>
-
-                  {/* Stats card */}
                   <div className="rounded-2xl p-3 mb-2" style={{ background: "white", border: "1px solid #e8edf2" }}>
-                    <p className="text-[8px] font-bold uppercase tracking-widest mb-2" style={{ color: "#8a9ab5" }}>
-                      {isBdW ? "Produtos registrados" : "Solicitações de dados"}
-                    </p>
+                    <p className="text-[8px] font-bold uppercase tracking-widest mb-2" style={{ color: "#8a9ab5" }}>Solicitações de dados</p>
                     <div className="flex justify-around">
-                      {(isBdW
-                        ? [{ label: "Produtos", value: "0", color: "#155BCB" }, { label: "Pedidos", value: "0", color: "#6BC02A" }, { label: "Ofertas", value: "0", color: "#FFCD07" }]
-                        : [{ label: "Pendentes", value: "0", color: "#FFCD07" }, { label: "Aceitas", value: "0", color: "#6BC02A" }, { label: "Recusadas", value: "0", color: "#E52207" }]
-                      ).map((s, i) => (
+                      {[
+                        { label: "Pendentes", value: "0", color: "#FFCD07" },
+                        { label: "Aceitas", value: "0", color: "#6BC02A" },
+                        { label: "Recusadas", value: "0", color: "#E52207" },
+                      ].map((s, i) => (
                         <div key={i} className="text-center">
                           <div className="w-9 h-9 rounded-full flex items-center justify-center mx-auto mb-1" style={{ background: `${s.color}15` }}>
                             <p className="text-sm font-black" style={{ color: s.color }}>{s.value}</p>
@@ -3810,7 +3744,6 @@ export function HomologacaoPhoneMockup({
                   </div>
                 </div>
 
-                {/* CTA continuar */}
                 <div className="px-3 pb-3 mt-auto">
                   <button
                     onClick={() => {
@@ -3830,6 +3763,7 @@ export function HomologacaoPhoneMockup({
               </div>
             );
           })()}
+
 
           {/* CONFIRMAÇÃO: step4_add_dsku_to_cart */}
           {!isGap && phase === "input" && actionId === "step4_add_dsku_to_cart" && (

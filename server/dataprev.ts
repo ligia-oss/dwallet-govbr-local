@@ -614,12 +614,25 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Cria a carteira/entidade empresarial associada ao colaborador autenticado.",
     buildBody: state => ({ name: state.businessName || `Empresa Dataprev Local ${state.runId}`, cnpj: state.businessCnpj, address: { state: state.businessState || "SP" }, website: state.businessWebsite || undefined, phoneNumber: state.businessPhone || undefined }),
-    onSuccess: body => ({
-      businessId: findFirst(body, ["businessId", "id", "uuid"]),
-      // O campo dWallet é um objeto {id, type, status} — extrair dWallet.id diretamente
-      businessDwalletId: (body as Record<string, unknown> & { data?: { dWallet?: { id?: string } } })?.data?.dWallet?.id
-        || findFirst(body, ["dWalletId", "dwalletId", "walletId", "dwallet_id", "wallet_id"]),
-    }),
+    onSuccess: body => {
+      const b = body as Record<string, unknown>;
+      const data = (b.data ?? b) as Record<string, unknown>;
+      // businessId = entity ID for /business/{id}/products endpoints  
+      const businessEntityId = String(
+        data.businessId ?? data.id ?? data.uuid ?? findFirst(body, ["businessId", "id"]) ?? ""
+      );
+      // businessDwalletId = dWallet ID for /cart/{bd_dwallet_id}/add and /orders/checkout/{bd_dwallet_id}
+      const dwalletId = String(
+        ((data.dWallet as Record<string,unknown>)?.id)
+        ?? data.dWalletId ?? data.dwalletId
+        ?? findFirst(body, ["dWalletId", "dwalletId", "walletId"]) ?? ""
+      );
+      return {
+        businessId: businessEntityId || undefined,
+        businessDwalletId: dwalletId || undefined,
+        businessName: String(data.name ?? ""),
+      };
+    },
   },
   {
     id: "step2_person_signup",
@@ -831,7 +844,12 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     description: "Confirma que o produto foi registrado. Nota: pode retornar 404 se o businessId ainda não tem produtos — isso é normal no sandbox.",
     expectedStatus: [200, 201, 204, 404, 500],
-    buildPath: state => `/v1/dwallet/business/${state.businessId || ""}/products?page=1&limit=10`,
+    buildPath: state => {
+      // Postman uses {{business_id}} — this is the entity ID, not the dWallet ID
+      // businessId comes from step1_business_create onSuccess
+      const id = state.businessId || "";
+      return `/v1/dwallet/business/${id}/products?page=1&limit=10`;
+    },
     onSuccess: body => ({
       businessProductId: findFirst(body, ["productId", "id", "dsku"]),
     }),
