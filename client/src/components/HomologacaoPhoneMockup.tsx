@@ -586,95 +586,82 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
   4: {
     stepId: 4,
     appKind: "BdW",
-    screenTitle: "Produtos da empresa",
-    screenSubtitle: "Empresa consulta e cadastra produtos de dados",
-    appHeader: "Meus produtos",
-    appLead: "Gerencie os produtos de dados da sua empresa.",
-    ctaLabel: "Consultar produtos",
+    screenTitle: "Registrar VS + dSKU",
+    screenSubtitle: "Empresa registra Value Schema e produto (dSKU) via checkout",
+    appHeader: "Registro de produto",
+    appLead: "Dois checkouts: (1) registra o VS no catálogo, (2) registra o dSKU na BdW.",
+    ctaLabel: "Iniciar registro",
     fields: [],
     resultTitle: (r) => r.ok ? "Produtos carregados" : "Erro ao consultar produtos",
     resultBody: (r) => r.ok
       ? "Catálogo de produtos retornado pela sandbox."
       : r.message ?? "Não foi possível carregar os produtos.",
     actionScreens: {
-      step4_list_products: {
-        appHeader: "Catálogo de dSKUs",
-        appLead: "Consulte os produtos disponíveis com base no Commercial Value Schema criado no passo anterior.",
-        ctaLabel: "Consultar produtos",
-        fields: [],
-        resultTitle: (r) => r.ok ? "Produtos disponíveis" : "Erro ao consultar produtos",
-        resultBody: (r) => r.ok
-          ? "Selecione um produto (dSKU) para adicionar ao carrinho."
-          : r.message ?? "Não foi possível carregar os produtos.",
-      },
-      step4_list_business_products: {
-        appHeader: "Meus produtos",
-        appLead: "Veja os produtos já cadastrados na sua Business dWallet.",
-        ctaLabel: "Ver meus produtos",
+      step4_add_vs_to_cart: {
+        appHeader: "1ª Etapa — Registrar Schema",
+        appLead: "Adicione o Value Schema ao carrinho para iniciar o registro do produto no catálogo.",
+        ctaLabel: "Adicionar VS ao carrinho",
         fields: [
-          { key: "businessId", label: "ID da empresa", placeholder: "Preenchido automaticamente", required: true },
-        ],
-        resultTitle: (r) => r.ok ? "Produtos da empresa" : "Erro ao listar produtos",
-        resultBody: (r) => r.ok
-          ? "Produtos cadastrados na sua Business dWallet."
-          : r.message ?? "Não foi possível listar os produtos da empresa.",
-      },
-      step4_add_dsku_to_cart: {
-        appHeader: "Adicionar ao carrinho",
-        appLead: "Selecione o produto (dSKU) e adicione-o ao carrinho da Business dWallet.",
-        ctaLabel: "Adicionar ao carrinho",
-        fields: [
-          { key: "selectedProductDsku", label: "Produto (dSKU)", placeholder: "Selecionado no catálogo", required: true },
+          { key: "valueSchemaSid", label: "Value Schema (SID)", placeholder: "Preenchido do passo 3", required: true },
           { key: "businessDwalletId", label: "ID da Business dWallet", placeholder: "Preenchido automaticamente", required: true },
         ],
-        resultTitle: (r) => r.ok ? "Produto adicionado!" : "Erro ao adicionar",
+        resultTitle: (r) => r.ok ? "VS adicionado ao carrinho!" : "Erro ao adicionar VS",
         resultBody: (r) => r.ok
-          ? "Produto adicionado ao carrinho com sucesso."
-          : r.message ?? "Não foi possível adicionar ao carrinho.",
+          ? "Value Schema adicionado. Agora faça o checkout para registrá-lo no catálogo."
+          : r.message ?? "Não foi possível adicionar o VS ao carrinho.",
       },
-      step4_remove_from_cart: {
-        appHeader: "Remover do carrinho",
-        appLead: "Remove o produto selecionado do carrinho da Business dWallet.",
-        ctaLabel: "Remover do carrinho",
-        fields: [
-          { key: "selectedProductDsku", label: "Produto (dSKU) a remover", placeholder: "dSKU do produto no carrinho", required: true },
-        ],
-        resultTitle: (r) => r.ok ? "Produto removido" : "Erro ao remover",
-        resultBody: (r) => r.ok
-          ? "Produto removido do carrinho com sucesso."
-          : r.message ?? "Não foi possível remover o produto do carrinho.",
-      },
-      step4_set_cart_quantity: {
-        appHeader: "Quantidade no carrinho",
-        appLead: "Ajuste a quantidade do produto no carrinho.",
-        ctaLabel: "Definir quantidade",
-        fields: [
-          { key: "selectedProductDsku", label: "Produto (dSKU)", placeholder: "dSKU do produto", required: true },
-        ],
-        resultTitle: (r) => r.ok ? "Quantidade atualizada" : "Erro ao atualizar",
-        resultBody: (r) => r.ok
-          ? "Quantidade do produto atualizada no carrinho."
-          : r.message ?? "Não foi possível atualizar a quantidade.",
-      },
-      step4_view_cart: {
-        appHeader: "Meu carrinho",
-        appLead: "Veja os itens no carrinho com preços enriquecidos em USD.",
-        ctaLabel: "Ver carrinho",
+      step4_checkout_vs: {
+        appHeader: "Checkout — Registrar Schema",
+        appLead: "Finalize o registro do Value Schema. Após este checkout, o produto aparecerá no catálogo de dSKUs.",
+        ctaLabel: "Registrar Value Schema",
         fields: [],
-        resultTitle: (r) => r.ok ? "Carrinho carregado" : "Carrinho vazio ou erro",
+        resultTitle: (r) => r.ok ? "Schema registrado no catálogo!" : "Erro no checkout do VS",
         resultBody: (r) => r.ok
-          ? "Itens do carrinho com preços retornados. Confirme para fazer checkout."
-          : r.message ?? "Não foi possível carregar o carrinho.",
+          ? "Value Schema registrado com sucesso. O produto agora aparece no catálogo. Próximo: selecione o dSKU."
+          : r.message ?? "Não foi possível registrar o Value Schema.",
       },
-      step4_checkout: {
-        appHeader: "Checkout",
-        appLead: "Finalize o pedido. Será criado um pedido, gerada sessão de pagamento Stripe e o carrinho será excluído.",
-        ctaLabel: "Finalizar compra",
+      step4_list_products: {
+        appHeader: "2ª Etapa — Selecionar dSKU",
+        appLead: "Consulte o catálogo de dSKUs disponíveis após o registro do VS e selecione um para registrar.",
+        ctaLabel: "Consultar catálogo de dSKUs",
         fields: [],
-        resultTitle: (r) => r.ok ? "Pedido criado!" : "Erro no checkout",
+        resultTitle: (r) => r.ok ? "Catálogo carregado" : "Erro ao consultar catálogo",
         resultBody: (r) => r.ok
-          ? "Pedido criado com sucesso. Sessão de pagamento Stripe gerada. O produto de dados foi registrado na BdW."
-          : r.message ?? "Não foi possível concluir o checkout.",
+          ? "Selecione um dSKU do catálogo para adicionar ao carrinho e registrar na BdW."
+          : r.message ?? "Não foi possível carregar o catálogo.",
+      },
+      step4_add_dsku_to_cart: {
+        appHeader: "Adicionar dSKU ao carrinho",
+        appLead: "Adicione o dSKU selecionado ao carrinho para registrar o produto de dados na BdW.",
+        ctaLabel: "Adicionar dSKU ao carrinho",
+        fields: [
+          { key: "selectedProductDsku", label: "dSKU selecionado", placeholder: "Selecionado no catálogo", required: true },
+          { key: "businessDwalletId", label: "ID da Business dWallet", placeholder: "Preenchido automaticamente", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "dSKU adicionado ao carrinho!" : "Erro ao adicionar dSKU",
+        resultBody: (r) => r.ok
+          ? "dSKU adicionado. Agora faça o checkout final para registrar o produto na BdW."
+          : r.message ?? "Não foi possível adicionar o dSKU ao carrinho.",
+      },
+      step4_checkout_dsku: {
+        appHeader: "Checkout Final — Registrar Produto",
+        appLead: "Finalize o registro do produto de dados na Business dWallet. Este é o checkout que cria o produto.",
+        ctaLabel: "Registrar produto na BdW",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Produto criado e registrado na BdW! 🎉" : "Erro no checkout do dSKU",
+        resultBody: (r) => r.ok
+          ? "Produto de dados registrado com sucesso na Business dWallet. O ciclo de criação de produto está completo!"
+          : r.message ?? "Não foi possível registrar o produto.",
+      },
+      step4_list_business_products: {
+        appHeader: "Confirmar — Meus Produtos",
+        appLead: "Verifique que o produto foi registrado corretamente na sua Business dWallet.",
+        ctaLabel: "Ver meus produtos",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Produto confirmado na BdW!" : "Erro ao listar produtos",
+        resultBody: (r) => r.ok
+          ? "Lista de produtos da BdW retornada. O produto registrado deve aparecer aqui."
+          : r.message ?? "Não foi possível listar os produtos da empresa.",
       },
     },
   },
@@ -1198,70 +1185,59 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
     resultTitle: (r) => r.ok ? "Products loaded" : "Error loading products",
     resultBody: (r) => r.ok ? "Product catalog returned. Select one to add to cart." : r.message ?? "Could not load products.",
     actionScreens: {
-      step4_list_products: {
-        appHeader: "dSKU catalog",
-        appLead: "Browse products available based on the Commercial Value Schema created in step 3.",
-        ctaLabel: "Browse products",
-        fields: [],
-        resultTitle: (r) => r.ok ? "Products available" : "Error loading products",
-        resultBody: (r) => r.ok ? "Select a product (dSKU) to add to the cart." : r.message ?? "Could not load products.",
-      },
-      step4_list_business_products: {
-        appHeader: "My products",
-        appLead: "View products already registered in your Business dWallet.",
-        ctaLabel: "View my products",
+      step4_add_vs_to_cart: {
+        appHeader: "Step 1 — Register Schema",
+        appLead: "Add the Value Schema to the cart to start registering the product in the catalog.",
+        ctaLabel: "Add VS to cart",
         fields: [
-          { key: "businessId", label: "Company ID", placeholder: "Auto-filled", required: true },
-        ],
-        resultTitle: (r) => r.ok ? "Company products" : "Error listing products",
-        resultBody: (r) => r.ok ? "Products registered in your Business dWallet." : r.message ?? "Could not list company products.",
-      },
-      step4_add_dsku_to_cart: {
-        appHeader: "Add to cart",
-        appLead: "Select the product (dSKU) and add it to the Business dWallet cart.",
-        ctaLabel: "Add to cart",
-        fields: [
-          { key: "selectedProductDsku", label: "Product (dSKU)", placeholder: "Selected from catalog", required: true },
+          { key: "valueSchemaSid", label: "Value Schema (SID)", placeholder: "Auto-filled from step 3", required: true },
           { key: "businessDwalletId", label: "Business dWallet ID", placeholder: "Auto-filled", required: true },
         ],
-        resultTitle: (r) => r.ok ? "Product added!" : "Error adding",
-        resultBody: (r) => r.ok ? "Product successfully added to cart." : r.message ?? "Could not add to cart.",
+        resultTitle: (r) => r.ok ? "VS added to cart!" : "Error adding VS",
+        resultBody: (r) => r.ok ? "Value Schema added. Now checkout to register it in the catalog." : r.message ?? "Could not add VS to cart.",
       },
-      step4_remove_from_cart: {
-        appHeader: "Remove from cart",
-        appLead: "Remove the selected product from the Business dWallet cart.",
-        ctaLabel: "Remove from cart",
-        fields: [
-          { key: "selectedProductDsku", label: "Product (dSKU) to remove", placeholder: "dSKU of the cart item", required: true },
-        ],
-        resultTitle: (r) => r.ok ? "Product removed" : "Error removing",
-        resultBody: (r) => r.ok ? "Product successfully removed from cart." : r.message ?? "Could not remove from cart.",
-      },
-      step4_set_cart_quantity: {
-        appHeader: "Cart quantity",
-        appLead: "Adjust the quantity of the product in the cart.",
-        ctaLabel: "Set quantity",
-        fields: [
-          { key: "selectedProductDsku", label: "Product (dSKU)", placeholder: "Product dSKU", required: true },
-        ],
-        resultTitle: (r) => r.ok ? "Quantity updated" : "Error updating",
-        resultBody: (r) => r.ok ? "Product quantity updated in cart." : r.message ?? "Could not update quantity.",
-      },
-      step4_view_cart: {
-        appHeader: "My cart",
-        appLead: "View cart items with enriched USD pricing.",
-        ctaLabel: "View cart",
+      step4_checkout_vs: {
+        appHeader: "Checkout — Register Schema",
+        appLead: "Complete Value Schema registration. After this checkout, the product appears in the dSKU catalog.",
+        ctaLabel: "Register Value Schema",
         fields: [],
-        resultTitle: (r) => r.ok ? "Cart loaded" : "Cart empty or error",
-        resultBody: (r) => r.ok ? "Cart items with pricing returned. Confirm to checkout." : r.message ?? "Could not load cart.",
+        resultTitle: (r) => r.ok ? "Schema registered in catalog!" : "VS checkout error",
+        resultBody: (r) => r.ok ? "Value Schema registered. Product now in catalog. Next: select the dSKU." : r.message ?? "Could not register Value Schema.",
       },
-      step4_checkout: {
-        appHeader: "Checkout",
-        appLead: "Finalize the order. An order will be created, a Stripe payment session generated, and the cart deleted.",
-        ctaLabel: "Place order",
+      step4_list_products: {
+        appHeader: "Step 2 — Select dSKU",
+        appLead: "Browse available dSKUs after VS registration and select one to register.",
+        ctaLabel: "Browse dSKU catalog",
         fields: [],
-        resultTitle: (r) => r.ok ? "Order created!" : "Checkout error",
-        resultBody: (r) => r.ok ? "Order created. Stripe session generated. Data product registered in BdW." : r.message ?? "Could not complete checkout.",
+        resultTitle: (r) => r.ok ? "Catalog loaded" : "Error loading catalog",
+        resultBody: (r) => r.ok ? "Select a dSKU to add to cart and register in BdW." : r.message ?? "Could not load catalog.",
+      },
+      step4_add_dsku_to_cart: {
+        appHeader: "Add dSKU to cart",
+        appLead: "Add the selected dSKU to the cart to register the data product in BdW.",
+        ctaLabel: "Add dSKU to cart",
+        fields: [
+          { key: "selectedProductDsku", label: "Selected dSKU", placeholder: "Selected from catalog", required: true },
+          { key: "businessDwalletId", label: "Business dWallet ID", placeholder: "Auto-filled", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "dSKU added to cart!" : "Error adding dSKU",
+        resultBody: (r) => r.ok ? "dSKU added. Now do the final checkout to register the product in BdW." : r.message ?? "Could not add dSKU to cart.",
+      },
+      step4_checkout_dsku: {
+        appHeader: "Final Checkout — Register Product",
+        appLead: "Complete the data product registration in the Business dWallet. This checkout creates the product.",
+        ctaLabel: "Register product in BdW",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Product created and registered in BdW! 🎉" : "dSKU checkout error",
+        resultBody: (r) => r.ok ? "Data product successfully registered in Business dWallet. Product creation cycle complete!" : r.message ?? "Could not register the product.",
+      },
+      step4_list_business_products: {
+        appHeader: "Confirm — My Products",
+        appLead: "Verify the product was correctly registered in your Business dWallet.",
+        ctaLabel: "View my products",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Product confirmed in BdW!" : "Error listing products",
+        resultBody: (r) => r.ok ? "BdW product list returned. The registered product should appear here." : r.message ?? "Could not list company products.",
       },
     },
   },
