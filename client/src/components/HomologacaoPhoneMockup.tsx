@@ -544,7 +544,7 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     fields: [],
     resultTitle: (r) => r.ok ? "Schemas carregados" : "Erro ao consultar schemas",
     resultBody: (r) => r.ok
-      ? "Lista de Standard Value Schemas retornada pela sandbox."
+      ? "Schemas disponíveis. Selecione um — ele será usado como base no Passo 4 ao adicionar ao carrinho."
       : r.message ?? "Não foi possível carregar os schemas.",
     resultDetails: (r: ActionResult): string | undefined => {
       if (!r.ok) return undefined;
@@ -556,31 +556,7 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
       }
       return "Resposta recebida da sandbox.";
     },
-    actionScreens: {
-      step3_list_schemas: {
-        appHeader: "Catálogo de schemas",
-        appLead: "Selecione um Standard Value Schema para basear o seu produto de dados.",
-        ctaLabel: "Consultar schemas",
-        fields: [],
-        resultTitle: (r) => r.ok ? "Schemas carregados" : "Erro ao consultar schemas",
-        resultBody: (r) => r.ok
-          ? "Schemas disponíveis. Selecione um para criar seu Commercial Value Schema."
-          : r.message ?? "Não foi possível carregar os schemas.",
-      },
-      step3_create_commercial_value_schema: {
-        appHeader: "Criar CVS (opcional)",
-        appLead: "Cria um Commercial Value Schema vinculado ao SVS. Endpoint exploratório — não consta na coleção Postman oficial.",
-        ctaLabel: "Criar Commercial Value Schema",
-        fields: [
-          { key: "valueSchemaSid", label: "Standard Value Schema", placeholder: "Selecionado acima", required: true },
-          { key: "selectedProductName", label: "Nome do CVS", placeholder: "Ex: Dados de localização", required: false },
-        ],
-        resultTitle: (r) => r.ok ? "CVS criado!" : "Erro ao criar CVS",
-        resultBody: (r) => r.ok
-          ? "Commercial Value Schema criado. Este endpoint é exploratório — o fluxo oficial usa o passo 4."
-          : r.message ?? "Endpoint pode não estar disponível no ambiente sandbox.",
-      },
-    },
+
   },
   4: {
     stepId: 4,
@@ -1152,27 +1128,7 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
       if (Array.isArray(items) && items.length > 0) return `${items.length} schema(s) available. Select one to create the CVS.`;
       return "Response received from sandbox.";
     },
-    actionScreens: {
-      step3_list_schemas: {
-        appHeader: "Schema catalog",
-        appLead: "Select a Standard Value Schema to base your data product on.",
-        ctaLabel: "Query schemas",
-        fields: [],
-        resultTitle: (r) => r.ok ? "Schemas loaded" : "Error loading schemas",
-        resultBody: (r) => r.ok ? "Schemas available. Select one to create your Commercial Value Schema." : r.message ?? "Could not load schemas.",
-      },
-      step3_create_commercial_value_schema: {
-        appHeader: "Create CVS (optional)",
-        appLead: "Creates a Commercial Value Schema linked to the SVS. Exploratory endpoint — not in the official Postman collection.",
-        ctaLabel: "Create Commercial Value Schema",
-        fields: [
-          { key: "valueSchemaSid", label: "Standard Value Schema", placeholder: "Selected above", required: true },
-          { key: "selectedProductName", label: "CVS name", placeholder: "e.g. Location data", required: false },
-        ],
-        resultTitle: (r) => r.ok ? "CVS created!" : "Error creating CVS",
-        resultBody: (r) => r.ok ? "Commercial Value Schema created. This is an exploratory endpoint — the official flow uses step 4." : r.message ?? "Endpoint may not be available in the sandbox environment.",
-      },
-    },
+
   },
   4: {
     stepId: 4, appKind: "BdW",
@@ -1499,9 +1455,13 @@ export function getPhoneScreens(lang: "pt" | "en"): Record<number, PhoneScreenCo
 // ─── App color by kind ────────────────────────────────────────────────────────
 
 function getAppColors(appKind: PhoneScreenConfig["appKind"]) {
-  if (appKind === "BdW") return { bg: "#0b3d2e", accent: "#168821", badge: "bg-emerald-600" };
-  if (appKind === "PdW") return { bg: "#071d41", accent: "#1351b4", badge: "bg-blue-600" };
-  return { bg: "#3d0b3d", accent: "#7c3aed", badge: "bg-purple-600" };
+  // Gov.br official palette: https://www.gov.br/ds/fundamentos-visuais/cores
+  // BdW — Business dWallet: verde gov.br #168821 com fundo #155BCB azul
+  if (appKind === "BdW") return { bg: "#155BCB", accent: "#6BC02A", badge: "bg-blue-700" };
+  // PdW — Personal dWallet: azul gov.br escuro #071D41
+  if (appKind === "PdW") return { bg: "#071D41", accent: "#1351B4", badge: "bg-blue-900" };
+  // Ambos: azul médio
+  return { bg: "#1351B4", accent: "#6BC02A", badge: "bg-blue-600" };
 }
 
 // ─── Response renderer ────────────────────────────────────────────────────────
@@ -2474,7 +2434,7 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
           </div>
         );
         if (isStep13Success) return (
-          <div className="rounded-2xl overflow-hidden border border-emerald-200 shadow-sm">
+          <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: "1px solid #6BC02A44" }}>
             <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #10b98122, #06b6d422)" }}>
               <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#10b98120", border: "1.5px solid #10b98150" }}>
                 <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" strokeWidth="2">
@@ -3144,7 +3104,7 @@ export function HomologacaoPhoneMockup({
       {/* Phone shell — identidade visual gov.br */}
       <div
         className="relative w-[320px] rounded-[2.5rem] shadow-2xl overflow-hidden border-[7px]"
-        style={{ background: "#f0f4fa", minHeight: 600, borderColor: "#1c1c1e" }}
+        style={{ background: "#f2f4f7", minHeight: 600, borderColor: "#1a1a1a", boxShadow: "0 32px 80px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.05)" }}
         aria-label={`Mockup do aplicativo — Passo ${stepId}: ${activeScreen.screenTitle}`}
       >
         {/* Notch */}
@@ -3163,37 +3123,61 @@ export function HomologacaoPhoneMockup({
           </span>
         </div>
 
-        {/* Gov.br header strip */}
-        <div style={{ background: colors.bg }} className="px-4 pt-2 pb-4 text-white">
-          {/* Gov.br brand row */}
-          <div className="flex items-center gap-2 mb-3 pb-2.5 border-b border-white/10">
-            {/* Brasão simplificado */}
-            <div className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center shrink-0">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="white">
-                <path d="M12 2L3 7v5c0 5.25 3.75 10.15 9 11.35C17.25 22.15 21 17.25 21 12V7L12 2zm0 2.18l7 3.89V12c0 4.25-2.95 8.2-7 9.45C7.95 20.2 5 16.25 5 12V8.07l7-3.89z"/>
-                <path d="M12 6l-4 2.2V12c0 2.6 1.75 5.1 4 5.75 2.25-.65 4-3.15 4-5.75V8.2L12 6z" opacity="0.6"/>
+        {/* Gov.br header strip — identidade visual oficial */}
+        <div style={{ background: colors.bg }} className="text-white">
+          {/* Barra superior gov.br — padrão identidade visual */}
+          <div className="flex items-center justify-between px-4 py-2" style={{ background: "rgba(0,0,0,0.18)", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+            <div className="flex items-center gap-1.5">
+              {/* Estrela federal simplificada */}
+              <svg viewBox="0 0 20 20" width="14" height="14" fill="white" opacity="0.9">
+                <polygon points="10,1 12.9,7 19.5,7.6 14.5,12 16.2,18.5 10,15 3.8,18.5 5.5,12 0.5,7.6 7.1,7"/>
               </svg>
+              <span className="text-[9px] font-black tracking-[0.2em] uppercase text-white/90">gov.br</span>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-[9px] font-bold text-white/50 uppercase tracking-widest leading-none">gov.br</p>
-              <p className="text-[10px] font-semibold text-white/80 leading-tight">{appKindLabel}</p>
+            <div className="flex items-center gap-2">
+              <span className="text-[9px] text-white/50 font-medium">{appKindLabel}</span>
+              <span
+                className="text-[8px] font-bold px-1.5 py-0.5 rounded text-white"
+                style={{ background: "rgba(255,255,255,0.2)", border: "1px solid rgba(255,255,255,0.3)", letterSpacing: "0.05em" }}
+              >
+                P{stepId}
+              </span>
             </div>
-            <span
-              className="text-[9px] font-bold px-2 py-0.5 rounded-full text-white/90"
-              style={{ background: "rgba(255,255,255,0.15)", border: "1px solid rgba(255,255,255,0.2)" }}
-            >
-              Passo {stepId}
-            </span>
           </div>
 
-          {/* Screen header */}
-          <div className="flex items-start gap-2.5">
-            <div className="mt-0.5 w-8 h-8 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.12)" }}>
-              <span className="text-base">{activeScreen.appHeader.charAt(0)}</span>
+          {/* App header principal */}
+          <div className="px-4 pt-3 pb-4">
+            <div className="flex items-start gap-3">
+              {/* Ícone da função */}
+              <div className="mt-0.5 w-9 h-9 rounded-2xl flex items-center justify-center shrink-0 text-lg"
+                style={{ background: "rgba(255,255,255,0.13)", border: "1px solid rgba(255,255,255,0.15)" }}>
+                {stepId === 0 && "🔑"}
+                {stepId === 1 && "🏢"}
+                {stepId === 2 && "👤"}
+                {stepId === 3 && "📋"}
+                {stepId === 4 && "🛒"}
+                {stepId === 5 && "🔍"}
+                {stepId === 6 && "📤"}
+                {stepId === 7 && "✅"}
+                {stepId === 8 && "🏅"}
+                {stepId === 9 && "🏅"}
+                {stepId === 10 && "💰"}
+                {stepId === 11 && "🏷️"}
+                {stepId === 12 && "📊"}
+                {stepId === 13 && "🤝"}
+                {stepId === 14 && "💳"}
+                {(stepId > 14) && "⚙️"}
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-[13px] font-bold text-white leading-tight">{activeScreen.appHeader}</p>
+                <p className="text-[10px] text-white/65 leading-snug mt-0.5 line-clamp-2">{activeScreen.appLead}</p>
+              </div>
             </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-bold text-white leading-tight truncate">{activeScreen.appHeader}</p>
-              <p className="text-[10px] text-white/65 leading-snug mt-0.5 line-clamp-2">{activeScreen.appLead}</p>
+
+            {/* Separador verde Gov.br */}
+            <div className="mt-3 flex items-center gap-2">
+              <div className="h-[2px] w-8 rounded-full" style={{ background: "#6BC02A" }} />
+              <div className="h-[2px] flex-1 rounded-full" style={{ background: "rgba(255,255,255,0.08)" }} />
             </div>
           </div>
 
@@ -3202,29 +3186,31 @@ export function HomologacaoPhoneMockup({
             const currentIdx = stepActions.findIndex(a => a.id === actionId);
             const displayIdx = currentIdx >= 0 ? currentIdx : 0;
             return (
-              <div className="mt-3 flex items-center gap-1.5">
+              <div className="flex items-center gap-1">
                 {stepActions.map((action, idx) => {
                   const isDone = executedActionIds?.has(action.id);
                   const isCurrent = action.id === actionId;
                   return (
-                    <div key={action.id} className="flex items-center gap-1.5">
+                    <div key={action.id} className="flex items-center gap-1">
                       <div
-                        className={`w-5 h-5 rounded-full flex items-center justify-center text-[9px] font-bold transition-all ${
-                          isDone ? "bg-emerald-400 text-white" :
-                          isCurrent ? "bg-white text-slate-800 ring-2 ring-white/40" :
-                          "bg-white/15 text-white/40"
-                        }`}
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black transition-all"
+                        style={{
+                          background: isDone ? "#6BC02A" : isCurrent ? "#fff" : "rgba(255,255,255,0.12)",
+                          color: isDone ? "#fff" : isCurrent ? colors.bg : "rgba(255,255,255,0.35)",
+                          border: isCurrent ? "2px solid rgba(255,255,255,0.4)" : "none",
+                          boxShadow: isDone ? "0 0 8px #6BC02A55" : "none",
+                        }}
                         title={action.title}
                       >
                         {isDone ? "✓" : idx + 1}
                       </div>
                       {idx < stepActions.length - 1 && (
-                        <div className={`h-0.5 w-4 rounded-full transition-all ${isDone ? "bg-emerald-400" : "bg-white/15"}`} />
+                        <div className="h-[2px] w-3 rounded-full transition-all" style={{ background: isDone ? "#6BC02A" : "rgba(255,255,255,0.1)" }} />
                       )}
                     </div>
                   );
                 })}
-                <span className="ml-1 text-[9px] text-white/50">
+                <span className="ml-2 text-[9px] font-semibold" style={{ color: "rgba(255,255,255,0.45)" }}>
                   {displayIdx + 1}/{stepActions.length}
                 </span>
               </div>
@@ -3376,7 +3362,7 @@ export function HomologacaoPhoneMockup({
             return (
               <div className="p-4 space-y-3">
                 {/* Header de sucesso */}
-                <div className="rounded-2xl overflow-hidden border border-emerald-200 shadow-sm">
+                <div className="rounded-2xl overflow-hidden shadow-sm" style={{ border: "1px solid #6BC02A44" }}>
                   <div className="px-4 py-3 flex items-center gap-3" style={{ background: "linear-gradient(135deg, #10b98122, #06b6d422)" }}>
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0" style={{ background: "#10b98120", border: "1.5px solid #10b98150" }}>
                       <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="#10b981" strokeWidth="2">
@@ -4107,8 +4093,8 @@ export function HomologacaoPhoneMockup({
                 <button
                   onClick={handleCta}
                   disabled={isExecuting || !displayName}
-                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
-                  style={{ background: colors.accent }}
+                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-[0.97]"
+                  style={{ background: colors.accent, boxShadow: `0 4px 16px ${colors.accent}44`, letterSpacing: "0.02em" }}
                 >
                   {isExecuting ? (
                     <span className="flex items-center justify-center gap-2">
@@ -5188,8 +5174,8 @@ export function HomologacaoPhoneMockup({
                 <button
                   onClick={handleCta}
                   disabled={isExecuting}
-                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white shadow-sm disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-95"
-                  style={{ background: colors.accent }}
+                  className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-60 disabled:cursor-not-allowed transition-all active:scale-[0.97]"
+                  style={{ background: colors.accent, boxShadow: `0 4px 16px ${colors.accent}44`, letterSpacing: "0.02em" }}
                 >
                   {isExecuting ? (
                     <span className="flex items-center justify-center gap-2">
@@ -5207,7 +5193,7 @@ export function HomologacaoPhoneMockup({
         </div>
 
         {/* Home indicator (sem barra de navegação) */}
-        <div className="flex justify-center pb-2 pt-1 bg-white/80">
+        <div className="flex justify-center pb-2 pt-1" style={{ background: "rgba(255,255,255,0.95)" }}>
           <div className="w-24 h-1 rounded-full" style={{ background: "#1c1c1e", opacity: 0.2 }} />
         </div>
       </div>

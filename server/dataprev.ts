@@ -818,7 +818,7 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     description: "Confirma que o produto foi registrado listando os produtos da Business dWallet.",
     expectedStatus: [200, 300],
-    buildPath: state => `/v1/dwallet/business/${state.businessDwalletId || state.businessId || ""}/products`,
+    buildPath: state => `/v1/dwallet/business/${state.businessId || ""}/products?page=1&limit=10`,
     onSuccess: body => ({
       businessProductId: findFirst(body, ["productId", "id", "dsku"]),
     }),
@@ -1177,7 +1177,7 @@ function classifyJourneySteps(journeySteps: JourneyStep[]): JourneyStep[] {
 const steps: JourneyStep[] = [
   { id: 1, title: "Empresa cria conta", app: "Business", summary: "Cadastro, OTP anti-automação, login e criação da entidade empresarial.", status: "external", actions: actions.filter(a => a.id.startsWith("step1_")) },
   { id: 2, title: "Pessoa cria carteira", app: "Personal", summary: "Cadastro, OTP anti-automação, login e identificação da pessoa física.", status: "external", actions: actions.filter(a => a.id.startsWith("step2_")) },
-  { id: 3, title: "Empresa consulta schemas e cria CVS", app: "Business", summary: "Consulta Standard Value Schemas e cria Commercial Value Schema baseado no SVS selecionado.", status: "external", actions: actions.filter(a => a.id === "step3_list_schemas" || a.id === "step3_create_commercial_value_schema") },
+  { id: 3, title: "Empresa consulta Standard Value Schemas", app: "Business", summary: "Consulta Standard Value Schemas disponíveis na plataforma. Endpoint de CVS não existe (Cannot POST /commercial).", status: "external", actions: actions.filter(a => a.id === "step3_list_schemas") },
   { id: 4, title: "Empresa registra produto (VS + dSKU)", app: "Business", summary: "Dois sub-fluxos: (1) adiciona VS ao carrinho → checkout registra o produto no catálogo; (2) seleciona dSKU → checkout registra o produto na BdW.", status: "external", actions: actions.filter(a => ["step4_add_vs_to_cart","step4_checkout_vs","step4_list_products","step4_add_dsku_to_cart","step4_checkout_dsku","step4_list_business_products"].includes(a.id)) },
   { id: 5, title: "Pessoa consulta produtos", app: "Personal", summary: "Visão de catálogo de produtos e empresas disponíveis.", status: "external", actions: actions.filter(a => a.id === "step5_person_catalog") },
   { id: 6, title: "Pessoa solicita dados", app: "Personal", summary: "Criação de data request para uma empresa.", status: "external", actions: actions.filter(a => a.id === "step6_create_data_request") },
@@ -1238,7 +1238,7 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
   if (action.id === "step4_checkout_vs" && !state.valueSchemaSid) return "Adicione o VS ao carrinho (step4_add_vs_to_cart) antes de fazer checkout.";
   if (action.id === "step4_add_dsku_to_cart" && !(state.selectedProductDsku || state.dsku)) return "Selecione um dSKU no catálogo antes de adicionar ao carrinho.";
   if (action.id === "step4_add_dsku_to_cart" && !state.businessDwalletId && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o ID da Business dWallet.";
-  if (action.id === "step4_checkout_dsku" && !(state.selectedProductDsku || state.dsku)) return "Adicione o dSKU ao carrinho (step4_add_dsku_to_cart) antes de fazer checkout.";
+  if (action.id === "step4_checkout_dsku" && !state.cartItemId && !(state.selectedProductDsku || state.dsku)) return "Execute step4_add_dsku_to_cart primeiro para capturar o cartItemId necessário no checkout.";
   if (action.id === "step4_list_business_products" && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o businessId.";
   if (action.id === "step3_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema (execute o passo 3_list_schemas primeiro).";
   if (action.id === "step11_offer_preview" && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de gerar preview de oferta.";
