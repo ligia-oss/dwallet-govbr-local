@@ -1361,6 +1361,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   const ok = isExplicitList
     ? expectedStatus.includes(response.status)
     : response.status >= expectedStatus[0] && response.status < expectedStatus[1];
+  console.log(`[execute] ${action.id} status=${response.status} expectedStatus=${JSON.stringify(expectedStatus)} isExplicitList=${isExplicitList} ok=${ok}`);
   let stateUpdates = ok && action.onSuccess ? compactStateUpdates(action.onSuccess(responseBody, state)) : {};
   // Se onSuccessAsync está definido, chama para complementar/substituir stateUpdates (ex: fallback após 500 de outbox)
   if (ok && action.onSuccessAsync) {
