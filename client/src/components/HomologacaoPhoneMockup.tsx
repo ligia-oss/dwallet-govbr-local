@@ -693,7 +693,7 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     resultTitle: (r) => r.ok ? "Ação executada" : "Erro ao processar solicitação",
     resultBody: (r) => r.ok
       ? "Solicitação processada com sucesso."
-      : r.message ?? "Não foi possível processar a solicitação.",
+      : r.message ?? r.httpStatus === 500 ? "HTTP 500 — bug conhecido do sandbox DrumWave (confirmado por Mala no Slack). O código está correto; aguardar correção no backend." : r.message ?? "Não foi possível processar a solicitação.",
     actionScreens: {
       step7_list_business_requests: {
         appHeader: "Solicitações recebidas",
@@ -832,35 +832,47 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
   12: {
     stepId: 12,
     appKind: "PdW",
-    screenTitle: "Visualizar ofertas",
-    screenSubtitle: "Pessoa visualiza ofertas disponíveis no marketplace",
+    screenTitle: "Ofertas e Transações",
+    screenSubtitle: "Pessoa lista ofertas e transações via offers-service",
     appHeader: "Ofertas disponíveis",
-    appLead: "Veja as ofertas de dados disponíveis para você.",
-    ctaLabel: "Ver oferta",
-    fields: [
-      { key: "offerId", label: "ID da oferta", placeholder: "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab", required: false },
-    ],
-    resultTitle: (r) => r.ok ? "Oferta carregada" : (r.httpStatus === 403 ? "Acesso restrito — feature flag" : r.httpStatus === 404 ? "Oferta não encontrada" : "Erro ao carregar oferta"),
+    appLead: "Veja as ofertas de dados disponíveis no marketplace (offers-service.k8s.int.dev.drumwave.com).",
+    ctaLabel: "Ver ofertas",
+    fields: [],
+    resultTitle: (r) => r.ok ? "Ofertas carregadas" : (r.httpStatus === 403 ? "Acesso restrito — Feature Flag" : "Erro ao carregar ofertas"),
     resultBody: (r) => r.ok
-      ? "Oferta encontrada no marketplace."
+      ? "Ofertas disponíveis retornadas. Selecione uma para ver as transações."
       : r.httpStatus === 403
-        ? "O endpoint de ofertas está restrito no ambiente sandbox. A feature flag de marketplace não está habilitada para este tenant. Contate a equipe DrumWave para habilitar o acesso."
-        : r.httpStatus === 404
-          ? "A oferta com o ID informado não foi encontrada no ambiente sandbox. O ID pode ser válido em produção mas ainda não existe neste tenant sandbox."
-          : r.message ?? "Não foi possível carregar a oferta.",
+        ? "HTTP 403 AUTHZ_E006 — feature flag de marketplace não habilitada para este tenant. O código está correto e aponta para o offers-service correto."
+        : r.message ?? "Não foi possível carregar as ofertas.",
     resultDetails: (r) => r.httpStatus === 403
-      ? "Causa: O servidor retornou HTTP 403 Forbidden. Isso indica que o tenant sandbox não tem permissão para acessar a oferta. O código está correto — é uma restrição de ambiente, não um bug."
-      : r.httpStatus === 404
-        ? "Causa: HTTP 404 Not Found. O UUID é válido mas a oferta não existe neste ambiente sandbox. Solicite à equipe DrumWave que crie a oferta no tenant sandbox ou fornecer um offerId válido para este ambiente."
-        : undefined,
+      ? "Endpoint: offers-service.k8s.int.dev.drumwave.com — confirmado no Slack por Mala/Meena. Restrição é de ambiente sandbox, não de código."
+      : undefined,
+    actionScreens: {
+      step12_list_offers: {
+        appHeader: "Marketplace — Ofertas",
+        appLead: "Lista ofertas disponíveis no offers-service.",
+        ctaLabel: "Ver ofertas",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Ofertas disponíveis" : "Acesso restrito",
+        resultBody: (r) => r.ok ? "Ofertas retornadas." : r.httpStatus === 403 ? "Feature flag não habilitada para este tenant sandbox." : r.message ?? "Erro.",
+      },
+      step12_offer_transactions: {
+        appHeader: "Transações da oferta",
+        appLead: "Lista transações de uma oferta específica via offers-service.",
+        ctaLabel: "Ver transações",
+        fields: [],
+        resultTitle: (r) => r.ok ? "Transações carregadas" : "Acesso restrito",
+        resultBody: (r) => r.ok ? "Transações retornadas." : r.httpStatus === 403 ? "Feature flag não habilitada para este tenant sandbox." : r.message ?? "Erro.",
+      },
+    },
   },
   13: {
     stepId: 13,
     appKind: "PdW",
-    screenTitle: "Aceitar oferta",
-    screenSubtitle: "Pessoa aceita ou rejeita uma oferta do marketplace",
+    screenTitle: "Aceitar/Rejeitar oferta",
+    screenSubtitle: "Pessoa pré-aceita, aceita ou rejeita oferta no offers-service",
     appHeader: "Confirmar oferta",
-    appLead: "Revise os termos e confirme sua decisão sobre a oferta.",
+    appLead: "Pré-aceite (opcional) e aceite definitivo com e-mail e conta DSA.",
     ctaLabel: "Aceitar oferta",
     fields: [
       { key: "offerId", label: "ID da oferta", placeholder: "Preenchido automaticamente", required: true },

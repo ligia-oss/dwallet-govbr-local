@@ -42,6 +42,11 @@ export function registerDrumwaveProxy(app: Application) {
       "drumwave.com",
       "drumwave.com.br",
       "k8s.int.dev.drumwave.com",
+      // offers-service e dsp-api (confirmados no Slack por Mala/Meena)
+      "offers-service.k8s.int.dev.drumwave.com",
+      "dsp-api.k8s.int.dev.drumwave.com",
+      "cart-service.k8s.int.dev.drumwave.com",
+      "order-service.k8s.int.dev.drumwave.com",
     ];
     let targetUrl: URL;
     try {
