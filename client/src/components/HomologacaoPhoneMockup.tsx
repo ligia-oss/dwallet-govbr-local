@@ -765,7 +765,7 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     ctaLabel: "Ver certificados",
     fields: [],
     gapMessage: "Endpoint de certificados empresariais não disponível nesta sandbox. A tela permanece visível na jornada para documentar o passo.",
-    resultTitle: (r) => r.ok ? "Certificados carregados" : "Sandbox — Preview gerado",
+    resultTitle: (r) => r.ok ? "Certificados carregados" : "API não disponível",
     resultBody: (r) => r.ok
       ? "Certificados da Business dWallet retornados."
       : r.message ?? "Endpoint não disponível nesta sandbox.",
@@ -833,8 +833,8 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     appLead: "Crie e gerencie ofertas de dados para o marketplace.",
     ctaLabel: "Criar oferta",
     fields: [],
-    gapMessage: "Oferta criada em modo sandbox. O previewId foi gerado localmente para permitir a continuação do fluxo de homologação.",
-    resultTitle: (r) => r.ok ? "Oferta criada" : "Sandbox — Preview gerado",
+    gapMessage: "Endpoint de criação de ofertas requer permissão marketplace habilitada na API key (AUTHZ_E006). Funciona no Postman — solicitar habilitação à DrumWave para uso server-to-server.",
+    resultTitle: (r) => r.ok ? "Oferta criada" : "API não disponível",
     resultBody: (r) => r.ok
       ? "Oferta publicada no marketplace."
       : r.message ?? "Endpoint não disponível nesta sandbox.",
@@ -935,7 +935,7 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
       { key: "btgPixKey", label: "Chave Pix", placeholder: "cpf, e-mail ou telefone", required: false },
     ],
     gapMessage: "Cadastro de chave Pix não disponível na sandbox atual. A tela permanece visível na jornada.",
-    resultTitle: (r) => r.ok ? "Chave cadastrada" : "Sandbox — Preview gerado",
+    resultTitle: (r) => r.ok ? "Chave cadastrada" : "API não disponível",
     resultBody: (r) => r.ok
       ? "Chave Pix vinculada à carteira."
       : r.message ?? "Endpoint não disponível nesta sandbox.",
@@ -950,7 +950,7 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     ctaLabel: "Ver histórico",
     fields: [],
     gapMessage: "Histórico de resgates não disponível na sandbox atual. A tela permanece visível na jornada.",
-    resultTitle: (r) => r.ok ? "Histórico carregado" : "Sandbox — Preview gerado",
+    resultTitle: (r) => r.ok ? "Histórico carregado" : "API não disponível",
     resultBody: (r) => r.ok
       ? "Histórico de resgates retornado."
       : r.message ?? "Endpoint não disponível nesta sandbox.",
