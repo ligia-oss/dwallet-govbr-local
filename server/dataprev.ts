@@ -1485,6 +1485,47 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
   return undefined;
 }
 
+// Auto-refresh employee token before calls that need it fresh
+// Cognito access tokens are short-lived — reuse can cause AUTHZ_E006
+async function refreshEmployeeToken(
+  state: RunState,
+  credentials?: DataprevCredentialsInput
+): Promise<{ newHandle: string; newDwalletId?: string } | null> {
+  const email = state.employeeEmail;
+  const password = state.employeePassword || DEFAULT_PASSWORD;
+  if (!email || !password) return null;
+
+  const config = env(credentials);
+  const m2mResult = await requestM2MToken(false, credentials).catch(() => null);
+  if (!m2mResult) return null;
+
+  try {
+    const resp = await fetchViaProxy(`${config.baseUrl}/v1/dwallet/auth/signin`, {
+      method: "POST",
+      headers: {
+        "x-api-key": config.apiKey,
+        "Authorization": `Bearer ${m2mResult.token}`,
+        "Content-Type": "application/json",
+        "x-region": "BR",
+      },
+      body: { email, password },
+    });
+    const body = await resp.json() as Record<string, unknown>;
+    const data = (body?.data ?? body) as Record<string, unknown>;
+    const tokens = data?.tokens as Record<string, unknown> | undefined;
+    const accessToken = String(tokens?.accessToken ?? data?.accessToken ?? "");
+    const dWalletId = String(data?.dWalletId ?? (data?.user as Record<string,unknown>)?.dWalletId ?? "");
+    if (!accessToken) return null;
+    const handle = storeToken(accessToken);
+    console.log(`[auto-refresh] fresh employee token obtained, dWalletId=${dWalletId}`);
+    return handle ? { newHandle: handle, newDwalletId: dWalletId || undefined } : null;
+  } catch (err) {
+    console.warn(`[auto-refresh] failed: ${err instanceof Error ? err.message : err}`);
+    return null;
+  }
+}
+
+
 async function execute(action: JourneyAction, inputState: RunState, credentials?: DataprevCredentialsInput): Promise<Evidence> {
   const state = { ...initialState(), ...inputState };
   const executedAt = new Date().toISOString();
@@ -1563,8 +1604,28 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
     };
   }
 
-  // Debug: log which tokens are being sent (helps diagnose 403)
-  console.log(`[execute] ${action.id} m2m=${!!m2m} userToken=${!!userToken} handle=${action.requiresUser === "employee" ? state.employeeTokenHandle : state.personTokenHandle}`);
+  // Auto-refresh employee token for marketplace offer calls (Cognito tokens are short-lived)
+  // The engineer confirmed: AUTHZ_E006 happens when reusing an expired/stale employee token
+  // Fix: always get a fresh token immediately before any offer/marketplace call
+  const isOfferAction = action.id.startsWith("step11_") || action.id.startsWith("step12_") || action.id.startsWith("step13_");
+  let effectiveUserToken = userToken;
+  let effectiveState = state;
+  if (isOfferAction && action.requiresUser === "employee") {
+    const refreshed = await refreshEmployeeToken(state, credentials);
+    if (refreshed) {
+      effectiveUserToken = await getStoredToken(refreshed.newHandle);
+      effectiveState = {
+        ...state,
+        employeeTokenHandle: refreshed.newHandle,
+        ...(refreshed.newDwalletId ? { businessDwalletId: refreshed.newDwalletId } : {}),
+      };
+      console.log(`[execute] ${action.id} — used fresh employee token`);
+    } else {
+      console.warn(`[execute] ${action.id} — token refresh failed, proceeding with cached token`);
+    }
+  }
+
+  console.log(`[execute] ${action.id} m2m=${!!m2m} userToken=${!!effectiveUserToken} fresh=${isOfferAction}`);
 
   const path = action.buildPath ? action.buildPath(state) : action.path;
   if (!path || path.includes("undefined") || path.includes("null")) {
@@ -1594,9 +1655,11 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
       executedAt,
     };
   }
-  const requestHeaders = headers({ m2m, userToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage }, credentials);
+  const requestHeaders = headers({ m2m, userToken: effectiveUserToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage }, credentials);
   const effectiveBaseUrl = action.baseUrlOverride || env(credentials).baseUrl;
-  const url = `${effectiveBaseUrl}${path}`;
+  // Use effectiveState.businessDwalletId if it was updated by token refresh
+  const resolvedPath = action.buildPath ? action.buildPath(effectiveState) : (action.path ?? path);
+  const url = `${effectiveBaseUrl}${resolvedPath || path}`;
   const response = await fetchViaProxy(url, {
     method: action.method,
     headers: requestHeaders,
