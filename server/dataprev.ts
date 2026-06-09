@@ -580,7 +580,23 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Autentica o colaborador criado e guarda o token de usuário no servidor por meio de identificador opaco.",
     buildBody: state => ({ email: state.employeeEmail, password: state.employeePassword || DEFAULT_PASSWORD }),
-    onSuccess: body => ({ employeeTokenHandle: storeToken(findFirst(body, ["accessToken", "access_token"])), employeeDwalletId: findFirst(body, ["dWalletId"]) }),
+    onSuccess: body => {
+      const b = body as Record<string,unknown>;
+      const data = (b?.data ?? b) as Record<string,unknown>;
+      const tokens = data?.tokens as Record<string,unknown> | undefined;
+      // Postman 1d: token = res?.data?.tokens?.accessToken
+      const accessToken = String(tokens?.accessToken ?? data?.accessToken ?? findFirst(body, ["accessToken","access_token"]) ?? "");
+      // Postman 1d: bd_dwallet_id = res?.data?.dWalletId || res?.data?.user?.dWalletId
+      const dWalletId = String(data?.dWalletId ?? (data?.user as Record<string,unknown>)?.dWalletId ?? findFirst(body, ["dWalletId","dwalletId","walletId"]) ?? "");
+      const firstName = String((data?.user as Record<string,unknown>)?.firstName ?? data?.firstName ?? findFirst(body, ["firstName","first_name"]) ?? "");
+      console.log(`[signin] accessToken=${!!accessToken} dWalletId=${dWalletId} firstName=${firstName}`);
+      return {
+        employeeTokenHandle: storeToken(accessToken) || undefined,
+        businessDwalletId: dWalletId || undefined,
+        employeeDwalletId: dWalletId || undefined,
+        employeeFirstName: firstName || undefined,
+      };
+    },
   },
   {
     id: "step1_employee_profile",
@@ -646,12 +662,19 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "OBRIGATÓRIO após criar a empresa (step1_business_create). O Postman instrui: 're-run Step 1d after creating the business in Step 1e'. O novo token contém o dWalletId da empresa, necessário para os passos 4, 11 e outros.",
     buildBody: state => ({ email: state.employeeEmail, password: state.employeePassword || DEFAULT_PASSWORD }),
-    onSuccess: body => ({
-      employeeTokenHandle: storeToken(findFirst(body, ["accessToken", "access_token"])),
-      employeeDwalletId: findFirst(body, ["dWalletId"]),
-      // Re-extract businessDwalletId from the refreshed token context if present
-      businessDwalletId: findFirst(body, ["dWalletId"]) || undefined,
-    }),
+    onSuccess: body => {
+      const b = body as Record<string,unknown>;
+      const data = (b?.data ?? b) as Record<string,unknown>;
+      const tokens = data?.tokens as Record<string,unknown> | undefined;
+      const accessToken = String(tokens?.accessToken ?? data?.accessToken ?? findFirst(body, ["accessToken","access_token"]) ?? "");
+      const dWalletId = String(data?.dWalletId ?? (data?.user as Record<string,unknown>)?.dWalletId ?? findFirst(body, ["dWalletId","dwalletId"]) ?? "");
+      console.log(`[relogin] accessToken=${!!accessToken} dWalletId=${dWalletId}`);
+      return {
+        employeeTokenHandle: storeToken(accessToken) || undefined,
+        businessDwalletId: dWalletId || undefined,
+        employeeDwalletId: dWalletId || undefined,
+      };
+    },
   },
   {
     id: "step2_person_signup",
@@ -715,7 +738,13 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     description: "Lista schemas de valor padronizados disponíveis para uso na plataforma.",
-    onSuccess: body => ({ valueSchemaSid: firstListItem(body)?.sid as string | undefined || firstListItem(body)?.id as string | undefined }),
+    onSuccess: body => {
+      // Postman 3: items = res?.data || res; firstSid = items[0]?.sid || items[0]?.id
+      const arr = (Array.isArray(body) ? body : ((body as Record<string,unknown>)?.data || [])) as Record<string,unknown>[];
+      const sid = arr[0]?.sid as string | undefined || arr[0]?.id as string | undefined;
+      console.log(`[step3] found ${arr.length} schemas, first sid=${sid}`);
+      return { valueSchemaSid: sid };
+    },
   },
   // ── Passo 4a: Registrar Value Schema (VS) via carrinho ──────────────────────
   {
@@ -774,7 +803,13 @@ const actions: JourneyAction[] = [
     status: "external",
     requiresM2M: true,
     description: "Lista os dSKUs disponíveis no catálogo após o registro do VS. Selecione o dSKU para adicionar ao carrinho.",
-    onSuccess: body => ({ dsku: firstListItem(body)?.dsku as string | undefined || firstListItem(body)?.id as string | undefined }),
+    onSuccess: body => {
+      // Postman 4c: items = Array.isArray(res) ? res : (res?.data || [])
+      const arr = Array.isArray(body) ? body as Record<string,unknown>[] : ((body as Record<string,unknown>)?.data as Record<string,unknown>[] | undefined) || [];
+      const dsku = arr[0]?.dsku as string | undefined;
+      console.log(`[4c list_products] found ${arr.length} items, first dsku=${dsku}`);
+      return { dsku, selectedProductDsku: dsku };
+    },
   },
   {
     id: "step4_add_dsku_to_cart",
