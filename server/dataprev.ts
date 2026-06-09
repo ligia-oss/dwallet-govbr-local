@@ -1641,7 +1641,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   }
   let body: JsonValue;
   try {
-    body = action.buildBody?.(state, credentials);
+    body = action.buildBody?.(effectiveState, credentials);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Falha ao montar o payload da chamada Dataprev.";
     return {
@@ -1654,6 +1654,10 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
       message,
       executedAt,
     };
+  }
+  if (action.id.startsWith("step11_")) {
+    const bodyObj = body as Record<string, unknown> | undefined;
+    console.log(`[step11 body] dWalletId=${bodyObj?.dWalletId} state.businessDwalletId=${effectiveState.businessDwalletId}`);
   }
   const requestHeaders = headers({ m2m, userToken: effectiveUserToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage }, credentials);
   const effectiveBaseUrl = action.baseUrlOverride || env(credentials).baseUrl;
