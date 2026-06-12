@@ -1261,9 +1261,16 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     description: "12a (Postman): GET /v1/marketplace/offers com employee token. Requer permissão marketplace na API key.",
     expectedStatus: [200, 300],
-    onSuccess: body => ({
-      offerId: firstListItem(body)?.id as string | undefined || firstListItem(body)?.offerId as string | undefined,
-    }),
+    onSuccess: body => {
+      // Postman: items = res?.data || res; firstId = items[0]?.id || items[0]?.offerId
+      const arr = (Array.isArray(body) ? body : ((body as Record<string,unknown>)?.data || [])) as Record<string,unknown>[];
+      const firstId = arr[0]?.id as string | undefined || arr[0]?.offerId as string | undefined;
+      console.log(`[step12] ${arr.length} offers returned, first id=${firstId}`);
+      return {
+        offerId: firstId,
+        offersList: arr.length > 0 ? JSON.stringify(arr.slice(0, 10)) : undefined,
+      };
+    },
   },
   {
     id: "step12_offer_transactions",
@@ -1277,10 +1284,9 @@ const actions: JourneyAction[] = [
     description: "12b (Postman): GET /v1/marketplace/offers/{offerId}/transactions. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
     expectedStatus: [200, 201, 204, 403, 400, 500],
     buildPath: state => `/v1/marketplace/offers/${state.offerId || state.offerId || ""}/transactions`,
-    onSuccess: (body) => {
-      const data = (body as Record<string, unknown>)?.data as Record<string, unknown> | undefined;
-      const realId = data?.id ? String(data.id) : ((body as Record<string, unknown>)?.offerId ? String((body as Record<string, unknown>).offerId) : undefined);
-      return realId ? { offerId: realId } : {};
+    onSuccess: body => {
+      const arr = (Array.isArray(body) ? body : ((body as Record<string,unknown>)?.data ? [(body as Record<string,unknown>).data] : [])) as Record<string,unknown>[];
+      return { transactionsList: arr.length > 0 ? JSON.stringify(arr.slice(0,10)) : undefined };
     },
   },
   {
@@ -1311,7 +1317,7 @@ const actions: JourneyAction[] = [
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/accept`,
     buildBody: state => ({
       emailAddress: state.personEmail,
-      dataSavingsAccountId: state.dspAccountId || state.dsaId,
+      dataSavingsAccountId: state.dspAccountId || state.dsaId || "",
     }),
   },
   {
@@ -1608,6 +1614,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   // The engineer confirmed: AUTHZ_E006 happens when reusing an expired/stale employee token
   // Fix: always get a fresh token immediately before any offer/marketplace call
   const isOfferAction = action.id.startsWith("step11_") || action.id.startsWith("step12_") || action.id.startsWith("step13_");
+  const isPersonOfferAction = action.id.startsWith("step13_") && action.requiresUser === "person";
   let effectiveUserToken = userToken;
   let effectiveState = state;
   if (isOfferAction && action.requiresUser === "employee") {
@@ -1622,6 +1629,35 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
       console.log(`[execute] ${action.id} — used fresh employee token`);
     } else {
       console.warn(`[execute] ${action.id} — token refresh failed, proceeding with cached token`);
+    }
+  }
+  if (isPersonOfferAction) {
+    // Refresh person token for step13 — same Cognito expiry issue
+    const email = state.personEmail;
+    const password = state.personPassword || DEFAULT_PASSWORD;
+    if (email && password && m2m) {
+      try {
+        const config = env(credentials);
+        const resp = await fetchViaProxy(`${config.baseUrl}/v1/dwallet/auth/signin`, {
+          method: "POST",
+          headers: { "x-api-key": config.apiKey, "Authorization": `Bearer ${m2m}`, "Content-Type": "application/json", "x-region": "BR" },
+          body: { email, password },
+        });
+        const b = await resp.json() as Record<string,unknown>;
+        const d = (b?.data ?? b) as Record<string,unknown>;
+        const t = d?.tokens as Record<string,unknown> | undefined;
+        const token = String(t?.accessToken ?? d?.accessToken ?? "");
+        if (token) {
+          const handle = storeToken(token);
+          if (handle) {
+            effectiveUserToken = await getStoredToken(handle);
+            effectiveState = { ...effectiveState, personTokenHandle: handle };
+            console.log(`[execute] ${action.id} — used fresh person token`);
+          }
+        }
+      } catch (e) {
+        console.warn(`[execute] ${action.id} — person token refresh failed`);
+      }
     }
   }
 

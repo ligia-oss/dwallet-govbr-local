@@ -2165,6 +2165,72 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid, lang = "pt" as
   );
 }
 
+// ─── OfferCardList: cards de ofertas do marketplace ──────────────────────────
+
+function OfferCardList({ items, onSelect, selectedOfferId, lang }: {
+  items: Record<string,unknown>[];
+  onSelect?: (id: string, offer: Record<string,unknown>) => void;
+  selectedOfferId?: string;
+  lang: "pt" | "en";
+}) {
+  if (!items.length) return (
+    <div className="text-center py-3">
+      <p className="text-[10px] text-slate-400">{lang === "pt" ? "Nenhuma oferta encontrada." : "No offers found."}</p>
+    </div>
+  );
+  return (
+    <div className="space-y-2">
+      {items.map((offer, i) => {
+        const id = String(offer.id || offer.offerId || "");
+        const title = String(offer.title || offer.name || (offer.offerCriteria as Record<string,unknown>)?.title || (offer.offerCriteria as Record<string,unknown>)?.campaignName || `Oferta ${i+1}`);
+        const desc = String(offer.description || (offer.offerCriteria as Record<string,unknown>)?.description || "");
+        const budget = (offer.proposedBudget || (offer.offerCriteria as Record<string,unknown>)?.proposedBudget) as Record<string,unknown> | undefined;
+        const amount = budget?.paymentPerParticipant || budget?.totalAmount;
+        const currency = String(budget?.currencyCode || "BRL");
+        const status = String(offer.status || offer.state || "");
+        const isSelected = id === selectedOfferId;
+        return (
+          <button key={id || i}
+            onClick={() => onSelect && id && onSelect(id, offer)}
+            className="w-full text-left rounded-2xl overflow-hidden transition-all active:scale-[0.98]"
+            style={{
+              border: isSelected ? "2px solid #155BCB" : "1px solid #e2e8f0",
+              background: isSelected ? "#f0f5ff" : "white",
+              boxShadow: isSelected ? "0 0 0 3px #155BCB20" : "0 1px 3px rgba(0,0,0,0.06)",
+            }}
+          >
+            <div className="px-3 py-2.5">
+              <div className="flex items-start justify-between gap-2 mb-1">
+                <p className="text-[11px] font-bold text-slate-800 leading-tight flex-1">{title}</p>
+                {amount !== undefined && amount !== null && (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded shrink-0" style={{ background: "#6BC02A15", color: "#168821" }}>
+                    {currency} {Number(amount).toLocaleString()}
+                  </span>
+                )}
+              </div>
+              {desc && <p className="text-[9px] text-slate-500 leading-4 line-clamp-2">{desc}</p>}
+              <div className="flex items-center justify-between mt-1.5">
+                <code className="text-[8px] font-mono text-slate-400 truncate max-w-[140px]">{id.slice(0,8)}…{id.slice(-6)}</code>
+                {status && (
+                  <span className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full capitalize"
+                    style={{ background: status === "active" ? "#6BC02A15" : "#f1f5f9", color: status === "active" ? "#168821" : "#64748b" }}>
+                    {status}
+                  </span>
+                )}
+              </div>
+            </div>
+            {isSelected && (
+              <div className="px-3 py-1.5 text-center text-[9px] font-bold" style={{ background: "#155BCB", color: "white" }}>
+                {lang === "pt" ? "✓ Selecionada — offerId capturado para passos 12b e 13" : "✓ Selected — offerId captured for steps 12b and 13"}
+              </div>
+            )}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── ProductCardList: lista de produtos com filtros visuais nano banana ──────────────────
 
 function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku, lang = "pt" as "pt" | "en" }: {
@@ -2350,7 +2416,7 @@ function ProductCardList({ items, pickText, onProductSelect, selectedProductDsku
   );
 }
 
-function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSchemaSid, onProductSelect, selectedProductDsku, lang = "pt" as "pt" | "en" }: {
+function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSchemaSid, onProductSelect, selectedProductDsku, onOfferSelect, selectedOfferId, lang = "pt" as "pt" | "en" }: {
   result: ActionResult;
   screen: PhoneScreenConfig;
   runState: RunState;
@@ -2358,6 +2424,8 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
   selectedSchemaSid?: string;
   onProductSelect?: (dsku: string, name: string) => void;
   selectedProductDsku?: string;
+  onOfferSelect?: (id: string, offer: Record<string,unknown>) => void;
+  selectedOfferId?: string;
   lang?: "pt" | "en";
 }) {
   const body = result.responseBody as Record<string, unknown> | null | undefined;
@@ -2390,10 +2458,21 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
   const isSchemaStep = screen.stepId === 3;
   // Passo 4 (step4_list_products) e passo 5 (step5_list_business_products) são passos de produto
   const isProductStep = screen.stepId === 4 || screen.stepId === 5;
+  const isOfferStep = screen.stepId === 12;
   const items = (isSchemaStep || isProductStep) ? allItems : allItems.slice(0, 5);
 
   const stateUpdates = result.stateUpdates as Record<string, unknown> | undefined;
-  const capturedKeys = stateUpdates ? Object.keys(stateUpdates).filter(k => stateUpdates[k] !== null && stateUpdates[k] !== undefined) : [];
+  const capturedKeys = stateUpdates ? Object.keys(stateUpdates).filter(k => stateUpdates[k] !== null && stateUpdates[k] !== undefined && k !== "offersList") : [];
+
+  // For offer step: parse offersList from stateUpdates if available
+  const offerItems: Record<string,unknown>[] = (() => {
+    if (!isOfferStep || !result.ok) return [];
+    const saved = stateUpdates?.offersList;
+    if (saved && typeof saved === "string") {
+      try { return JSON.parse(saved) as Record<string,unknown>[]; } catch { /* fall through */ }
+    }
+    return allItems.filter(i => i.id || i.offerId);
+  })();
 
   // Passo 6: 500 outbox event é um bug do sandbox mas a solicitação foi criada
   const isStep6 = screen.stepId === 6;
@@ -2651,8 +2730,37 @@ function ResponseRenderer({ result, screen, runState, onSchemaSelect, selectedSc
         </div>
       )}
 
+      {/* Ofertas do marketplace — passo 12 */}
+      {isOfferStep && result.ok && offerItems.length > 0 && (
+        <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
+          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">
+            {lang === "pt" ? `${offerItems.length} oferta(s) disponível(is) — selecione uma` : `${offerItems.length} offer(s) available — select one`}
+          </p>
+          <OfferCardList
+            items={offerItems}
+            onSelect={onOfferSelect}
+            selectedOfferId={selectedOfferId}
+            lang={lang}
+          />
+          {selectedOfferId && (
+            <div className="mt-2 rounded-xl px-3 py-2 text-center" style={{ background: "#155BCB10", border: "1px solid #155BCB30" }}>
+              <p className="text-[9px] font-semibold text-[#155BCB]">
+                {lang === "pt" ? "offerId capturado — passo 12b e 13 prontos" : "offerId captured — steps 12b and 13 ready"}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {isOfferStep && result.ok && offerItems.length === 0 && (
+        <div className="rounded-2xl bg-slate-50 border border-slate-200 p-3 text-center">
+          <p className="text-[10px] text-slate-500">{lang === "pt" ? "Nenhuma oferta disponível ainda neste sandbox." : "No offers available yet in this sandbox."}</p>
+          <p className="text-[9px] text-slate-400 mt-1">{lang === "pt" ? "Execute o passo 11 primeiro para criar uma oferta." : "Run step 11 first to create an offer."}</p>
+        </div>
+      )}
+
       {/* Lista genérica para outros passos */}
-      {!isSchemaStep && !isProductStep && items.length > 0 && (
+      {!isSchemaStep && !isProductStep && !isOfferStep && items.length > 0 && (
         <div className="rounded-2xl bg-white border border-slate-100 p-3 shadow-sm">
           <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500 mb-2">{MT[lang].apiReturn}</p>
           <div className="space-y-2">
@@ -2744,6 +2852,9 @@ export function HomologacaoPhoneMockup({
   const [selectedSchemaName, setSelectedSchemaName] = useState<string>("");
   const [selectedProductDsku, setSelectedProductDsku] = useState<string>("");
   const [selectedProductName, setSelectedProductName] = useState<string>("");
+
+  // Seleção de oferta (passo 12) → pré-requisito para passo 13
+  const [selectedOfferId, setSelectedOfferId] = useState<string>("");
 
   // ─── Passo 7: estado local autocontido ──────────────────────────────────────
   // "idle" = tela inicial com botão Listar
@@ -3486,7 +3597,7 @@ export function HomologacaoPhoneMockup({
           })()}
 
           {/* RESULT state */}
-          {!isGap && phase === "result" && activeResult && stepId !== 0 && actionId !== "step7_list_business_requests" && !(screen.stepId === 12 && activeResult.ok) && (
+          {!isGap && phase === "result" && activeResult && stepId !== 0 && actionId !== "step7_list_business_requests" && (
             <div className="p-4 space-y-3">
               <ResponseRenderer
                 result={activeResult}
@@ -3500,6 +3611,12 @@ export function HomologacaoPhoneMockup({
                   undefined
                 }
                 selectedProductDsku={(screen.stepId === 4 || screen.stepId === 5) ? selectedProductDsku : undefined}
+                onOfferSelect={screen.stepId === 12 ? (id: string) => {
+                  setSelectedOfferId(id);
+                  onFieldChange("offerId", id);
+                  console.log(`[mockup] offer selected: ${id}`);
+                } : undefined}
+                selectedOfferId={screen.stepId === 12 ? selectedOfferId : undefined}
                 lang={lang}
               />
               {/* Auto-advance hint for multi-step */}
