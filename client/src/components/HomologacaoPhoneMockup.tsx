@@ -838,6 +838,43 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     resultBody: (r) => r.ok
       ? "Oferta publicada no marketplace."
       : r.message ?? "Endpoint não disponível nesta sandbox.",
+    actionScreens: {
+      step11_offer_preview: {
+        appHeader: "Criar oferta",
+        appLead: "Preencha os dados da oferta. O previewId gerado será usado para efetivar a compra no passo seguinte.",
+        ctaLabel: "Gerar preview da oferta",
+        fields: [
+          { key: "offerTitle", label: "Título da oferta", placeholder: "Ex: Oferta de dados de transporte", required: true },
+          { key: "offerDescription", label: "Descrição", placeholder: "Ex: Dados de mobilidade urbana para pesquisa", required: false },
+          { key: "offerCampaignName", label: "Nome da campanha", placeholder: "Ex: Campanha Dataprev 2026", required: false },
+          { key: "offerPaymentPerParticipant", label: "Pagamento por participante (BRL)", placeholder: "Ex: 10", required: true },
+          { key: "offerMaxParticipants", label: "Máximo de participantes", placeholder: "Ex: 100", required: false },
+          { key: "offerStartDate", label: "Data início (YYYY-MM-DD)", placeholder: new Date().toISOString().slice(0,10), required: false },
+          { key: "offerEndDate", label: "Data fim (YYYY-MM-DD)", placeholder: new Date(Date.now() + 90*24*60*60*1000).toISOString().slice(0,10), required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Preview gerado! 🎉" : "Erro ao gerar preview",
+        resultBody: (r) => r.ok
+          ? "Preview da oferta gerado com sucesso. Agora efetive a compra com o previewId."
+          : r.httpStatus === 403
+            ? "HTTP 403 AUTHZ_E006 — permissão marketplace não habilitada para esta API key. Solicite à equipe DrumWave."
+            : r.message ?? "Não foi possível gerar o preview.",
+      },
+      step11_offer_purchase: {
+        appHeader: "Efetivar oferta",
+        appLead: "Confirme a compra usando o previewId gerado no passo anterior.",
+        ctaLabel: "Efetivar compra",
+        fields: [
+          { key: "offerPreviewId", label: "Preview ID", placeholder: "Gerado automaticamente no passo anterior", required: true },
+          { key: "offerLandingPage", label: "URL da landing page", placeholder: "https://example.com/oferta", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Oferta criada e publicada! 🎉" : "Erro ao efetivar compra",
+        resultBody: (r) => r.ok
+          ? "Oferta publicada no marketplace. O offerId foi capturado para os passos 12 e 13."
+          : r.httpStatus === 403
+            ? "HTTP 403 AUTHZ_E006 — permissão marketplace necessária."
+            : r.message ?? "Não foi possível efetivar a compra.",
+      },
+    },
   },
   12: {
     stepId: 12,
@@ -1390,9 +1427,46 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
     appLead: "Create and manage data offers for the marketplace.",
     ctaLabel: "Create offer",
     fields: [],
-    gapMessage: "Offer creation endpoint not available in the current sandbox. The screen remains visible in the journey to document the step.",
+    gapMessage: "Offer creation endpoint requires marketplace permission enabled on the API key (AUTHZ_E006). Works in Postman — request enablement from DrumWave for server-to-server use.",
     resultTitle: (r) => r.ok ? "Offer created" : "API not available",
     resultBody: (r) => r.ok ? "Offer published in the marketplace." : r.message ?? "Endpoint not available in this sandbox.",
+    actionScreens: {
+      step11_offer_preview: {
+        appHeader: "Create offer",
+        appLead: "Fill in the offer details. The generated previewId will be used to finalize the purchase.",
+        ctaLabel: "Generate offer preview",
+        fields: [
+          { key: "offerTitle", label: "Offer title", placeholder: "e.g. Transport data offer", required: true },
+          { key: "offerDescription", label: "Description", placeholder: "e.g. Urban mobility data for research", required: false },
+          { key: "offerCampaignName", label: "Campaign name", placeholder: "e.g. Dataprev 2026 Campaign", required: false },
+          { key: "offerPaymentPerParticipant", label: "Payment per participant (BRL)", placeholder: "e.g. 10", required: true },
+          { key: "offerMaxParticipants", label: "Max participants", placeholder: "e.g. 100", required: false },
+          { key: "offerStartDate", label: "Start date (YYYY-MM-DD)", placeholder: new Date().toISOString().slice(0,10), required: false },
+          { key: "offerEndDate", label: "End date (YYYY-MM-DD)", placeholder: new Date(Date.now() + 90*24*60*60*1000).toISOString().slice(0,10), required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Preview generated! 🎉" : "Error generating preview",
+        resultBody: (r) => r.ok
+          ? "Offer preview generated. Now finalize the purchase with the previewId."
+          : r.httpStatus === 403
+            ? "HTTP 403 AUTHZ_E006 — marketplace permission not enabled for this API key. Request from DrumWave team."
+            : r.message ?? "Could not generate the preview.",
+      },
+      step11_offer_purchase: {
+        appHeader: "Finalize offer",
+        appLead: "Confirm the purchase using the previewId generated in the previous step.",
+        ctaLabel: "Finalize purchase",
+        fields: [
+          { key: "offerPreviewId", label: "Preview ID", placeholder: "Auto-generated in previous step", required: true },
+          { key: "offerLandingPage", label: "Landing page URL", placeholder: "https://example.com/offer", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Offer created and published! 🎉" : "Error finalizing purchase",
+        resultBody: (r) => r.ok
+          ? "Offer published in the marketplace. offerId captured for steps 12 and 13."
+          : r.httpStatus === 403
+            ? "HTTP 403 AUTHZ_E006 — marketplace permission required."
+            : r.message ?? "Could not finalize the purchase.",
+      },
+    },
   },
   12: {
     stepId: 12, appKind: "PdW",

@@ -1191,39 +1191,45 @@ const actions: JourneyAction[] = [
     requiresUser: "employee",
     description: "11a (Postman): POST /v1/marketplace/offers/preview. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
     expectedStatus: [200, 201, 403, 400, 500],
-    buildBody: state => ({
-      dWalletId: state.businessDwalletId || state.businessId || "",
-      offerCriteria: {
-        title: "Oferta DrumWave Homologação",
-        description: "Oferta criada durante jornada de homologação Dataprev",
-        campaignName: "Campanha Dataprev",
-        callToAction: "Aceite esta oferta",
-        categories: ["consignado"],
-        dskus: [{
-          dsku: state.cartItemId || state.selectedProductDsku || state.dsku || "",
-          name: "Produto de dados",
-          category: "consignado",
-        }],
-        geographicRegions: ["BR"],
-        participantFilters: {
-          ageRange: { min: 18, max: 65 },
-          minDataContributions: 1,
-          customAttributes: {},
+    buildBody: state => {
+      const dskuId = state.cartItemId || state.selectedProductDsku || state.dsku || "";
+      const today = new Date().toISOString().slice(0,10);
+      const ninetyDays = new Date(Date.now() + 90*24*60*60*1000).toISOString().slice(0,10);
+      const paymentPerParticipant = Number(state.offerPaymentPerParticipant || 10);
+      return {
+        dWalletId: state.businessDwalletId || state.businessId || "",
+        offerCriteria: {
+          title: String(state.offerTitle || "Oferta DrumWave Homologação"),
+          description: String(state.offerDescription || "Oferta criada durante jornada de homologação Dataprev"),
+          campaignName: String(state.offerCampaignName || "Campanha Dataprev"),
+          callToAction: "Aceite esta oferta",
+          categories: ["consignado"],
+          dskus: [{
+            dsku: dskuId,
+            name: "Produto de dados",
+            category: "consignado",
+          }],
+          geographicRegions: ["BR"],
+          participantFilters: {
+            ageRange: { min: 18, max: 65 },
+            minDataContributions: 1,
+            customAttributes: {},
+          },
+          proposedBudget: {
+            totalAmount: paymentPerParticipant * Number(state.offerMaxParticipants || 100),
+            currencyCode: "BRL",
+            bidStrategy: "FIXED_BID",
+            paymentPerParticipant,
+          },
+          maxParticipants: Number(state.offerMaxParticipants || 100),
+          duration: {
+            startDate: String(state.offerStartDate || today),
+            endDate: String(state.offerEndDate || ninetyDays),
+          },
         },
-        proposedBudget: {
-          totalAmount: 1000,
-          currencyCode: "BRL",
-          bidStrategy: "FIXED_BID",
-          paymentPerParticipant: 10,
-        },
-        maxParticipants: 100,
-        duration: {
-          startDate: "2026-06-03",
-          endDate: "2026-09-03",
-        },
-      },
-      paymentMethod: "PIX",
-    }),
+        paymentMethod: "PIX",
+      };
+    },
     onSuccess: body => ({
       offerPreviewId: findFirst(body, ["previewId", "id", "offerId"]),
     }),
@@ -1242,7 +1248,7 @@ const actions: JourneyAction[] = [
     expectedStatus: [200, 201, 403, 400, 500],
     buildBody: state => ({
       previewId: state.offerPreviewId,
-      landingPageUrl: "https://example.com/offer-landing",
+      landingPageUrl: String(state.offerLandingPage || "https://example.com/offer-landing"),
     }),
     onSuccess: body => ({
       offerId: findFirst(body, ["offerId", "id"]),
