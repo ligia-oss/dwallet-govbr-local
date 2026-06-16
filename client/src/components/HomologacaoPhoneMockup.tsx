@@ -635,10 +635,10 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
         appLead: "Finalize o registro do produto de dados na Business dWallet. O itemId no body deve bater com o item no carrinho.",
         ctaLabel: "Registrar produto na BdW",
         fields: [],
-        resultTitle: (r) => r.ok ? "Produto criado e registrado na BdW! 🎉" : "Erro no checkout do dSKU",
+        resultTitle: (r) => r.ok ? "Produto registrado! Configurar pagamento 💳" : "Erro no checkout do dSKU",
         resultBody: (r) => r.ok
-          ? "Produto de dados registrado com sucesso na Business dWallet. Ciclo completo!"
-          : r.message?.includes("do not match") 
+          ? "Produto registrado. O order-service retornou as chaves Stripe. Configure o perfil de pagamento abaixo para completar o ciclo."
+          : r.message?.includes("do not match")
             ? "Items no body não batem com o carrinho. Execute step4_add_dsku_to_cart novamente para recarregar o cartItemId."
             : r.message ?? "Não foi possível registrar o produto.",
       },
@@ -1301,8 +1301,8 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
         appLead: "Complete the data product registration in the Business dWallet. This checkout creates the product.",
         ctaLabel: "Register product in BdW",
         fields: [],
-        resultTitle: (r) => r.ok ? "Product created and registered in BdW! 🎉" : "dSKU checkout error",
-        resultBody: (r) => r.ok ? "Data product successfully registered in Business dWallet. Product creation cycle complete!" : r.message ?? "Could not register the product.",
+        resultTitle: (r) => r.ok ? "Product registered! Set up payment 💳" : "dSKU checkout error",
+        resultBody: (r) => r.ok ? "Product registered. The order-service returned Stripe keys. Set up your payment profile below to complete the cycle." : r.message ?? "Could not register the product.",
       },
       step4_list_business_products: {
         appHeader: "Confirm — My Products",
@@ -3928,6 +3928,23 @@ export function HomologacaoPhoneMockup({
                   </div>
                 ) : null;
               })()}
+
+              {/* Stripe Payment form — shown after step4_checkout_dsku success */}
+              {actionId === "step4_checkout_dsku" && activeResult.ok && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 px-1">
+                    <div className="h-[1px] flex-1" style={{ background: "#e2e8f0" }} />
+                    <span className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Stripe · Perfil de pagamento</span>
+                    <div className="h-[1px] flex-1" style={{ background: "#e2e8f0" }} />
+                  </div>
+                  <StripeBillingScreen
+                    runState={runState}
+                    colors={colors}
+                    onBillingSuccess={() => { setShowInputOverride(true); setPhase("input"); }}
+                    lang={lang}
+                  />
+                </div>
+              )}
 
               {/* Botão de voltar — mais proeminente quando há erro */}
               {!activeResult.ok ? (
