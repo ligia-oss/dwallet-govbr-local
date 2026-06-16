@@ -726,7 +726,24 @@ const actions: JourneyAction[] = [
     includeRegion: true,
     description: "Autentica a pessoa criada e guarda o token no servidor por meio de identificador opaco.",
     buildBody: state => ({ email: state.personEmail, password: state.personPassword || DEFAULT_PASSWORD }),
-    onSuccess: body => ({ personTokenHandle: storeToken(findFirst(body, ["accessToken", "access_token"])), personDwalletId: findFirst(body, ["dWalletId"]) }),
+    onSuccess: body => {
+      const b = body as Record<string,unknown>;
+      const data = (b?.data ?? b) as Record<string,unknown>;
+      const tokens = data?.tokens as Record<string,unknown> | undefined;
+      const payCtx = (data?.paymentContext ?? (b?.paymentContext)) as Record<string,unknown> | undefined;
+      const token = String(tokens?.accessToken ?? data?.accessToken ?? findFirst(body, ["accessToken","access_token"]) ?? "");
+      const dWalletId = String(data?.dWalletId ?? findFirst(body, ["dWalletId","dwalletId"]) ?? "");
+      // Capture Stripe.js data if returned by wallet creation API
+      const stripePk = String(payCtx?.publishableKey ?? data?.stripePublishableKey ?? "");
+      const stripeSecret = String(payCtx?.customerSessionClientSecret ?? data?.customerSessionClientSecret ?? "");
+      console.log(`[person signin] dWalletId=${dWalletId} stripeData=${!!stripePk}`);
+      return {
+        personTokenHandle: storeToken(token) || undefined,
+        personDwalletId: dWalletId || undefined,
+        ...(stripePk ? { stripePublishableKey: stripePk } : {}),
+        ...(stripeSecret ? { stripeCustomerSessionSecret: stripeSecret } : {}),
+      };
+    },
   },
   {
     id: "step3_list_schemas",
@@ -897,10 +914,19 @@ const actions: JourneyAction[] = [
         items,
       };
     },
-    onSuccess: body => ({
-      orderId: findFirst(body, ["orderId", "id", "order_id"]),
-      businessProductId: findFirst(body, ["productId", "dskuId", "registeredProductId"]),
-    }),
+    onSuccess: body => {
+      const b = body as Record<string,unknown>;
+      const payCtx = (b?.paymentContext) as Record<string,unknown> | undefined;
+      const stripePk = String(payCtx?.publishableKey ?? "");
+      const stripeSecret = String(payCtx?.customerSessionClientSecret ?? "");
+      console.log(`[4e onSuccess] orderId=${findFirst(body,["orderId"])} stripePk=${!!stripePk}`);
+      return {
+        orderId: findFirst(body, ["orderId", "id", "order_id"]),
+        businessProductId: findFirst(body, ["productId", "dskuId", "registeredProductId"]),
+        ...(stripePk ? { stripePublishableKey: stripePk } : {}),
+        ...(stripeSecret ? { stripeCustomerSessionSecret: stripeSecret } : {}),
+      };
+    },
   },
   {
     id: "step4_list_business_products",
@@ -1310,11 +1336,10 @@ const actions: JourneyAction[] = [
     group: "Marketplace Offers",
     method: "POST",
     path: "/v1/dwallet/person/billing-profile",
-    status: "gap",
+    status: "external",
     requiresM2M: true,
     requiresUser: "person",
-    description: "Endpoint não existe no sandbox DrumWave (404 Cannot POST). O perfil de billing Stripe provavelmente é criado automaticamente ao criar a PdW, ou é provisionado pela equipe DrumWave. Aguardar endpoint ser disponibilizado.",
-    missingReason: "POST /v1/dwallet/person/billing-profile retorna 404 — endpoint não implementado nesta sandbox.",
+    description: "Criação do perfil billing via Stripe.js. A wallet creation API retorna publishableKey + customerSessionClientSecret que são usados pelo Stripe.js para renderizar a UI de pagamento. Não é um endpoint REST direto.",
   },
   {
     id: "step13_offer_pre_accept",

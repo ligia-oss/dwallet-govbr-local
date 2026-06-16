@@ -1,4 +1,6 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { loadStripe } from "@stripe/stripe-js";
+import { Elements, PaymentElement, useStripe, useElements } from "@stripe/react-stripe-js";
 
 // ─── Mockup Translations (MT) ─────────────────────────────────────────────────
 // Textos hardcoded no JSX do mockup, internacionalizados por idioma.
@@ -931,8 +933,8 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     actionScreens: {
       step13_create_billing_profile: {
         appHeader: "Perfil de pagamento",
-        appLead: "Endpoint não disponível nesta sandbox. O perfil billing é criado automaticamente ou provisionado pela DrumWave.",
-        ctaLabel: "Verificar perfil de billing",
+        appLead: "Integração Stripe.js da DrumWave. A API de criação de wallet retorna publishableKey + customerSessionClientSecret usados pelo Stripe.js para renderizar o formulário de pagamento.",
+        ctaLabel: "Configurar perfil de pagamento",
         fields: [],
         gapMessage: "POST /v1/dwallet/person/billing-profile retorna 404 — endpoint não implementado na sandbox atual. O perfil Stripe é possivelmente criado automaticamente ao registrar a PdW, ou requer provisionamento pela equipe DrumWave. Pule este passo e tente o aceite diretamente.",
         resultTitle: (r) => r.ok ? "Perfil de billing criado! ✅" : "Endpoint não disponível",
@@ -1550,10 +1552,10 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
     actionScreens: {
       step13_create_billing_profile: {
         appHeader: "Payment profile",
-        appLead: "Endpoint not available in this sandbox. Billing profile is likely auto-created or provisioned by DrumWave.",
-        ctaLabel: "Check billing profile",
+        appLead: "DrumWave Stripe.js integration. The wallet creation API returns publishableKey + customerSessionClientSecret used by Stripe.js to render the payment form.",
+        ctaLabel: "Set up payment profile",
         fields: [],
-        gapMessage: "POST /v1/dwallet/person/billing-profile returns 404 — endpoint not implemented in current sandbox. The Stripe profile is possibly created automatically when registering the PdW, or requires provisioning by the DrumWave team. Skip this step and try the accept directly.",
+
         resultTitle: (r) => r.ok ? "Billing profile created! ✅" : "Endpoint not available",
         resultBody: (r) => r.ok
           ? "Stripe profile created. You can now accept offers and receive payments."
@@ -2323,6 +2325,138 @@ function SchemaCardList({ items, pickText, onSelect, selectedSid, lang = "pt" as
             );
           })}
         </div>
+      )}
+    </div>
+  );
+}
+
+// ─── StripeBillingForm: formulário real de billing via Stripe.js ─────────────
+
+function StripePaymentForm({ onSuccess, onError, colors }: {
+  onSuccess: () => void;
+  onError: (msg: string) => void;
+  colors: { bg: string; accent: string };
+}) {
+  const stripe = useStripe();
+  const elements = useElements();
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  const handleSubmit = async () => {
+    if (!stripe || !elements) return;
+    setIsSubmitting(true);
+    setErrorMsg("");
+    const { error } = await stripe.confirmSetup({
+      elements,
+      confirmParams: { return_url: window.location.href },
+      redirect: "if_required",
+    });
+    if (error) {
+      setErrorMsg(error.message ?? "Erro no Stripe");
+      onError(error.message ?? "Stripe error");
+    } else {
+      onSuccess();
+    }
+    setIsSubmitting(false);
+  };
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-2xl bg-white border border-slate-200 p-4 shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <svg viewBox="0 0 32 32" width="20" height="20" fill="none">
+            <rect width="32" height="32" rx="6" fill="#635BFF"/>
+            <path d="M13.5 12.5c0-1.1.9-1.8 2.3-1.8 2 0 4 .7 5.4 1.9l2-3.8C21.5 7.6 19 7 16.2 7 11.7 7 8.5 9.4 8.5 13c0 6.5 9 5.5 9 8.5 0 1.3-1.1 2-2.8 2-2.3 0-4.6-.9-6.2-2.4l-2.1 3.8C8 26.5 11 27.5 14 27.5c4.8 0 8.1-2.3 8.1-6.3 0-6.7-8.6-5.5-8.6-8.7z" fill="white"/>
+          </svg>
+          <p className="text-xs font-bold text-slate-700">Dados de pagamento (Stripe)</p>
+        </div>
+        <PaymentElement options={{ layout: "tabs" }} />
+      </div>
+      {errorMsg && (
+        <div className="rounded-xl bg-red-50 border border-red-200 p-3">
+          <p className="text-[10px] text-red-700">{errorMsg}</p>
+        </div>
+      )}
+      <button
+        onClick={handleSubmit}
+        disabled={isSubmitting || !stripe}
+        className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-60 transition-all active:scale-[0.97]"
+        style={{ background: colors.accent, boxShadow: `0 4px 16px ${colors.accent}44` }}
+      >
+        {isSubmitting ? (
+          <span className="flex items-center justify-center gap-2">
+            <svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3">
+              <circle cx="12" cy="12" r="10" strokeOpacity="0.3"/>
+              <path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/>
+            </svg>
+            Processando…
+          </span>
+        ) : "💳 Salvar dados de pagamento"}
+      </button>
+    </div>
+  );
+}
+
+function StripeBillingScreen({ runState, colors, onBillingSuccess, lang }: {
+  runState: RunState;
+  colors: { bg: string; accent: string };
+  onBillingSuccess: () => void;
+  lang: "pt" | "en";
+}) {
+  const publishableKey = String(runState.stripePublishableKey || "");
+  const clientSecret = String(runState.stripeCustomerSessionSecret || "");
+  const [stripePromise] = useState(() => publishableKey ? loadStripe(publishableKey) : null);
+  const [success, setSuccess] = useState(false);
+
+  if (success) return (
+    <div className="p-4 flex flex-col items-center gap-3 text-center">
+      <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: "#6BC02A20" }}>
+        <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#6BC02A" strokeWidth="2.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>
+      </div>
+      <p className="text-sm font-bold text-slate-800">{lang === "pt" ? "Perfil criado!" : "Profile created!"}</p>
+      <p className="text-[10px] text-slate-500">{lang === "pt" ? "Dados de pagamento salvos. Agora você pode aceitar ofertas." : "Payment data saved. You can now accept offers."}</p>
+      <button onClick={onBillingSuccess}
+        className="w-full rounded-2xl py-2.5 text-xs font-bold text-white transition-all"
+        style={{ background: colors.accent }}>
+        {lang === "pt" ? "Continuar →" : "Continue →"}
+      </button>
+    </div>
+  );
+
+  if (!publishableKey || !clientSecret) return (
+    <div className="p-4 space-y-3">
+      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <p className="text-xs font-bold text-amber-800 mb-1">⚠️ {lang === "pt" ? "Dados Stripe não encontrados" : "Stripe data not found"}</p>
+        <p className="text-[10px] text-amber-700 leading-4">
+          {lang === "pt"
+            ? "A API de criação de wallet deve retornar publishableKey e customerSessionClientSecret. Execute os passos 2 (PdW signin) e verifique se esses dados estão nas variáveis capturadas."
+            : "The wallet creation API should return publishableKey and customerSessionClientSecret. Run step 2 (PdW signin) and check if these are in the captured variables."}
+        </p>
+      </div>
+      <div className="rounded-2xl bg-slate-50 border border-slate-200 p-3 space-y-1.5">
+        <p className="text-[9px] font-bold uppercase tracking-wide text-slate-400">Debug</p>
+        <div className="flex items-center gap-2">
+          <span className="text-[8px] font-mono text-slate-400">stripePublishableKey:</span>
+          <span className={`text-[8px] font-mono ${publishableKey ? "text-green-600" : "text-red-500"}`}>{publishableKey || "(ausente)"}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-[8px] font-mono text-slate-400">stripeCustomerSessionSecret:</span>
+          <span className={`text-[8px] font-mono ${clientSecret ? "text-green-600" : "text-red-500"}`}>{clientSecret ? "✓ presente" : "(ausente)"}</span>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="p-4">
+      {stripePromise && clientSecret && (
+        <Elements stripe={stripePromise} options={{ clientSecret, appearance: { theme: "stripe" } }}>
+          <StripePaymentForm
+            onSuccess={() => setSuccess(true)}
+            onError={(msg) => console.error("[Stripe]", msg)}
+            colors={colors}
+          />
+        </Elements>
       )}
     </div>
   );
@@ -5215,7 +5349,42 @@ export function HomologacaoPhoneMockup({
           )}
 
           {/* CONFIRMAÇÃO: step13 (aceitar oferta) — card nano banana */}
-          {!isGap && phase === "input" && screen.stepId === 13 && (
+          {!isGap && phase === "input" && screen.stepId === 13 && (() => {
+            // Billing profile step — show real Stripe.js form
+            if (actionId === "step13_create_billing_profile") {
+              return (
+                <div className="p-4 space-y-3">
+                  {/* Header */}
+                  <div className="rounded-2xl p-3 flex items-center gap-3" style={{ background: colors.bg }}>
+                    <div className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0" style={{ background: "rgba(255,255,255,0.15)" }}>
+                      <svg viewBox="0 0 32 32" width="22" height="22" fill="none">
+                        <rect width="32" height="32" rx="6" fill="#635BFF"/>
+                        <path d="M13.5 12.5c0-1.1.9-1.8 2.3-1.8 2 0 4 .7 5.4 1.9l2-3.8C21.5 7.6 19 7 16.2 7 11.7 7 8.5 9.4 8.5 13c0 6.5 9 5.5 9 8.5 0 1.3-1.1 2-2.8 2-2.3 0-4.6-.9-6.2-2.4l-2.1 3.8C8 26.5 11 27.5 14 27.5c4.8 0 8.1-2.3 8.1-6.3 0-6.7-8.6-5.5-8.6-8.7z" fill="white"/>
+                      </svg>
+                    </div>
+                    <div>
+                      <p className="text-xs font-bold text-white">Perfil de pagamento</p>
+                      <p className="text-[9px] text-white/60">Integração Stripe.js da DrumWave</p>
+                    </div>
+                  </div>
+                  <StripeBillingScreen
+                    runState={runState}
+                    colors={colors}
+                    onBillingSuccess={() => {
+                      if (onAutoAdvance && stepActions && actionId) {
+                        const currentIdx = stepActions.findIndex(a => a.id === actionId);
+                        const nextAction = stepActions[currentIdx + 1];
+                        if (nextAction) { onAutoAdvance(nextAction.id); setPhase("input"); }
+                      }
+                    }}
+                    lang={lang}
+                  />
+                </div>
+              );
+            }
+
+            // Other step 13 sub-steps — standard offer confirm screen
+            return (
             <div className="p-4 space-y-3">
               <div className="relative overflow-hidden rounded-2xl" style={{ minHeight: 100 }}>
                 <img src={SCHEMA_TYPE_IMAGES.offer} alt="Oferta" className="absolute inset-0 w-full h-full object-cover" style={{ filter: "brightness(0.6)" }} />
@@ -5227,7 +5396,6 @@ export function HomologacaoPhoneMockup({
                   {!runState.offerId && <p className="text-[9px] text-orange-200 mt-1">{MT[lang].noOfferSelected}</p>}
                 </div>
               </div>
-              {/* Gating: offerId must be a real ID from step 12, not the canonical fallback UUID */}
               {(() => {
                 const CANONICAL_OFFER_ID = "dc47fbb5-cb9a-4c96-940b-aae5d17b98ab";
                 const hasRealOfferId = !!runState.offerId && runState.offerId !== CANONICAL_OFFER_ID;
@@ -5259,7 +5427,8 @@ export function HomologacaoPhoneMockup({
                 );
               })()}
             </div>
-          )}
+            );
+          })()}
 
           {/* PASSO 7 INPUT: removido — substituído pelo bloco autocontido screen.stepId === 7 acima */}
 
