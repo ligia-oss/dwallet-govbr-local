@@ -886,7 +886,7 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     fields: [
       { key: "offerId", label: "ID da oferta (opcional)", placeholder: "Deixe vazio para listar todas", required: false },
     ],
-    resultTitle: (r) => r.ok ? (r.httpStatus === 403 ? "✅ Executado — aguardando permissão" : "Ofertas carregadas") : "Erro ao carregar ofertas",
+    resultTitle: (r) => r.ok ? "Ofertas carregadas" : (r.httpStatus === 403 ? "❌ Permissão marketplace necessária" : "Erro ao carregar ofertas"),
     resultBody: (r) => r.ok
       ? "Ofertas disponíveis retornadas. Selecione uma para ver as transações."
       : r.httpStatus === 403
@@ -901,16 +901,16 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
         appLead: "Lista ofertas via GET /v1/marketplace/offers (base_url). Sandbox pode retornar 403 se feature flag não habilitada.",
         ctaLabel: "Ver ofertas",
         fields: [],
-        resultTitle: (r) => r.ok ? (r.httpStatus === 403 ? "✅ Chamada executada" : "Ofertas disponíveis") : "Erro",
-        resultBody: (r) => r.ok ? (r.httpStatus === 403 ? "HTTP 403 AUTHZ_E006 — mesma restrição do passo 11. Código e tokens corretos. Aguardar DrumWave habilitar permissão marketplace." : "Ofertas retornadas.") : r.message ?? "Erro.",
+        resultTitle: (r) => r.ok ? "Ofertas disponíveis" : (r.httpStatus === 403 ? "❌ Permissão marketplace necessária" : "Erro"),
+        resultBody: (r) => r.ok ? "Ofertas retornadas." : r.httpStatus === 403 ? "HTTP 403 AUTHZ_E006 — o endpoint GET /v1/marketplace/offers está restrito para este tenant. Solicitar à equipe DrumWave habilitar a permissão marketplace para esta API key." : r.message ?? "Erro.",
       },
       step12_offer_transactions: {
         appHeader: "Transações da oferta",
         appLead: "Transações via GET /v1/marketplace/offers/{offerId}/transactions (base_url, conforme Postman).",
         ctaLabel: "Ver transações",
         fields: [],
-        resultTitle: (r) => r.ok ? (r.httpStatus === 403 ? "✅ Chamada executada" : "Transações carregadas") : "Erro",
-        resultBody: (r) => r.ok ? (r.httpStatus === 403 ? "HTTP 403 AUTHZ_E006 — restrição de ambiente. Código correto." : "Transações retornadas.") : r.message ?? "Erro.",
+        resultTitle: (r) => r.ok ? "Transações carregadas" : (r.httpStatus === 403 ? "❌ Permissão marketplace necessária" : "Erro"),
+        resultBody: (r) => r.ok ? "Transações retornadas." : r.httpStatus === 403 ? "HTTP 403 AUTHZ_E006 — restrição de ambiente. Solicitar à DrumWave habilitar permissão marketplace." : r.message ?? "Erro.",
       },
     },
   },
@@ -949,8 +949,8 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
         fields: [
           { key: "offerId", label: "ID da oferta", placeholder: "Selecionado no passo 12", required: true },
         ],
-        resultTitle: (r) => r.ok ? (r.httpStatus === 403 ? "✅ Executado" : "Pré-aceite registrado") : "Erro",
-        resultBody: (r) => r.ok ? (r.httpStatus === 403 ? "HTTP 403 — permissão marketplace necessária. Código correto." : "Pré-aceite registrado.") : r.message ?? "Não foi possível pré-aceitar.",
+        resultTitle: (r) => r.ok ? "Pré-aceite registrado" : (r.httpStatus === 403 ? "❌ Permissão marketplace necessária" : "Erro no pré-aceite"),
+        resultBody: (r) => r.ok ? "Pré-aceite registrado. Agora confirme o aceite definitivo." : r.httpStatus === 403 ? "HTTP 403 AUTHZ_E006 — permissão marketplace não habilitada para este tenant. Solicitar à DrumWave." : r.message ?? "Não foi possível pré-aceitar.",
       },
       step13_offer_accept: {
         appHeader: "Aceitar oferta",
@@ -960,8 +960,8 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
           { key: "offerId", label: "ID da oferta", placeholder: "Selecionado no passo 12", required: true },
           { key: "dspAccountId", label: "Conta DSA", placeholder: "Preenchido do passo 10", required: true },
         ],
-        resultTitle: (r) => r.ok ? (r.httpStatus === 403 ? "✅ Executado" : "Oferta aceita! 🎉") : "Erro ao aceitar",
-        resultBody: (r) => r.ok ? (r.httpStatus === 403 ? "HTTP 403 — permissão marketplace necessária. Código e tokens corretos." : "Oferta aceita com sucesso. Você receberá pagamentos na conta DSA.") : r.message ?? "Não foi possível aceitar a oferta.",
+        resultTitle: (r) => r.ok ? "Oferta aceita! 🎉" : (r.httpStatus === 403 ? "❌ Permissão marketplace necessária" : "Erro ao aceitar"),
+        resultBody: (r) => r.ok ? "Oferta aceita com sucesso. Você receberá pagamentos na conta DSA conforme os dados compartilhados." : r.httpStatus === 403 ? "HTTP 403 AUTHZ_E006 — permissão marketplace não habilitada para este tenant. Solicitar à DrumWave." : r.message ?? "Não foi possível aceitar a oferta.",
       },
       step13_offer_reject: {
         appHeader: "Rejeitar oferta",
