@@ -833,11 +833,8 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     appLead: "Crie e gerencie ofertas de dados para o marketplace.",
     ctaLabel: "Criar oferta",
     fields: [],
-    gapMessage: "Endpoint de criação de ofertas requer permissão marketplace habilitada na API key (AUTHZ_E006). Funciona no Postman — solicitar habilitação à DrumWave para uso server-to-server.",
-    resultTitle: (r) => r.ok ? "Oferta criada" : "API não disponível",
-    resultBody: (r) => r.ok
-      ? "Oferta publicada no marketplace."
-      : r.message ?? "Endpoint não disponível nesta sandbox.",
+    resultTitle: (r) => r.ok ? "Preview gerado!" : "Erro ao criar oferta",
+    resultBody: (r) => r.ok ? "Preview da oferta gerado." : r.message ?? "Não foi possível gerar o preview.",
     actionScreens: {
       step11_offer_preview: {
         appHeader: "Criar oferta",
@@ -919,9 +916,9 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     stepId: 13,
     appKind: "PdW",
     screenTitle: "Aceitar/Rejeitar oferta",
-    screenSubtitle: "Pessoa pré-aceita, aceita ou rejeita oferta no offers-service",
+    screenSubtitle: "Pessoa cria perfil billing, pré-aceita, aceita ou rejeita oferta",
     appHeader: "Confirmar oferta",
-    appLead: "Pré-aceite (opcional) e aceite definitivo com e-mail e conta DSA.",
+    appLead: "Crie o perfil de pagamento (billing) e aceite a oferta.",
     ctaLabel: "Aceitar oferta",
     fields: [
       { key: "offerId", label: "ID da oferta", placeholder: "Preenchido do passo 12", required: true },
@@ -931,6 +928,55 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     resultBody: (r) => r.ok
       ? "Sua decisão sobre a oferta foi registrada."
       : r.message ?? "Não foi possível processar a oferta.",
+    actionScreens: {
+      step13_create_billing_profile: {
+        appHeader: "Perfil de pagamento",
+        appLead: "Crie seu perfil de billing Stripe para poder receber pagamentos ao aceitar ofertas.",
+        ctaLabel: "Criar perfil de billing",
+        fields: [
+          { key: "billingFullName", label: "Nome completo", placeholder: "Ex: Maria Silva", required: true },
+          { key: "billingTaxId", label: "CPF", placeholder: "Ex: 000.000.000-00", required: true },
+          { key: "billingPhone", label: "Telefone", placeholder: "Ex: +5511999999999", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Perfil de billing criado! ✅" : "Erro ao criar perfil",
+        resultBody: (r) => r.ok
+          ? "Perfil Stripe criado. Agora você pode aceitar ofertas e receber pagamentos."
+          : r.message ?? "Não foi possível criar o perfil de billing.",
+      },
+      step13_offer_pre_accept: {
+        appHeader: "Pré-aceitar oferta",
+        appLead: "Confirme o e-mail antes do aceite definitivo (opcional).",
+        ctaLabel: "Pré-aceitar",
+        fields: [
+          { key: "offerId", label: "ID da oferta", placeholder: "Selecionado no passo 12", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Pré-aceite registrado" : "Erro no pré-aceite",
+        resultBody: (r) => r.ok ? "Pré-aceite registrado. Agora confirme o aceite definitivo." : r.message ?? "Não foi possível pré-aceitar.",
+      },
+      step13_offer_accept: {
+        appHeader: "Aceitar oferta",
+        appLead: "Aceite definitivo. Informe o e-mail e a conta DSA para receber os pagamentos.",
+        ctaLabel: "✅ Aceitar oferta",
+        fields: [
+          { key: "offerId", label: "ID da oferta", placeholder: "Selecionado no passo 12", required: true },
+          { key: "dspAccountId", label: "Conta DSA", placeholder: "Preenchido do passo 10", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Oferta aceita! 🎉" : "Erro ao aceitar",
+        resultBody: (r) => r.ok
+          ? "Oferta aceita com sucesso. Você receberá pagamentos na conta DSA conforme os dados compartilhados."
+          : r.message ?? "Não foi possível aceitar a oferta.",
+      },
+      step13_offer_reject: {
+        appHeader: "Rejeitar oferta",
+        appLead: "Rejeite a oferta. Esta ação não pode ser desfeita.",
+        ctaLabel: "❌ Rejeitar oferta",
+        fields: [
+          { key: "offerId", label: "ID da oferta", placeholder: "Selecionado no passo 12", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Oferta rejeitada" : "Erro ao rejeitar",
+        resultBody: (r) => r.ok ? "Oferta rejeitada com sucesso." : r.message ?? "Não foi possível rejeitar a oferta.",
+      },
+    },
   },
   14: {
     stepId: 14,
@@ -1427,9 +1473,8 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
     appLead: "Create and manage data offers for the marketplace.",
     ctaLabel: "Create offer",
     fields: [],
-    gapMessage: "Offer creation endpoint requires marketplace permission enabled on the API key (AUTHZ_E006). Works in Postman — request enablement from DrumWave for server-to-server use.",
-    resultTitle: (r) => r.ok ? "Offer created" : "API not available",
-    resultBody: (r) => r.ok ? "Offer published in the marketplace." : r.message ?? "Endpoint not available in this sandbox.",
+    resultTitle: (r) => r.ok ? "Preview generated!" : "Error creating offer",
+    resultBody: (r) => r.ok ? "Offer preview generated." : r.message ?? "Could not generate preview.",
     actionScreens: {
       step11_offer_preview: {
         appHeader: "Create offer",
@@ -1495,15 +1540,65 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
   13: {
     stepId: 13, appKind: "PdW",
     screenTitle: "Accept offer",
-    screenSubtitle: "Person accepts or rejects a marketplace offer",
+    screenSubtitle: "Person creates billing profile, pre-accepts, accepts or rejects offer",
     appHeader: "Confirm offer",
-    appLead: "Review the terms and confirm your decision about the offer.",
+    appLead: "Create your billing profile (required) then accept the offer.",
     ctaLabel: "Accept offer",
     fields: [
-      { key: "offerId", label: "Offer ID", placeholder: "Auto-filled", required: true },
+      { key: "offerId", label: "Offer ID", placeholder: "Auto-filled from step 12", required: true },
+      { key: "dspAccountId", label: "DSA account", placeholder: "Auto-filled from step 10", required: false },
     ],
     resultTitle: (r) => r.ok ? "Decision registered" : "Error processing offer",
     resultBody: (r) => r.ok ? "Your decision about the offer has been registered." : r.message ?? "Could not process the offer.",
+    actionScreens: {
+      step13_create_billing_profile: {
+        appHeader: "Payment profile",
+        appLead: "Create your Stripe billing profile to receive payments when accepting offers.",
+        ctaLabel: "Create billing profile",
+        fields: [
+          { key: "billingFullName", label: "Full name", placeholder: "e.g. Maria Silva", required: true },
+          { key: "billingTaxId", label: "CPF (tax ID)", placeholder: "e.g. 000.000.000-00", required: true },
+          { key: "billingPhone", label: "Phone", placeholder: "e.g. +5511999999999", required: false },
+        ],
+        resultTitle: (r) => r.ok ? "Billing profile created! ✅" : "Error creating profile",
+        resultBody: (r) => r.ok
+          ? "Stripe profile created. You can now accept offers and receive payments."
+          : r.message ?? "Could not create billing profile.",
+      },
+      step13_offer_pre_accept: {
+        appHeader: "Pre-accept offer",
+        appLead: "Optionally confirm your email before the final acceptance.",
+        ctaLabel: "Pre-accept",
+        fields: [
+          { key: "offerId", label: "Offer ID", placeholder: "Selected in step 12", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Pre-acceptance registered" : "Pre-acceptance error",
+        resultBody: (r) => r.ok ? "Pre-acceptance registered. Now confirm final acceptance." : r.message ?? "Could not pre-accept.",
+      },
+      step13_offer_accept: {
+        appHeader: "Accept offer",
+        appLead: "Final acceptance. Provide your email and DSA account to receive payments.",
+        ctaLabel: "✅ Accept offer",
+        fields: [
+          { key: "offerId", label: "Offer ID", placeholder: "Selected in step 12", required: true },
+          { key: "dspAccountId", label: "DSA account", placeholder: "Auto-filled from step 10", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Offer accepted! 🎉" : "Error accepting",
+        resultBody: (r) => r.ok
+          ? "Offer accepted. You will receive payments in your DSA account as data is shared."
+          : r.message ?? "Could not accept the offer.",
+      },
+      step13_offer_reject: {
+        appHeader: "Reject offer",
+        appLead: "Reject the offer. This action cannot be undone.",
+        ctaLabel: "❌ Reject offer",
+        fields: [
+          { key: "offerId", label: "Offer ID", placeholder: "Selected in step 12", required: true },
+        ],
+        resultTitle: (r) => r.ok ? "Offer rejected" : "Error rejecting",
+        resultBody: (r) => r.ok ? "Offer successfully rejected." : r.message ?? "Could not reject the offer.",
+      },
+    },
   },
   14: {
     stepId: 14, appKind: "Ambos",
