@@ -931,17 +931,14 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
     actionScreens: {
       step13_create_billing_profile: {
         appHeader: "Perfil de pagamento",
-        appLead: "Crie seu perfil de billing Stripe para poder receber pagamentos ao aceitar ofertas.",
-        ctaLabel: "Criar perfil de billing",
-        fields: [
-          { key: "billingFullName", label: "Nome completo", placeholder: "Ex: Maria Silva", required: true },
-          { key: "billingTaxId", label: "CPF", placeholder: "Ex: 000.000.000-00", required: true },
-          { key: "billingPhone", label: "Telefone", placeholder: "Ex: +5511999999999", required: false },
-        ],
-        resultTitle: (r) => r.ok ? "Perfil de billing criado! ✅" : "Erro ao criar perfil",
+        appLead: "Endpoint não disponível nesta sandbox. O perfil billing é criado automaticamente ou provisionado pela DrumWave.",
+        ctaLabel: "Verificar perfil de billing",
+        fields: [],
+        gapMessage: "POST /v1/dwallet/person/billing-profile retorna 404 — endpoint não implementado na sandbox atual. O perfil Stripe é possivelmente criado automaticamente ao registrar a PdW, ou requer provisionamento pela equipe DrumWave. Pule este passo e tente o aceite diretamente.",
+        resultTitle: (r) => r.ok ? "Perfil de billing criado! ✅" : "Endpoint não disponível",
         resultBody: (r) => r.ok
           ? "Perfil Stripe criado. Agora você pode aceitar ofertas e receber pagamentos."
-          : r.message ?? "Não foi possível criar o perfil de billing.",
+          : "POST /v1/dwallet/person/billing-profile retorna 404 nesta sandbox. Pule este passo e tente o aceite (13b) diretamente.",
       },
       step13_offer_pre_accept: {
         appHeader: "Pré-aceitar oferta",
@@ -1553,17 +1550,14 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
     actionScreens: {
       step13_create_billing_profile: {
         appHeader: "Payment profile",
-        appLead: "Create your Stripe billing profile to receive payments when accepting offers.",
-        ctaLabel: "Create billing profile",
-        fields: [
-          { key: "billingFullName", label: "Full name", placeholder: "e.g. Maria Silva", required: true },
-          { key: "billingTaxId", label: "CPF (tax ID)", placeholder: "e.g. 000.000.000-00", required: true },
-          { key: "billingPhone", label: "Phone", placeholder: "e.g. +5511999999999", required: false },
-        ],
-        resultTitle: (r) => r.ok ? "Billing profile created! ✅" : "Error creating profile",
+        appLead: "Endpoint not available in this sandbox. Billing profile is likely auto-created or provisioned by DrumWave.",
+        ctaLabel: "Check billing profile",
+        fields: [],
+        gapMessage: "POST /v1/dwallet/person/billing-profile returns 404 — endpoint not implemented in current sandbox. The Stripe profile is possibly created automatically when registering the PdW, or requires provisioning by the DrumWave team. Skip this step and try the accept directly.",
+        resultTitle: (r) => r.ok ? "Billing profile created! ✅" : "Endpoint not available",
         resultBody: (r) => r.ok
           ? "Stripe profile created. You can now accept offers and receive payments."
-          : r.message ?? "Could not create billing profile.",
+          : "POST /v1/dwallet/person/billing-profile returns 404 in this sandbox. Skip this step and try accept (13b) directly.",
       },
       step13_offer_pre_accept: {
         appHeader: "Pre-accept offer",
