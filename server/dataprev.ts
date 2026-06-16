@@ -1190,14 +1190,18 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "11a (Postman): POST /v1/marketplace/offers/preview. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
-    expectedStatus: [200, 201, 403, 400, 500],
+    expectedStatus: [200, 201, 403],
     buildBody: state => {
       const dskuId = state.cartItemId || state.selectedProductDsku || state.dsku || "";
       const today = new Date().toISOString().slice(0,10);
       const ninetyDays = new Date(Date.now() + 90*24*60*60*1000).toISOString().slice(0,10);
-      const paymentPerParticipant = Number(state.offerPaymentPerParticipant || 10);
+      // All numeric fields must be numbers, not strings (Zod validation on server)
+      const paymentPerParticipant = parseFloat(String(state.offerPaymentPerParticipant || "10")) || 10;
+      const maxParticipants = parseInt(String(state.offerMaxParticipants || "100"), 10) || 100;
+      const totalAmount = paymentPerParticipant * maxParticipants;
+      console.log(`[11a body] dWalletId=${state.businessDwalletId} paymentPerParticipant=${paymentPerParticipant} maxParticipants=${maxParticipants} dsku=${dskuId}`);
       return {
-        dWalletId: state.businessDwalletId || state.businessId || "",
+        dWalletId: String(state.businessDwalletId || state.businessId || ""),
         offerCriteria: {
           title: String(state.offerTitle || "Oferta DrumWave Homologação"),
           description: String(state.offerDescription || "Oferta criada durante jornada de homologação Dataprev"),
@@ -1216,12 +1220,12 @@ const actions: JourneyAction[] = [
             customAttributes: {},
           },
           proposedBudget: {
-            totalAmount: paymentPerParticipant * Number(state.offerMaxParticipants || 100),
+            totalAmount,
             currencyCode: "BRL",
             bidStrategy: "FIXED_BID",
             paymentPerParticipant,
           },
-          maxParticipants: Number(state.offerMaxParticipants || 100),
+          maxParticipants,
           duration: {
             startDate: String(state.offerStartDate || today),
             endDate: String(state.offerEndDate || ninetyDays),
@@ -1245,11 +1249,15 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "11b (Postman): POST /v1/marketplace/offers/purchase. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
-    expectedStatus: [200, 201, 403, 400, 500],
-    buildBody: state => ({
-      previewId: state.offerPreviewId,
-      landingPageUrl: String(state.offerLandingPage || "https://example.com/offer-landing"),
-    }),
+    expectedStatus: [200, 201, 403],
+    buildBody: state => {
+      const previewId = String(state.offerPreviewId || "");
+      console.log(`[11b body] previewId=${previewId}`);
+      return {
+        previewId,
+        landingPageUrl: String(state.offerLandingPage || "https://example.com/offer-landing"),
+      };
+    },
     onSuccess: body => ({
       offerId: findFirst(body, ["offerId", "id"]),
     }),
@@ -1489,7 +1497,7 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
   if (action.id === "step4_list_business_products" && !state.businessId) return "Crie a entidade empresarial (passo 1) para obter o businessId.";
   if (action.id === "step3_create_commercial_value_schema" && !state.valueSchemaSid) return "Selecione um Standard Value Schema (execute o passo 3_list_schemas primeiro).";
   if (action.id === "step11_offer_preview" && !state.businessId) return "Crie a entidade empresarial (passo 1) antes de gerar preview de oferta.";
-  if (action.id === "step11_offer_purchase" && !state.offerPreviewId) return "Gere o preview da oferta (step11_offer_preview) antes de efetivar a compra.";
+  if (action.id === "step11_offer_purchase" && !state.offerPreviewId) return "Gere o preview da oferta (step11_offer_preview) antes de efetivar a compra. O previewId deve ser um UUID válido retornado pela API.";
   if (action.id === "step14_dsa_balance" && !state.dspAccountId && !state.dsaId) return "Crie uma conta DSP (passo 10) para obter o dsaId necessário para consultar o saldo.";
   // Verificação de token com lazy loading do banco (sobrevive a reinicializações do servidor)
   if (action.requiresUser === "employee") {
