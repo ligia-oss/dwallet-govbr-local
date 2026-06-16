@@ -1216,7 +1216,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "11a (Postman): POST /v1/marketplace/offers/preview. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
-    expectedStatus: [200, 201, 403],
+    expectedStatus: [200, 201],
     buildBody: state => {
       const dskuId = state.cartItemId || state.selectedProductDsku || state.dsku || "";
       const today = new Date().toISOString().slice(0,10);
@@ -1275,7 +1275,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "11b (Postman): POST /v1/marketplace/offers/purchase. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
-    expectedStatus: [200, 201, 403],
+    expectedStatus: [200, 201],
     buildBody: state => {
       const previewId = String(state.offerPreviewId || "");
       console.log(`[11b body] previewId=${previewId}`);
@@ -1300,7 +1300,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "12a (Postman): GET /v1/marketplace/offers. 403 AUTHZ_E006 = mesma restrição do passo 11 (permissão marketplace não habilitada para este tenant).",
-    expectedStatus: [200, 201, 204, 403],
+    expectedStatus: [200, 201, 204],
     onSuccess: body => {
       // Postman: items = res?.data || res; firstId = items[0]?.id || items[0]?.offerId
       const arr = (Array.isArray(body) ? body : ((body as Record<string,unknown>)?.data || [])) as Record<string,unknown>[];
@@ -1322,7 +1322,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "employee",
     description: "12b (Postman): GET /v1/marketplace/offers/{offerId}/transactions. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
-    expectedStatus: [200, 201, 204, 403],
+    expectedStatus: [200, 201, 204],
     buildPath: state => `/v1/marketplace/offers/${state.offerId || state.offerId || ""}/transactions`,
     onSuccess: body => {
       const arr = (Array.isArray(body) ? body : ((body as Record<string,unknown>)?.data ? [(body as Record<string,unknown>).data] : [])) as Record<string,unknown>[];
@@ -1351,7 +1351,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "13a (Postman): POST /v1/marketplace/offers/{offerId}/pre-accept. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
-    expectedStatus: [200, 201, 204, 403],
+    expectedStatus: [200, 201, 204],
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/pre-accept`,
     buildBody: state => ({ emailAddress: state.personEmail }),
   },
@@ -1365,7 +1365,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "13b (Postman): POST /v1/marketplace/offers/{offerId}/accept. Body: emailAddress + dataSavingsAccountId. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
-    expectedStatus: [200, 201, 204, 403],
+    expectedStatus: [200, 201, 204],
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/accept`,
     buildBody: state => ({
       emailAddress: state.personEmail,
@@ -1382,7 +1382,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "13c (Postman): POST /v1/marketplace/offers/{offerId}/reject. Body: emailAddress. NOTA TÉCNICA: Retorna HTTP 403 AUTHZ_E006 com a API key atual. Este endpoint requer uma API key com permissão de marketplace habilitada no gateway DrumWave. A chamada está tecnicamente correta (body, URL, headers). Para habilitar: solicitar à equipe DrumWave que ative a permissão 'marketplace' para a API key configurada nas variáveis do servidor.",
-    expectedStatus: [200, 201, 204, 403],
+    expectedStatus: [200, 201, 204],
     buildPath: state => `/v1/marketplace/offers/${state.offerId}/reject`,
     buildBody: state => ({ emailAddress: state.personEmail }),
   },
@@ -1397,7 +1397,7 @@ const actions: JourneyAction[] = [
     requiresM2M: true,
     requiresUser: "person",
     description: "14b (Postman): GET /v1/dsavings/data-savings-accounts/{dsaId}/balance. Usa base_url conforme Postman.",
-    expectedStatus: [200, 201, 204, 403],
+    expectedStatus: [200, 201, 204],
     buildPath: state => `/v1/dsavings/data-savings-accounts/${state.dspAccountId || state.dsaId}/balance`,
     onSuccess: body => ({
       dsaBalance: findFirst(body, ["balance", "amount", "value"]),

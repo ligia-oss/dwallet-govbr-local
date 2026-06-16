@@ -3633,18 +3633,20 @@ export function HomologacaoPhoneMockup({
                   const isCurrent = action.id === actionId;
                   return (
                     <div key={action.id} className="flex items-center gap-1">
-                      <div
-                        className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black transition-all"
+                      <button
+                        onClick={() => { if (onAutoAdvance) { onAutoAdvance(action.id); setPhase("input"); setShowInputOverride(true); } }}
+                        className="w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-black transition-all active:scale-90"
                         style={{
                           background: isDone ? "#6BC02A" : isCurrent ? "#fff" : "rgba(255,255,255,0.12)",
                           color: isDone ? "#fff" : isCurrent ? colors.bg : "rgba(255,255,255,0.35)",
                           border: isCurrent ? "2px solid rgba(255,255,255,0.4)" : "none",
                           boxShadow: isDone ? "0 0 8px #6BC02A55" : "none",
+                          cursor: "pointer",
                         }}
-                        title={action.title}
+                        title={`Ir para: ${action.title}`}
                       >
                         {isDone ? "✓" : idx + 1}
-                      </div>
+                      </button>
                       {idx < stepActions.length - 1 && (
                         <div className="h-[2px] w-3 rounded-full transition-all" style={{ background: isDone ? "#6BC02A" : "rgba(255,255,255,0.1)" }} />
                       )}
@@ -5463,6 +5465,21 @@ export function HomologacaoPhoneMockup({
                   {activeResult.ok ? MT[lang].seeLastResult : MT[lang].seeLastError}
                 </button>
               )}
+
+              {/* Back to previous sub-step — shown when not on the first action */}
+              {stepActions && stepActions.length > 1 && actionId && (() => {
+                const currentIdx = stepActions.findIndex(a => a.id === actionId);
+                const prevAction = stepActions[currentIdx - 1];
+                if (!prevAction || currentIdx <= 0) return null;
+                return (
+                  <button
+                    onClick={() => { if (onAutoAdvance) { onAutoAdvance(prevAction.id); setPhase("input"); setShowInputOverride(true); } }}
+                    className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors flex items-center justify-center gap-1"
+                  >
+                    ← {lang === "en" ? `Back to: ${prevAction.title}` : `Voltar para: ${prevAction.title}`}
+                  </button>
+                );
+              })()}
 
               {/* Painel de IDs capturados — mostra IDs de passos anteriores */}
               {(() => {
