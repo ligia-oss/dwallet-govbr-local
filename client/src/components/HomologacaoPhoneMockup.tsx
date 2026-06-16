@@ -3759,7 +3759,7 @@ export function HomologacaoPhoneMockup({
                   onClick={() => { setShowInputOverride(true); setPhase("input"); }}
                   className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
                 >
-                  ← Voltar ao formulário
+                  ← {lang === "en" ? "Back to form" : "Voltar ao formulário"}
                 </button>
               </div>
             );
@@ -3800,12 +3800,24 @@ export function HomologacaoPhoneMockup({
                   </div>
                 ) : null;
               })()}
-              <button
-                onClick={() => { setShowInputOverride(true); setPhase("input"); }}
-                className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
-              >
-                ← Voltar ao formulário
-              </button>
+
+              {/* Botão de voltar — mais proeminente quando há erro */}
+              {!activeResult.ok ? (
+                <button
+                  onClick={() => { setShowInputOverride(true); setPhase("input"); }}
+                  className="w-full text-sm font-bold py-3 rounded-2xl border-2 transition-colors flex items-center justify-center gap-2"
+                  style={{ borderColor: colors.accent, color: colors.accent, background: `${colors.accent}08` }}
+                >
+                  ✏️ {lang === "en" ? "Edit fields and retry" : "Editar campos e tentar novamente"}
+                </button>
+              ) : (
+                <button
+                  onClick={() => { setShowInputOverride(true); setPhase("input"); }}
+                  className="w-full text-xs font-semibold text-slate-500 py-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 transition-colors"
+                >
+                  ← {lang === "en" ? "Back to form" : "Voltar ao formulário"}
+                </button>
+              )}
             </div>
           )}
 
