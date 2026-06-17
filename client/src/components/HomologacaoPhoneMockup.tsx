@@ -850,6 +850,8 @@ export const PHONE_SCREENS: Record<number, PhoneScreenConfig> = {
           { key: "offerMaxParticipants", label: "Máximo de participantes", placeholder: "Ex: 100", required: false },
           { key: "offerStartDate", label: "Data início (YYYY-MM-DD)", placeholder: new Date().toISOString().slice(0,10), required: false },
           { key: "offerEndDate", label: "Data fim (YYYY-MM-DD)", placeholder: new Date(Date.now() + 90*24*60*60*1000).toISOString().slice(0,10), required: false },
+          { key: "marketplaceEmployeeEmail", label: "📧 E-mail employee c/ role marketplace", placeholder: "employee@empresa.com (fornecido pela DrumWave)", required: false },
+          { key: "marketplaceEmployeePassword", label: "🔑 Senha do employee marketplace", placeholder: "Senha fornecida pela DrumWave", required: false, type: "password", sensitive: true },
         ],
         resultTitle: (r) => r.ok ? "Preview gerado! 🎉" : "Erro ao gerar preview",
         resultBody: (r) => r.ok
@@ -1485,6 +1487,8 @@ const PHONE_SCREENS_EN: Record<number, PhoneScreenConfig> = {
           { key: "offerMaxParticipants", label: "Max participants", placeholder: "e.g. 100", required: false },
           { key: "offerStartDate", label: "Start date (YYYY-MM-DD)", placeholder: new Date().toISOString().slice(0,10), required: false },
           { key: "offerEndDate", label: "End date (YYYY-MM-DD)", placeholder: new Date(Date.now() + 90*24*60*60*1000).toISOString().slice(0,10), required: false },
+          { key: "marketplaceEmployeeEmail", label: "📧 Employee email with marketplace role", placeholder: "employee@company.com (provided by DrumWave)", required: false },
+          { key: "marketplaceEmployeePassword", label: "🔑 Marketplace employee password", placeholder: "Password provided by DrumWave", required: false, type: "password", sensitive: true },
         ],
         resultTitle: (r) => r.ok ? "Preview generated! 🎉" : "Error generating preview",
         resultBody: (r) => r.ok
@@ -5571,6 +5575,17 @@ export function HomologacaoPhoneMockup({
                     const displayValue = field.sensitive && value ? "••••••••" : value;
                     return (
                       <div key={field.key} className="space-y-1">
+                         {/* Marketplace credentials section header */}
+                         {field.key === "marketplaceEmployeeEmail" && (
+                           <div className="pt-1 pb-0.5">
+                             <div className="flex items-center gap-2 mb-1">
+                               <div className="h-px flex-1 bg-slate-200" />
+                               <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400 px-1">Credenciais Marketplace</span>
+                               <div className="h-px flex-1 bg-slate-200" />
+                             </div>
+                             <p className="text-[8px] text-center leading-4 text-slate-400">Credenciais com role marketplace (fornecidas pela DrumWave)</p>
+                           </div>
+                         )}
                         <label className="text-[10px] font-semibold" style={{ color: colors.bg }}>
                           {field.label}{field.required ? " *" : ""}
                         </label>

@@ -1549,9 +1549,13 @@ async function refreshEmployeeToken(
   state: RunState,
   credentials?: DataprevCredentialsInput
 ): Promise<{ newHandle: string; newDwalletId?: string } | null> {
-  const email = state.employeeEmail;
-  const password = state.employeePassword || DEFAULT_PASSWORD;
+  // Use marketplace-specific credentials if provided (option 3: use credentials with marketplace role)
+  const email = state.marketplaceEmployeeEmail || state.employeeEmail;
+  const password = state.marketplaceEmployeePassword || state.employeePassword || DEFAULT_PASSWORD;
   if (!email || !password) return null;
+  if (state.marketplaceEmployeeEmail) {
+    console.log(`[auto-refresh] using marketplace employee: ${email}`);
+  }
 
   const config = env(credentials);
   const m2mResult = await requestM2MToken(false, credentials).catch(() => null);
