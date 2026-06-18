@@ -1181,8 +1181,27 @@ const actions: JourneyAction[] = [
     requiresUser: "person",
     description: "Tenta criar uma conta DSP; respostas 4xx de regra de negócio são exibidas como evidência.",
     expectedStatus: [200, 201, 204, 400, 500],
-    buildBody: state => ({ cdspId: state.selectedDspId || state.commercialDspId || state.standardDspId, categories: ["travel-and-transportation"], currency: "BRL", savingsGoal: 1000, agreedToTermsAndConditions: true }),
-    onSuccess: body => ({ dspAccountId: firstListItem(body)?.id as string | undefined || findFirst(body, ["id", "accountId", "dspAccountId"]) }),
+    buildBody: state => {
+      // Postman pre-request: cdspId MUST be Number (not string) — explicit cast required
+      const rawId = state.dspPlanId || state.selectedDspId || state.commercialDspId || state.standardDspId || "";
+      const cdspId = Number(rawId);
+      console.log(`[step10d] cdspId=${cdspId} (raw=${rawId})`);
+      return {
+        cdspId,
+        categories: ["finance-and-investments"],
+        currency: "BRL",
+        savingsGoal: 1000,
+        agreedToTermsAndConditions: true,
+      };
+    },
+    onSuccess: body => {
+      // Postman test script: const dsaId = res?.data?.id || res?.id
+      const b = body as Record<string,unknown>;
+      const data = (b?.data ?? b) as Record<string,unknown>;
+      const dsaId = String(data?.id ?? b?.id ?? findFirst(body, ["id","accountId","dspAccountId"]) ?? "");
+      console.log(`[step10d] dsaId=${dsaId}`);
+      return { dspAccountId: dsaId || undefined, dsaId: dsaId || undefined };
+    },
   },
   {
     id: "step10_my_savings_plans",
@@ -1388,6 +1407,25 @@ const actions: JourneyAction[] = [
   },
   // ── Step 14: DSA Balance ──────────────────────────────────────────────────────
   {
+    id: "step14_list_dsa_accounts",
+    title: "14a — Listar contas DSA",
+    app: "Ambos",
+    group: "Data Savings Account",
+    method: "GET",
+    path: "/v1/dsavings/data-savings-accounts",
+    status: "external",
+    requiresM2M: true,
+    requiresUser: "person",
+    description: "14a (Postman): GET /v1/dsavings/data-savings-accounts — lista contas DSA e captura dsa_id necessário para step 13b (aceite de oferta).",
+    onSuccess: body => {
+      // Postman: accounts = res?.data || res; dsaId = accounts[0].id
+      const arr = (Array.isArray(body) ? body : ((body as Record<string,unknown>)?.data || [])) as Record<string,unknown>[];
+      const dsaId = String(arr[0]?.id ?? arr[0]?.accountId ?? "");
+      console.log(`[step14a] found ${arr.length} DSA accounts, first id=${dsaId}`);
+      return { dspAccountId: dsaId || undefined, dsaId: dsaId || undefined };
+    },
+  },
+  {
     id: "step14_dsa_balance",
     title: "14b — Saldo da conta DSA",
     app: "Ambos",
@@ -1458,7 +1496,7 @@ const steps: JourneyStep[] = [
   { id: 11, title: "Empresa cria ofertas", app: "Business", summary: "Gera preview + compra de oferta. Requer API key com permissão marketplace no gateway DrumWave (AUTHZ_E006 = restrição de ambiente).", status: "external", actions: actions.filter(a => a.id === "step11_offer_preview" || a.id === "step11_offer_purchase") },
   { id: 12, title: "Visualizar Ofertas e Transações", app: "Personal", summary: "Lista ofertas e transações. Requer API key com permissão marketplace (AUTHZ_E006 = restrição de ambiente, não erro de código).", status: "external", actions: actions.filter(a => a.id === "step12_list_offers" || a.id === "step12_offer_transactions") },
   { id: 13, title: "Pessoa aceita/rejeita oferta", app: "Personal", summary: "Criar perfil billing (pré-req) → pré-aceite (opcional) → aceite/rejeição com emailAddress + dataSavingsAccountId.", status: "external", actions: actions.filter(a => a.id === "step13_create_billing_profile" || a.id === "step13_offer_pre_accept" || a.id === "step13_offer_accept" || a.id === "step13_offer_reject") },
-  { id: 14, title: "Visualizar saldo DSA", app: "Ambos", summary: "Consulta saldo e informações da Data Savings Account (DSA) pelo dsaId.", status: "external", actions: actions.filter(a => a.id === "step14_dsa_balance") },
+  { id: 14, title: "Visualizar saldo DSA", app: "Ambos", summary: "Consulta saldo e informações da Data Savings Account (DSA) pelo dsaId.", status: "external", actions: actions.filter(a => a.id === "step14_list_dsa_accounts" || a.id === "step14_dsa_balance") },
   { id: 15, title: "Solicitar resgate", app: "Ambos", summary: "APIs marcadas como internas.", status: "internal", actions: actions.filter(a => a.id === "step15_withdrawal_internal") },
   { id: 16, title: "Cadastrar PIX/conta", app: "Ambos", summary: "APIs inexistentes ou não externalizadas.", status: "gap", actions: actions.filter(a => a.id === "step16_accounts_gap") },
   { id: 17, title: "Histórico de resgates", app: "Ambos", summary: "APIs inexistentes ou não externalizadas.", status: "gap", actions: actions.filter(a => a.id === "step17_history_gap") },
