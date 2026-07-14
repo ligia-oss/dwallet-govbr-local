@@ -592,6 +592,7 @@ const actions: JourneyAction[] = [
       console.log(`[signin] accessToken=${!!accessToken} dWalletId=${dWalletId} firstName=${firstName}`);
       return {
         employeeTokenHandle: storeToken(accessToken) || undefined,
+        employeeAccessToken: accessToken || undefined,  // raw token — survives server restart
         businessDwalletId: dWalletId || undefined,
         employeeDwalletId: dWalletId || undefined,
         employeeFirstName: firstName || undefined,
@@ -671,6 +672,7 @@ const actions: JourneyAction[] = [
       console.log(`[relogin] accessToken=${!!accessToken} dWalletId=${dWalletId}`);
       return {
         employeeTokenHandle: storeToken(accessToken) || undefined,
+        employeeAccessToken: accessToken || undefined,  // raw token — survives server restart
         businessDwalletId: dWalletId || undefined,
         employeeDwalletId: dWalletId || undefined,
       };
@@ -739,6 +741,7 @@ const actions: JourneyAction[] = [
       console.log(`[person signin] dWalletId=${dWalletId} stripeData=${!!stripePk}`);
       return {
         personTokenHandle: storeToken(token) || undefined,
+        personAccessToken: token || undefined,  // raw token — survives server restart
         personDwalletId: dWalletId || undefined,
         ...(stripePk ? { stripePublishableKey: stripePk } : {}),
         ...(stripeSecret ? { stripeCustomerSessionSecret: stripeSecret } : {}),
@@ -1586,18 +1589,31 @@ async function missingPrerequisite(action: JourneyAction, state: RunState): Prom
 async function refreshEmployeeToken(
   state: RunState,
   credentials?: DataprevCredentialsInput
-): Promise<{ newHandle: string; newDwalletId?: string } | null> {
+): Promise<{ newHandle: string; newDwalletId?: string; rawToken?: string } | null> {
   // Use marketplace-specific credentials if provided (option 3: use credentials with marketplace role)
   const email = state.marketplaceEmployeeEmail || state.employeeEmail;
   const password = state.marketplaceEmployeePassword || state.employeePassword || DEFAULT_PASSWORD;
-  if (!email || !password) return null;
-  if (state.marketplaceEmployeeEmail) {
-    console.log(`[auto-refresh] using marketplace employee: ${email}`);
+  console.log(`[refreshEmployee] email="${email}" hasPassword=${!!password} hasMarketplaceEmail=${!!state.marketplaceEmployeeEmail}`);
+  if (!email) {
+    console.warn("[refreshEmployee] FAILED — employeeEmail is empty in state. Run step 1a/1d first.");
+    return null;
+  }
+  if (!password) {
+    console.warn("[refreshEmployee] FAILED — employeePassword is empty in state.");
+    return null;
   }
 
   const config = env(credentials);
-  const m2mResult = await requestM2MToken(false, credentials).catch(() => null);
-  if (!m2mResult) return null;
+  console.log(`[refreshEmployee] apiKey present=${!!config.apiKey} baseUrl=${config.baseUrl}`);
+  const m2mResult = await requestM2MToken(false, credentials).catch((e) => {
+    console.warn(`[refreshEmployee] M2M token failed: ${e?.message ?? e}`);
+    return null;
+  });
+  if (!m2mResult) {
+    console.warn("[refreshEmployee] FAILED — could not obtain M2M token (check credentials/env vars).");
+    return null;
+  }
+  console.log(`[refreshEmployee] M2M token OK, calling signin for ${email}`);
 
   try {
     const resp = await fetchViaProxy(`${config.baseUrl}/v1/dwallet/auth/signin`, {
@@ -1610,17 +1626,21 @@ async function refreshEmployeeToken(
       },
       body: { email, password },
     });
+    console.log(`[refreshEmployee] signin HTTP ${resp.status}`);
     const body = await resp.json() as Record<string, unknown>;
     const data = (body?.data ?? body) as Record<string, unknown>;
     const tokens = data?.tokens as Record<string, unknown> | undefined;
     const accessToken = String(tokens?.accessToken ?? data?.accessToken ?? "");
     const dWalletId = String(data?.dWalletId ?? (data?.user as Record<string,unknown>)?.dWalletId ?? "");
-    if (!accessToken) return null;
+    if (!accessToken) {
+      console.warn(`[refreshEmployee] FAILED — signin returned no accessToken. Response: ${JSON.stringify(body).slice(0,200)}`);
+      return null;
+    }
     const handle = storeToken(accessToken);
-    console.log(`[auto-refresh] fresh employee token obtained, dWalletId=${dWalletId}`);
-    return handle ? { newHandle: handle, newDwalletId: dWalletId || undefined } : null;
+    console.log(`[refreshEmployee] SUCCESS — fresh employee token, dWalletId=${dWalletId}`);
+    return handle ? { newHandle: handle, newDwalletId: dWalletId || undefined, rawToken: accessToken } : null;
   } catch (err) {
-    console.warn(`[auto-refresh] failed: ${err instanceof Error ? err.message : err}`);
+    console.warn(`[refreshEmployee] EXCEPTION: ${err instanceof Error ? err.message : err}`);
     return null;
   }
 }
@@ -1688,7 +1708,13 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
       executedAt,
     };
   }
-  const userToken = action.requiresUser === "employee" ? await getStoredToken(String(state.employeeTokenHandle || "")) : action.requiresUser === "person" ? await getStoredToken(String(state.personTokenHandle || "")) : undefined;
+  // Try handle first (normal path), then fall back to raw token stored in state
+  // (raw token is needed after server restart when in-memory store is cleared)
+  const userToken = action.requiresUser === "employee"
+    ? (await getStoredToken(String(state.employeeTokenHandle || ""))) || (state.employeeAccessToken ? String(state.employeeAccessToken) : undefined)
+    : action.requiresUser === "person"
+    ? (await getStoredToken(String(state.personTokenHandle || ""))) || (state.personAccessToken ? String(state.personAccessToken) : undefined)
+    : undefined;
 
   // Auto-refresh ALL user tokens BEFORE guard check
   // Cognito tokens expire in ~1h. After server restart (Render/Railway redeploy),
@@ -1749,6 +1775,7 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   }
 
   // Guard: if action requires user token and STILL none after refresh attempt
+  console.log(`[execute] ${action.id} requiresUser=${action.requiresUser} effectiveUserToken=${!!effectiveUserToken} m2m=${!!m2m}`);
   if (action.requiresUser && !effectiveUserToken) {
     const tokenType = action.requiresUser === "employee" ? "colaborador Business" : "pessoa física";
     return {
