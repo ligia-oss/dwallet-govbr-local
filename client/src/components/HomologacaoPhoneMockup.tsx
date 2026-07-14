@@ -5382,33 +5382,34 @@ export function HomologacaoPhoneMockup({
             </div>
           )}
 
-          {/* STEP 13: Offer cards → pre-accept → accept/reject flow */}
+          {/* STEP 13: Offer cards → select → pre-accept → accept/reject */}
           {!isGap && phase === "input" && screen.stepId === 13 && (() => {
-            // Parse available offers from step 12 result stored in runState
             const offersRaw = String(runState.offersList || "");
             const offers: Record<string,unknown>[] = (() => {
               try { return offersRaw ? JSON.parse(offersRaw) : []; } catch { return []; }
             })();
 
-            // Theme images for offer cards based on categories/title
             const getOfferImage = (offer: Record<string,unknown>) => {
-              const title = String(offer.title || offer.name || "").toLowerCase();
-              const cats = JSON.stringify(offer.categories || offer.offerCriteria || "").toLowerCase();
-              if (title.includes("transport") || cats.includes("transport")) return "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&q=80";
-              if (title.includes("financ") || cats.includes("financ") || cats.includes("invest")) return "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80";
-              if (title.includes("health") || title.includes("saúde") || cats.includes("health")) return "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&q=80";
-              if (title.includes("shop") || title.includes("retail") || cats.includes("retail")) return "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&q=80";
-              if (title.includes("data") || title.includes("dado")) return "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&q=80";
+              const t = String(offer.title || offer.name || "").toLowerCase();
+              const c = JSON.stringify(offer.categories || offer.offerCriteria || "").toLowerCase();
+              if (t.includes("transport") || c.includes("transport")) return "https://images.unsplash.com/photo-1544620347-c4fd4a3d5957?w=400&q=80";
+              if (t.includes("financ") || c.includes("financ") || c.includes("invest")) return "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=400&q=80";
+              if (t.includes("health") || t.includes("saúde") || c.includes("health")) return "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=400&q=80";
+              if (t.includes("shop") || t.includes("retail") || c.includes("retail")) return "https://images.unsplash.com/photo-1483985988355-763728e1935b?w=400&q=80";
+              if (t.includes("data") || t.includes("dado")) return "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&q=80";
               return "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=400&q=80";
             };
 
-            // ── Step 13 entry: show offer list from step 12 ──
-            if (actionId === "step13_offer_pre_accept" && !runState.selectedOfferId) {
+            const localSelectedId = String(runState.selectedOfferId || "");
+            const selectedOffer = offers.find(o => String(o.id || o.offerId) === localSelectedId) || null;
+
+            // ── SCREEN A: offer list (no offer selected yet) ──────────────────
+            if (!localSelectedId || !selectedOffer) {
               return (
                 <div className="p-4 space-y-3">
                   <div className="rounded-2xl p-3" style={{ background: colors.bg }}>
                     <p className="text-xs font-bold text-white">{lang === "pt" ? "Ofertas disponíveis" : "Available offers"}</p>
-                    <p className="text-[9px] text-white/60 mt-0.5">{lang === "pt" ? "Toque em uma oferta para pré-aceitar" : "Tap an offer to pre-accept"}</p>
+                    <p className="text-[9px] text-white/60 mt-0.5">{lang === "pt" ? "Toque para selecionar uma oferta" : "Tap to select an offer"}</p>
                   </div>
                   {offers.length === 0 ? (
                     <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-center">
@@ -5423,23 +5424,18 @@ export function HomologacaoPhoneMockup({
                         const desc = String(offer.description || (offer.offerCriteria as Record<string,unknown>)?.description || "");
                         const budget = (offer.proposedBudget || (offer.offerCriteria as Record<string,unknown>)?.proposedBudget) as Record<string,unknown> | undefined;
                         const amount = budget?.paymentPerParticipant || budget?.totalAmount;
-                        const imgUrl = getOfferImage(offer);
                         return (
                           <button key={id || i}
-                            onClick={() => {
-                              onFieldChange("selectedOfferId", id);
-                              if (onAutoAdvance) onAutoAdvance("step13_offer_pre_accept");
-                              handleCta();
-                            }}
+                            onClick={() => onFieldChange("selectedOfferId", id)}
                             className="w-full text-left rounded-2xl overflow-hidden active:scale-[0.97] transition-all"
                             style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.10)" }}
                           >
                             <div className="relative h-28">
-                              <img src={imgUrl} alt={title} className="absolute inset-0 w-full h-full object-cover" />
-                              <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 60%)" }} />
+                              <img src={getOfferImage(offer)} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+                              <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 60%)" }} />
                               <div className="absolute bottom-0 left-0 right-0 p-3">
                                 <p className="text-xs font-bold text-white leading-tight">{title}</p>
-                                {amount !== undefined && (
+                                {amount !== undefined && amount !== null && (
                                   <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#6BC02A" }}>
                                     BRL {Number(amount).toLocaleString("pt-BR")} / participante
                                   </p>
@@ -5460,28 +5456,26 @@ export function HomologacaoPhoneMockup({
               );
             }
 
-            // ── Pre-accept result: show offer details + accept/reject buttons ──
-            if (actionId === "step13_offer_accept" || (actionId === "step13_offer_pre_accept" && runState.selectedOfferId)) {
-              const selectedOffer = offers.find(o => String(o.id || o.offerId) === runState.selectedOfferId) || {} as Record<string,unknown>;
-              const title = String(selectedOffer.title || selectedOffer.name || (selectedOffer.offerCriteria as Record<string,unknown>)?.title || "Oferta selecionada");
-              const imgUrl = getOfferImage(selectedOffer);
+            // ── SCREEN B: offer selected → pre-accept CTA ─────────────────────
+            // selectedOffer IS set. Show detail card + explicit "Pré-aceitar" button.
+            // handleCta() fires HERE with selectedOfferId already in runState.
+            if (actionId === "step13_offer_pre_accept") {
+              const title = String(selectedOffer.title || selectedOffer.name || (selectedOffer.offerCriteria as Record<string,unknown>)?.title || "Oferta");
               const budget = (selectedOffer.proposedBudget || (selectedOffer.offerCriteria as Record<string,unknown>)?.proposedBudget) as Record<string,unknown> | undefined;
               const amount = budget?.paymentPerParticipant || budget?.totalAmount;
               const desc = String(selectedOffer.description || (selectedOffer.offerCriteria as Record<string,unknown>)?.description || "");
               return (
                 <div className="p-4 space-y-3">
-                  {/* Offer card */}
                   <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}>
                     <div className="relative h-36">
-                      <img src={imgUrl} alt={title} className="absolute inset-0 w-full h-full object-cover" />
-                      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, rgba(0,0,0,0.05) 60%)" }} />
+                      <img src={getOfferImage(selectedOffer)} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 60%)" }} />
                       <div className="absolute bottom-0 left-0 right-0 p-3">
-                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "#6BC02A" }}>
-                          {lang === "pt" ? "Aceitar oferta?" : "Accept offer?"}
-                        </p>
-                        <p className="text-sm font-bold text-white">{title}</p>
-                        {amount !== undefined && (
-                          <p className="text-[10px] text-white/80 mt-0.5">BRL {Number(amount).toLocaleString("pt-BR")} / participante</p>
+                        <p className="text-xs font-bold text-white leading-tight">{title}</p>
+                        {amount !== undefined && amount !== null && (
+                          <p className="text-[10px] font-semibold mt-0.5" style={{ color: "#6BC02A" }}>
+                            BRL {Number(amount).toLocaleString("pt-BR")} / participante
+                          </p>
                         )}
                       </div>
                     </div>
@@ -5491,37 +5485,80 @@ export function HomologacaoPhoneMockup({
                       </div>
                     )}
                     <div className="px-3 py-2 bg-slate-50 border-t border-slate-100">
-                      <p className="text-[8px] font-mono text-slate-400 truncate">ID: {String(runState.selectedOfferId || "")}</p>
+                      <p className="text-[8px] font-mono text-slate-400 truncate">offer_id: {localSelectedId}</p>
                     </div>
                   </div>
-                  {/* Accept / Reject buttons */}
+                  {/* Explicit pre-accept CTA — fires AFTER selectedOfferId is in state */}
+                  <button
+                    onClick={handleCta}
+                    disabled={isExecuting}
+                    className="w-full rounded-xl px-4 py-3 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-60"
+                    style={{ background: colors.accent, boxShadow: `0 4px 16px ${colors.accent}44` }}
+                  >
+                    {isExecuting
+                      ? <span className="flex items-center justify-center gap-2"><svg className="animate-spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg></span>
+                      : lang === "pt" ? "Pré-aceitar oferta" : "Pre-accept offer"}
+                  </button>
+                  <button onClick={() => onFieldChange("selectedOfferId", "")}
+                    className="w-full text-[10px] text-slate-400 py-1">
+                    ← {lang === "pt" ? "Ver outras ofertas" : "Other offers"}
+                  </button>
+                </div>
+              );
+            }
+
+            // ── SCREEN C: pre-accept done → "Aceitar oferta?" Sim / Não ─────────
+            if (actionId === "step13_offer_accept" || actionId === "step13_offer_reject") {
+              const title = String(selectedOffer.title || selectedOffer.name || (selectedOffer.offerCriteria as Record<string,unknown>)?.title || "Oferta");
+              const budget = (selectedOffer.proposedBudget || (selectedOffer.offerCriteria as Record<string,unknown>)?.proposedBudget) as Record<string,unknown> | undefined;
+              const amount = budget?.paymentPerParticipant || budget?.totalAmount;
+              const desc = String(selectedOffer.description || (selectedOffer.offerCriteria as Record<string,unknown>)?.description || "");
+              return (
+                <div className="p-4 space-y-3">
+                  <div className="rounded-2xl overflow-hidden" style={{ boxShadow: "0 2px 12px rgba(0,0,0,0.12)" }}>
+                    <div className="relative h-36">
+                      <img src={getOfferImage(selectedOffer)} alt={title} className="absolute inset-0 w-full h-full object-cover" />
+                      <div className="absolute inset-0" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.80) 0%, transparent 60%)" }} />
+                      <div className="absolute bottom-0 left-0 right-0 p-3">
+                        <p className="text-[10px] font-bold uppercase tracking-wide mb-0.5" style={{ color: "#6BC02A" }}>
+                          {lang === "pt" ? "Aceitar oferta?" : "Accept offer?"}
+                        </p>
+                        <p className="text-xs font-bold text-white">{title}</p>
+                        {amount !== undefined && amount !== null && (
+                          <p className="text-[10px] text-white/80">BRL {Number(amount).toLocaleString("pt-BR")} / participante</p>
+                        )}
+                      </div>
+                    </div>
+                    {desc && <div className="px-3 py-2 bg-white"><p className="text-[10px] text-slate-600">{desc}</p></div>}
+                    <div className="px-3 py-2 bg-slate-50 border-t border-slate-100">
+                      <p className="text-[8px] font-mono text-slate-400 truncate">offer_id: {localSelectedId}</p>
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
+                    {/* Não / Rejeitar */}
                     <button
-                      onClick={() => { if (onAutoAdvance) onAutoAdvance("step13_offer_reject"); handleCta(); }}
+                      onClick={() => { if (onAutoAdvance) { onAutoAdvance("step13_offer_reject"); } setTimeout(handleCta, 50); }}
                       disabled={isExecuting}
                       className="rounded-xl px-3 py-3 text-sm font-bold transition-all active:scale-95 disabled:opacity-60"
                       style={{ background: "#fef2f2", color: "#dc2626", border: "2px solid #fecaca" }}
                     >
                       ✕ {lang === "pt" ? "Não" : "No"}
                     </button>
+                    {/* Sim / Aceitar */}
                     <button
-                      onClick={() => { if (onAutoAdvance) onAutoAdvance("step13_offer_accept"); handleCta(); }}
+                      onClick={() => { if (onAutoAdvance) { onAutoAdvance("step13_offer_accept"); } setTimeout(handleCta, 50); }}
                       disabled={isExecuting}
                       className="rounded-xl px-3 py-3 text-sm font-bold text-white transition-all active:scale-95 disabled:opacity-60"
                       style={{ background: "#16a34a", boxShadow: "0 4px 12px #16a34a44" }}
                     >
-                      {isExecuting ? (
-                        <span className="flex items-center justify-center gap-1">
-                          <svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg>
-                        </span>
-                      ) : `✓ ${lang === "pt" ? "Sim" : "Yes"}`}
+                      {isExecuting
+                        ? <span className="flex items-center justify-center gap-1"><svg className="animate-spin" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3"><circle cx="12" cy="12" r="10" strokeOpacity="0.3"/><path d="M12 2a10 10 0 0110 10" strokeLinecap="round"/></svg></span>
+                        : `✓ ${lang === "pt" ? "Sim" : "Yes"}`}
                     </button>
                   </div>
-                  <button
-                    onClick={() => { onFieldChange("selectedOfferId", ""); }}
-                    className="w-full text-[10px] text-slate-400 py-1 hover:text-slate-600 transition-colors"
-                  >
-                    ← {lang === "pt" ? "Ver outras ofertas" : "See other offers"}
+                  <button onClick={() => onFieldChange("selectedOfferId", "")}
+                    className="w-full text-[10px] text-slate-400 py-1">
+                    ← {lang === "pt" ? "Escolher outra oferta" : "Choose another offer"}
                   </button>
                 </div>
               );
