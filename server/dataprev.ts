@@ -1824,6 +1824,8 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
     console.log(`[step11 body] dWalletId=${bodyObj?.dWalletId} state.businessDwalletId=${effectiveState.businessDwalletId}`);
   }
   const requestHeaders = headers({ m2m, userToken: effectiveUserToken, region: action.includeRegion, content: action.method !== "GET", acceptLanguage: action.acceptLanguage }, credentials);
+  // Log what we're actually sending to confirm token presence
+  console.log(`[execute:headers] ${action.id} m2m=${!!m2m} userToken=${!!effectiveUserToken} tokenPreview=${effectiveUserToken ? effectiveUserToken.slice(0,12)+"..." : "MISSING"} hasXUserToken=${"X-User-Access-Token" in requestHeaders}`);
   const effectiveBaseUrl = action.baseUrlOverride || env(credentials).baseUrl;
   // Use effectiveState.businessDwalletId if it was updated by token refresh
   const resolvedPath = action.buildPath ? action.buildPath(effectiveState) : (action.path ?? path);
