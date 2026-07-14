@@ -1194,7 +1194,10 @@ function StepDetailPanel({
                           </div>
                         </div>
                       )}
-                      {/* REQUEST SENT — body and headers */}
+                      {/* REQUEST SENT — headers and body */}
+                      {result.requestHeaders !== undefined && (
+                        <JsonViewer data={result.requestHeaders} label={t.requestHeaders} lang={lang} collapsedByDefault={true} />
+                      )}
                       {result.requestBody !== undefined && (
                         <JsonViewer data={result.requestBody} label={t.requestBody} lang={lang} collapsedByDefault={true} />
                       )}
@@ -1390,7 +1393,12 @@ function EvidenceTab({
                   {result.stateUpdates && Object.keys(result.stateUpdates).length > 0 && (
                     <JsonViewer data={result.stateUpdates} label={t.stateUpdates} lang={lang} />
                   )}
-                  {/* REQUEST SENT */}
+                  {/* REQUEST SENT — headers and body */}
+                  {result.requestHeaders !== undefined && (
+                    <div className="mt-2">
+                      <JsonViewer data={result.requestHeaders} label={t.requestHeaders} lang={lang} collapsedByDefault={true} />
+                    </div>
+                  )}
                   {result.requestBody !== undefined && (
                     <div className="mt-2">
                       <JsonViewer data={result.requestBody} label={t.requestBody} lang={lang} collapsedByDefault={true} />

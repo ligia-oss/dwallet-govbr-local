@@ -1690,77 +1690,76 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   }
   const userToken = action.requiresUser === "employee" ? await getStoredToken(String(state.employeeTokenHandle || "")) : action.requiresUser === "person" ? await getStoredToken(String(state.personTokenHandle || "")) : undefined;
 
-  // Guard: if action requires user token but none is available, return clear error
-  if (action.requiresUser && !userToken) {
+  // Auto-refresh ALL user tokens BEFORE guard check
+  // Cognito tokens expire in ~1h. After server restart (Render/Railway redeploy),
+  // tokens are lost from memory. Always refresh to ensure fresh token.
+  let effectiveUserToken = userToken;
+  let effectiveState = state;
+  const isOfferAction = action.id.startsWith("step11_") || action.id.startsWith("step12_") || action.id.startsWith("step13_");
+  const isPersonOfferAction = action.id.startsWith("step13_") && action.requiresUser === "person";
+
+  if (action.requiresUser === "employee") {
+    // Always refresh: handles missing token (server restart) AND expired token
+    const refreshed = await refreshEmployeeToken(state, credentials);
+    if (refreshed) {
+      effectiveUserToken = await getStoredToken(refreshed.newHandle);
+      effectiveState = {
+        ...state,
+        employeeTokenHandle: refreshed.newHandle,
+        ...(refreshed.newDwalletId ? { businessDwalletId: refreshed.newDwalletId } : {}),
+      };
+      console.log(`[execute] ${action.id} — employee token refreshed (prev=${userToken ? "had" : "missing"})`);
+    } else if (!userToken) {
+      console.warn(`[execute] ${action.id} — employee refresh failed, no token`);
+    }
+    // If refresh failed but we had a cached token, keep it as fallback
+    if (!effectiveUserToken && userToken) effectiveUserToken = userToken;
+  }
+
+  if (action.requiresUser === "person") {
+    const email = state.personEmail;
+    const password = state.personPassword || DEFAULT_PASSWORD;
+    if (email && password && m2m) {
+      try {
+        const config = env(credentials);
+        const resp = await fetchViaProxy(`${config.baseUrl}/v1/dwallet/auth/signin`, {
+          method: "POST",
+          headers: { "x-api-key": config.apiKey, "Authorization": `Bearer ${m2m}`, "Content-Type": "application/json", "x-region": "BR" },
+          body: { email, password },
+        });
+        const b = await resp.json() as Record<string,unknown>;
+        const d = (b?.data ?? b) as Record<string,unknown>;
+        const tokens = d?.tokens as Record<string,unknown> | undefined;
+        const token = String(tokens?.accessToken ?? d?.accessToken ?? "");
+        if (token) {
+          const handle = storeToken(token);
+          if (handle) {
+            effectiveUserToken = await getStoredToken(handle);
+            effectiveState = { ...effectiveState, personTokenHandle: handle };
+            console.log(`[execute] ${action.id} — person token refreshed`);
+          }
+        }
+      } catch (e) {
+        console.warn(`[execute] ${action.id} — person refresh failed, using cached`);
+        if (!effectiveUserToken && userToken) effectiveUserToken = userToken;
+      }
+    } else if (!effectiveUserToken && userToken) {
+      effectiveUserToken = userToken; // fallback to cached
+    }
+  }
+
+  // Guard: if action requires user token and STILL none after refresh attempt
+  if (action.requiresUser && !effectiveUserToken) {
     const tokenType = action.requiresUser === "employee" ? "colaborador Business" : "pessoa física";
     return {
       actionId: action.id,
       actionTitle: action.title,
       status: "not_executable" as const,
       ok: false,
-      message: `Token de ${tokenType} não encontrado no servidor. Execute o login novamente (passo 1d para BdW ou passo 2d para PdW) e tente de novo.`,
+      message: `Token de ${tokenType} não encontrado. Execute o login (passo 1d para BdW, passo 2d para PdW) e tente novamente.`,
       responseBody: { tokenMissing: action.requiresUser, handle: state.employeeTokenHandle || state.personTokenHandle || "(nenhum)" },
       executedAt,
     };
-  }
-
-  // Auto-refresh ALL user tokens — Cognito tokens are short-lived (~1h)
-  // When server restarts (e.g. Render redeploy) or token expires, auto-refresh before every call
-  const isOfferAction = action.id.startsWith("step11_") || action.id.startsWith("step12_") || action.id.startsWith("step13_");
-  const isPersonOfferAction = action.id.startsWith("step13_") && action.requiresUser === "person";
-  let effectiveUserToken = userToken;
-  let effectiveState = state;
-
-  // Refresh employee token for ALL actions that need it (not just offer steps)
-  if (action.requiresUser === "employee") {
-    // Always refresh if token is missing; refresh for offers always (expired Cognito token)
-    const needsRefresh = !userToken || isOfferAction;
-    if (needsRefresh) {
-      const refreshed = await refreshEmployeeToken(state, credentials);
-      if (refreshed) {
-        effectiveUserToken = await getStoredToken(refreshed.newHandle);
-        effectiveState = {
-          ...state,
-          employeeTokenHandle: refreshed.newHandle,
-          ...(refreshed.newDwalletId ? { businessDwalletId: refreshed.newDwalletId } : {}),
-        };
-        console.log(`[execute] ${action.id} — refreshed employee token (was ${userToken ? "stale" : "missing"})`);
-      } else if (!userToken) {
-        console.warn(`[execute] ${action.id} — employee token refresh failed and no cached token`);
-      }
-    }
-  }
-  if (action.requiresUser === "person") {
-    // Refresh person token when missing or for offer steps (Cognito expiry)
-    const needsPersonRefresh = !effectiveUserToken || isPersonOfferAction;
-    if (needsPersonRefresh) {
-      const email = state.personEmail;
-      const password = state.personPassword || DEFAULT_PASSWORD;
-      if (email && password && m2m) {
-        try {
-          const config = env(credentials);
-          const resp = await fetchViaProxy(`${config.baseUrl}/v1/dwallet/auth/signin`, {
-            method: "POST",
-            headers: { "x-api-key": config.apiKey, "Authorization": `Bearer ${m2m}`, "Content-Type": "application/json", "x-region": "BR" },
-            body: { email, password },
-          });
-          const b = await resp.json() as Record<string,unknown>;
-          const d = (b?.data ?? b) as Record<string,unknown>;
-          const tokens = d?.tokens as Record<string,unknown> | undefined;
-          const token = String(tokens?.accessToken ?? d?.accessToken ?? "");
-          if (token) {
-            const handle = storeToken(token);
-            if (handle) {
-              effectiveUserToken = await getStoredToken(handle);
-              effectiveState = { ...effectiveState, personTokenHandle: handle };
-              console.log(`[execute] ${action.id} — refreshed person token (was ${userToken ? "stale" : "missing"})`);
-            }
-          }
-        } catch (e) {
-          console.warn(`[execute] ${action.id} — person token refresh failed`);
-        }
-      }
-    }
   }
 
   console.log(`[execute] ${action.id} m2m=${!!m2m} userToken=${!!effectiveUserToken} fresh=${isOfferAction}`);
