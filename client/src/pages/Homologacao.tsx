@@ -87,9 +87,11 @@ const T = {
     seconds: "s",
     minutes: "min",
     copyJson: "Copiar JSON",
+    requestSent: "REQUISIÇÃO ENVIADA",
+    requestBody: "BODY ENVIADO",
+    requestHeaders: "HEADERS ENVIADOS",
     copied: "Copiado!",
     stateUpdates: "Variáveis capturadas",
-    requestSent: "Requisição enviada",
     responseReceived: "Resposta recebida",
     noEvidence: "Nenhuma evidência ainda. Execute os passos para ver os resultados aqui.",
     resetConfirm: "Isso apagará todas as evidências e variáveis do teste. Confirmar?",
@@ -164,9 +166,11 @@ const T = {
     seconds: "s",
     minutes: "min",
     copyJson: "Copy JSON",
+    requestSent: "REQUEST SENT",
+    requestBody: "REQUEST BODY",
+    requestHeaders: "REQUEST HEADERS",
     copied: "Copied!",
     stateUpdates: "Captured variables",
-    requestSent: "Request sent",
     responseReceived: "Response received",
     noEvidence: "No evidence yet. Execute steps to see results here.",
     resetConfirm: "This will erase all test evidence and variables. Confirm?",
@@ -284,10 +288,12 @@ function StatusDot({ status }: { status: StepStatus }) {
   return <span className={`inline-block w-3 h-3 rounded-full ${map[status]}`} />;
 }
 
-function JsonViewer({ data, label, lang }: { data: unknown; label?: string; lang: Lang }) {
+function JsonViewer({ data, label, lang, collapsedByDefault }: { data: unknown; label?: string; lang: Lang; collapsedByDefault?: boolean }) {
   const t = T[lang];
   const [copied, setCopied] = useState(false);
+  const [collapsed, setCollapsed] = useState(collapsedByDefault ?? false);
   const text = JSON.stringify(data, null, 2);
+  const isRequest = label === t.requestBody || label === t.requestSent;
   const handleCopy = () => {
     navigator.clipboard.writeText(text).then(() => {
       setCopied(true);
@@ -295,16 +301,21 @@ function JsonViewer({ data, label, lang }: { data: unknown; label?: string; lang
     });
   };
   return (
-    <div className="rounded-lg border border-gray-200 bg-gray-50 overflow-hidden">
+    <div className={`rounded-lg border overflow-hidden ${isRequest ? "border-blue-200 bg-blue-50" : "border-gray-200 bg-gray-50"}`}>
       {label && (
-        <div className="flex items-center justify-between px-3 py-1.5 bg-gray-100 border-b border-gray-200">
-          <span className="text-xs font-semibold text-gray-600 uppercase tracking-wide">{label}</span>
-          <button onClick={handleCopy} className="text-xs text-blue-600 hover:text-blue-800 transition-colors">
+        <div className={`flex items-center justify-between px-3 py-1.5 border-b ${isRequest ? "bg-blue-100 border-blue-200" : "bg-gray-100 border-gray-200"}`}>
+          <button onClick={() => setCollapsed(c => !c)} className="flex items-center gap-1.5 flex-1 text-left">
+            <span className="text-[10px]">{collapsed ? "▶" : "▼"}</span>
+            <span className={`text-xs font-semibold uppercase tracking-wide ${isRequest ? "text-blue-700" : "text-gray-600"}`}>{label}</span>
+          </button>
+          <button onClick={handleCopy} className="text-xs text-blue-600 hover:text-blue-800 transition-colors ml-2">
             {copied ? t.copied : t.copyJson}
           </button>
         </div>
       )}
-      <pre className="text-xs p-3 overflow-x-auto max-h-48 text-gray-800 font-mono leading-relaxed">{text}</pre>
+      {!collapsed && (
+        <pre className="text-xs p-3 overflow-x-auto max-h-48 text-gray-800 font-mono leading-relaxed">{text}</pre>
+      )}
     </div>
   );
 }
@@ -1183,6 +1194,10 @@ function StepDetailPanel({
                           </div>
                         </div>
                       )}
+                      {/* REQUEST SENT — body and headers */}
+                      {result.requestBody !== undefined && (
+                        <JsonViewer data={result.requestBody} label={t.requestBody} lang={lang} collapsedByDefault={true} />
+                      )}
                       {result.responseBody !== undefined && (
                         <JsonViewer data={result.responseBody} label={t.responseReceived} lang={lang} />
                       )}
@@ -1374,6 +1389,12 @@ function EvidenceTab({
                   {result.message && !result.ok && <p className="text-xs text-red-600 mb-2">{result.message}</p>}
                   {result.stateUpdates && Object.keys(result.stateUpdates).length > 0 && (
                     <JsonViewer data={result.stateUpdates} label={t.stateUpdates} lang={lang} />
+                  )}
+                  {/* REQUEST SENT */}
+                  {result.requestBody !== undefined && (
+                    <div className="mt-2">
+                      <JsonViewer data={result.requestBody} label={t.requestBody} lang={lang} collapsedByDefault={true} />
+                    </div>
                   )}
                   {result.responseBody !== undefined && (
                     <div className="mt-2">
