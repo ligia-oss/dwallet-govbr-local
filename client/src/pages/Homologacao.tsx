@@ -355,6 +355,9 @@ export default function Homologacao() {
 
   // Run state (localStorage)
   const [runState, setRunState] = useState<RunState>(() => loadFromStorage(STORAGE_KEY_STATE, {}));
+  // Ref mirrors runState so executeAction always reads the LATEST value,
+  // not the value captured at render time (fixes selectedOfferId race condition in step 13)
+  const runStateRef = useRef<RunState>(runState);
   const [stepResults, setStepResults] = useState<StepResult[]>(() => loadFromStorage(STORAGE_KEY_RESULTS, []));
   const [activeStep, setActiveStep] = useState<number>(() => loadFromStorage(STORAGE_KEY_ACTIVE_STEP, 0));
   const [executingAction, setExecutingAction] = useState<string | null>(null);
@@ -372,7 +375,10 @@ export default function Homologacao() {
   const clearM2MToken = trpc.dataprev.clearM2MToken.useMutation();
 
   // Persist state changes
-  useEffect(() => { saveToStorage(STORAGE_KEY_STATE, runState); }, [runState]);
+  useEffect(() => {
+    saveToStorage(STORAGE_KEY_STATE, runState);
+    runStateRef.current = runState; // keep ref in sync
+  }, [runState]);
   useEffect(() => { saveToStorage(STORAGE_KEY_RESULTS, stepResults); }, [stepResults]);
   useEffect(() => { saveToStorage(STORAGE_KEY_ACTIVE_STEP, activeStep); }, [activeStep]);
   useEffect(() => { saveToStorage(STORAGE_KEY_LANG, lang); }, [lang]);
@@ -517,7 +523,7 @@ export default function Homologacao() {
     }
     setExecutingAction(actionId);
     try {
-      const stateWithCodes = { ...runState };
+      const stateWithCodes = { ...runStateRef.current }; // use ref — always latest, even after synchronous setRunState
       // Inject verification codes if present
       if (verificationCodes[actionId]) {
         if (actionId.includes("employee_verify")) stateWithCodes.employeeVerificationCode = verificationCodes[actionId];
@@ -645,7 +651,11 @@ export default function Homologacao() {
 
   // Handler for field changes from the phone mockup
   const handlePhoneFieldChange = (key: string, value: string) => {
-    setRunState(prev => ({ ...prev, [key]: value }));
+    setRunState(prev => {
+      const next = { ...prev, [key]: value };
+      runStateRef.current = next; // update ref synchronously so executeAction sees it immediately
+      return next;
+    });
   };
   // Handler for CTA button in the phone mockup
   const handlePhoneExecute = (actionId: string) => {
