@@ -1704,53 +1704,61 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
     };
   }
 
-  // Auto-refresh employee token for marketplace offer calls (Cognito tokens are short-lived)
-  // The engineer confirmed: AUTHZ_E006 happens when reusing an expired/stale employee token
-  // Fix: always get a fresh token immediately before any offer/marketplace call
+  // Auto-refresh ALL user tokens — Cognito tokens are short-lived (~1h)
+  // When server restarts (e.g. Render redeploy) or token expires, auto-refresh before every call
   const isOfferAction = action.id.startsWith("step11_") || action.id.startsWith("step12_") || action.id.startsWith("step13_");
   const isPersonOfferAction = action.id.startsWith("step13_") && action.requiresUser === "person";
   let effectiveUserToken = userToken;
   let effectiveState = state;
-  if (isOfferAction && action.requiresUser === "employee") {
-    const refreshed = await refreshEmployeeToken(state, credentials);
-    if (refreshed) {
-      effectiveUserToken = await getStoredToken(refreshed.newHandle);
-      effectiveState = {
-        ...state,
-        employeeTokenHandle: refreshed.newHandle,
-        ...(refreshed.newDwalletId ? { businessDwalletId: refreshed.newDwalletId } : {}),
-      };
-      console.log(`[execute] ${action.id} — used fresh employee token`);
-    } else {
-      console.warn(`[execute] ${action.id} — token refresh failed, proceeding with cached token`);
+
+  // Refresh employee token for ALL actions that need it (not just offer steps)
+  if (action.requiresUser === "employee") {
+    // Always refresh if token is missing; refresh for offers always (expired Cognito token)
+    const needsRefresh = !userToken || isOfferAction;
+    if (needsRefresh) {
+      const refreshed = await refreshEmployeeToken(state, credentials);
+      if (refreshed) {
+        effectiveUserToken = await getStoredToken(refreshed.newHandle);
+        effectiveState = {
+          ...state,
+          employeeTokenHandle: refreshed.newHandle,
+          ...(refreshed.newDwalletId ? { businessDwalletId: refreshed.newDwalletId } : {}),
+        };
+        console.log(`[execute] ${action.id} — refreshed employee token (was ${userToken ? "stale" : "missing"})`);
+      } else if (!userToken) {
+        console.warn(`[execute] ${action.id} — employee token refresh failed and no cached token`);
+      }
     }
   }
-  if (isPersonOfferAction) {
-    // Refresh person token for step13 — same Cognito expiry issue
-    const email = state.personEmail;
-    const password = state.personPassword || DEFAULT_PASSWORD;
-    if (email && password && m2m) {
-      try {
-        const config = env(credentials);
-        const resp = await fetchViaProxy(`${config.baseUrl}/v1/dwallet/auth/signin`, {
-          method: "POST",
-          headers: { "x-api-key": config.apiKey, "Authorization": `Bearer ${m2m}`, "Content-Type": "application/json", "x-region": "BR" },
-          body: { email, password },
-        });
-        const b = await resp.json() as Record<string,unknown>;
-        const d = (b?.data ?? b) as Record<string,unknown>;
-        const t = d?.tokens as Record<string,unknown> | undefined;
-        const token = String(t?.accessToken ?? d?.accessToken ?? "");
-        if (token) {
-          const handle = storeToken(token);
-          if (handle) {
-            effectiveUserToken = await getStoredToken(handle);
-            effectiveState = { ...effectiveState, personTokenHandle: handle };
-            console.log(`[execute] ${action.id} — used fresh person token`);
+  if (action.requiresUser === "person") {
+    // Refresh person token when missing or for offer steps (Cognito expiry)
+    const needsPersonRefresh = !effectiveUserToken || isPersonOfferAction;
+    if (needsPersonRefresh) {
+      const email = state.personEmail;
+      const password = state.personPassword || DEFAULT_PASSWORD;
+      if (email && password && m2m) {
+        try {
+          const config = env(credentials);
+          const resp = await fetchViaProxy(`${config.baseUrl}/v1/dwallet/auth/signin`, {
+            method: "POST",
+            headers: { "x-api-key": config.apiKey, "Authorization": `Bearer ${m2m}`, "Content-Type": "application/json", "x-region": "BR" },
+            body: { email, password },
+          });
+          const b = await resp.json() as Record<string,unknown>;
+          const d = (b?.data ?? b) as Record<string,unknown>;
+          const tokens = d?.tokens as Record<string,unknown> | undefined;
+          const token = String(tokens?.accessToken ?? d?.accessToken ?? "");
+          if (token) {
+            const handle = storeToken(token);
+            if (handle) {
+              effectiveUserToken = await getStoredToken(handle);
+              effectiveState = { ...effectiveState, personTokenHandle: handle };
+              console.log(`[execute] ${action.id} — refreshed person token (was ${userToken ? "stale" : "missing"})`);
+            }
           }
+        } catch (e) {
+          console.warn(`[execute] ${action.id} — person token refresh failed`);
         }
-      } catch (e) {
-        console.warn(`[execute] ${action.id} — person token refresh failed`);
       }
     }
   }

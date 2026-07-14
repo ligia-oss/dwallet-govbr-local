@@ -35,6 +35,14 @@ export const DATAPREV_CREDENTIALS_STORAGE_KEY = "govbr.dataprev.credentials.v1";
 export const DATAPREV_M2M_TOKEN_STORAGE_KEY = "govbr.dataprev.m2mToken.v1";
 export const EMPTY_DATAPREV_CREDENTIALS: DataprevCredentialForm = { baseUrl: "", apiKey: "", clientId: "", clientSecret: "" };
 
+// Default credentials from Postman collection — pre-filled for convenience
+export const DEFAULT_DATAPREV_CREDENTIALS: DataprevCredentialForm = {
+  baseUrl: "https://api.sandbox.drumwave.com.br",
+  apiKey: "pO9xhJPlYh4thAzceW7sU93yeRdASz3D9RV4RPQW",
+  clientId: "58l30bcuq3sv5stq2nkt7mcuj7",
+  clientSecret: "1i566dr4l6mvm98qcsvbag1nq81eloqe7s9masjhkcesm2l37dgk",
+};
+
 export function normalizeDataprevCredentials(value: Partial<DataprevCredentialForm> | null | undefined): DataprevCredentialForm {
   return {
     baseUrl: typeof value?.baseUrl === "string" ? value.baseUrl : "",
@@ -57,10 +65,13 @@ export function readPersistedDataprevCredentials(storage: BrowserCredentialStora
   if (!storage) return { ...EMPTY_DATAPREV_CREDENTIALS };
   try {
     const raw = storage.getItem(DATAPREV_CREDENTIALS_STORAGE_KEY);
-    if (!raw) return { ...EMPTY_DATAPREV_CREDENTIALS };
-    return normalizeDataprevCredentials(JSON.parse(raw));
+    if (!raw) return { ...DEFAULT_DATAPREV_CREDENTIALS };
+    const parsed = normalizeDataprevCredentials(JSON.parse(raw));
+    // If stored creds are empty, fall back to defaults
+    if (!parsed.apiKey && !parsed.clientId) return { ...DEFAULT_DATAPREV_CREDENTIALS };
+    return parsed;
   } catch {
-    return { ...EMPTY_DATAPREV_CREDENTIALS };
+    return { ...DEFAULT_DATAPREV_CREDENTIALS };
   }
 }
 
