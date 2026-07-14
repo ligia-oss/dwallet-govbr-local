@@ -3168,6 +3168,20 @@ export function HomologacaoPhoneMockup({
   // Seleção de oferta (passo 12) → pré-requisito para passo 13
   const [selectedOfferId, setSelectedOfferId] = useState<string>("");
 
+  // Limpar oferta selecionada ao sair/entrar no passo 13
+  // garante que Tela A (lista de ofertas) sempre aparece primeiro ao navegar para o passo 13
+  const prevStep13Ref = useRef<number>(stepId);
+  useEffect(() => {
+    if (prevStep13Ref.current !== stepId) {
+      prevStep13Ref.current = stepId;
+      if (stepId === 13) {
+        // Entrou no passo 13 → limpar seleção para mostrar Tela A (lista de ofertas)
+        setSelectedOfferId("");
+        onFieldChange("selectedOfferId", "");
+      }
+    }
+  }, [stepId]);
+
   // ─── Passo 7: estado local autocontido ──────────────────────────────────────
   // "idle" = tela inicial com botão Listar
   // "selecting" = lista de IDs com checkboxes + botões Aceitar/Rejeitar
@@ -5412,9 +5426,32 @@ export function HomologacaoPhoneMockup({
                     <p className="text-[9px] text-white/60 mt-0.5">{lang === "pt" ? "Toque para selecionar uma oferta" : "Tap to select an offer"}</p>
                   </div>
                   {offers.length === 0 ? (
-                    <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-center">
-                      <p className="text-xs font-bold text-amber-700 mb-1">⚠️ {lang === "pt" ? "Nenhuma oferta carregada" : "No offers loaded"}</p>
-                      <p className="text-[9px] text-amber-600">{lang === "pt" ? "Execute o passo 12 (listar ofertas) primeiro." : "Run step 12 (list offers) first."}</p>
+                    <div className="space-y-3">
+                      <div className="rounded-2xl bg-amber-50 border border-amber-200 p-4 text-center">
+                        <p className="text-xs font-bold text-amber-700 mb-1">⚠️ {lang === "pt" ? "Nenhuma oferta carregada" : "No offers loaded"}</p>
+                        <p className="text-[9px] text-amber-600">{lang === "pt" ? "Execute o passo 12 (listar ofertas) primeiro." : "Run step 12 (list offers) first."}</p>
+                      </div>
+                      {/* Fallback: manual offerId input */}
+                      <div className="rounded-2xl bg-white border border-slate-200 p-3 space-y-2">
+                        <p className="text-[10px] font-bold text-slate-600">{lang === "pt" ? "Ou informe o offer_id manualmente:" : "Or enter offer_id manually:"}</p>
+                        <input
+                          type="text"
+                          placeholder="ex: 550e8400-e29b-41d4-a716-446655440000"
+                          value={localSelectedId}
+                          onChange={e => onFieldChange("selectedOfferId", e.target.value)}
+                          className="w-full text-[10px] border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 font-mono focus:outline-none focus:ring-1"
+                          style={{ "--tw-ring-color": colors.accent } as React.CSSProperties}
+                        />
+                        {localSelectedId && (
+                          <button
+                            onClick={() => { /* selectedOfferId already set via onChange */ }}
+                            className="w-full rounded-xl py-2 text-xs font-bold text-white"
+                            style={{ background: colors.accent }}
+                          >
+                            {lang === "pt" ? "Usar este offer_id →" : "Use this offer_id →"}
+                          </button>
+                        )}
+                      </div>
                     </div>
                   ) : (
                     <div className="space-y-2">
