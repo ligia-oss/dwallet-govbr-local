@@ -5431,9 +5431,9 @@ export function HomologacaoPhoneMockup({
                         <p className="text-xs font-bold text-amber-700 mb-1">⚠️ {lang === "pt" ? "Nenhuma oferta carregada" : "No offers loaded"}</p>
                         <p className="text-[9px] text-amber-600">{lang === "pt" ? "Execute o passo 12 (listar ofertas) primeiro." : "Run step 12 (list offers) first."}</p>
                       </div>
-                      {/* Fallback: manual offerId input */}
+                      {/* Fallback: manual offerId + marketplace person credentials */}
                       <div className="rounded-2xl bg-white border border-slate-200 p-3 space-y-2">
-                        <p className="text-[10px] font-bold text-slate-600">{lang === "pt" ? "Ou informe o offer_id manualmente:" : "Or enter offer_id manually:"}</p>
+                        <p className="text-[10px] font-bold text-slate-600">{lang === "pt" ? "Informe o offer_id manualmente:" : "Enter offer_id manually:"}</p>
                         <input
                           type="text"
                           placeholder="ex: 550e8400-e29b-41d4-a716-446655440000"
@@ -5442,15 +5442,35 @@ export function HomologacaoPhoneMockup({
                           className="w-full text-[10px] border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 font-mono focus:outline-none focus:ring-1"
                           style={{ "--tw-ring-color": colors.accent } as React.CSSProperties}
                         />
-                        {localSelectedId && (
-                          <button
-                            onClick={() => { /* selectedOfferId already set via onChange */ }}
-                            className="w-full rounded-xl py-2 text-xs font-bold text-white"
-                            style={{ background: colors.accent }}
-                          >
-                            {lang === "pt" ? "Usar este offer_id →" : "Use this offer_id →"}
-                          </button>
-                        )}
+                      </div>
+                      {/* Marketplace person credentials override */}
+                      <div className="rounded-2xl bg-white border border-slate-200 p-3 space-y-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <div className="h-px flex-1 bg-slate-200" />
+                          <span className="text-[8px] font-bold uppercase tracking-widest text-slate-400 px-1">Credenciais Marketplace (PdW)</span>
+                          <div className="h-px flex-1 bg-slate-200" />
+                        </div>
+                        <p className="text-[8px] text-slate-400 text-center leading-4">
+                          {lang === "pt"
+                            ? "Preencha com credenciais de pessoa que tenha a permissão marketplace habilitada (fornecidas pela DrumWave)"
+                            : "Enter credentials of a person with marketplace permission enabled (provided by DrumWave)"}
+                        </p>
+                        <input
+                          type="email"
+                          placeholder={lang === "pt" ? "📧 E-mail da pessoa marketplace" : "📧 Marketplace person email"}
+                          value={String(runState.marketplacePersonEmail || "")}
+                          onChange={e => onFieldChange("marketplacePersonEmail", e.target.value)}
+                          className="w-full text-[10px] border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1"
+                          style={{ "--tw-ring-color": colors.accent } as React.CSSProperties}
+                        />
+                        <input
+                          type="password"
+                          placeholder={lang === "pt" ? "🔑 Senha da pessoa marketplace" : "🔑 Marketplace person password"}
+                          value={String(runState.marketplacePersonPassword || "")}
+                          onChange={e => onFieldChange("marketplacePersonPassword", e.target.value)}
+                          className="w-full text-[10px] border border-slate-200 rounded-xl px-3 py-2 bg-slate-50 focus:outline-none focus:ring-1"
+                          style={{ "--tw-ring-color": colors.accent } as React.CSSProperties}
+                        />
                       </div>
                     </div>
                   ) : (

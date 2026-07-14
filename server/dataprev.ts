@@ -1740,8 +1740,10 @@ async function execute(action: JourneyAction, inputState: RunState, credentials?
   }
 
   if (action.requiresUser === "person") {
-    const email = state.personEmail;
-    const password = state.personPassword || DEFAULT_PASSWORD;
+    // Use marketplace-specific person credentials if provided (same pattern as step 11)
+    const email = (isOfferAction && state.marketplacePersonEmail) ? state.marketplacePersonEmail : state.personEmail;
+    const password = (isOfferAction && state.marketplacePersonPassword) ? state.marketplacePersonPassword : (state.personPassword || DEFAULT_PASSWORD);
+    if (email) console.log(`[execute] ${action.id} — person login: ${email}${isOfferAction && state.marketplacePersonEmail ? " (marketplace override)" : ""}`);
     if (email && password && m2m) {
       try {
         const config = env(credentials);
